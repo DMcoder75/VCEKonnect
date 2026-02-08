@@ -4,28 +4,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
-import { getNotes, saveNote, deleteNote } from '@/services/storage';
+import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/types';
 import { VCE_SUBJECTS } from '@/constants/vceData';
 
 export default function NotesScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const { notes, saveNote: saveNoteHook, deleteNote: deleteNoteHook } = useNotes();
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [isCreating, setIsCreating] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-
-  useEffect(() => {
-    loadNotes();
-  }, []);
-
-  async function loadNotes() {
-    const allNotes = await getNotes();
-    setNotes(allNotes);
-  }
 
   const filteredNotes = selectedSubject === 'all'
     ? notes
@@ -44,8 +35,7 @@ export default function NotesScreen() {
       updatedAt: new Date().toISOString(),
     };
 
-    await saveNote(note);
-    await loadNotes();
+    await saveNoteHook(note);
     setIsCreating(false);
     setEditingNote(null);
     setTitle('');
@@ -53,8 +43,7 @@ export default function NotesScreen() {
   }
 
   async function handleDeleteNote(noteId: string) {
-    await deleteNote(noteId);
-    await loadNotes();
+    await deleteNoteHook(noteId);
   }
 
   function handleEditNote(note: Note) {

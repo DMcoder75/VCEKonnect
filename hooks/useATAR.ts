@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react';
-import { getSubjectScores, saveSubjectScores } from '@/services/storage';
+import { useAuth } from './useAuth';
+import { getSubjectScores, saveSubjectScore } from '@/services/scoresService';
 import { calculateStudyScore, calculateATAR, calculateATARScenarios } from '@/services/atarCalculator';
 import { SubjectScore } from '@/types';
 
 export function useATAR() {
+  const { user } = useAuth();
   const [subjectScores, setSubjectScores] = useState<SubjectScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadScores();
-  }, []);
+    if (user) {
+      loadScores();
+    }
+  }, [user]);
 
   async function loadScores() {
+    if (!user) return;
+    
     try {
-      const scores = await getSubjectScores();
+      const scores = await getSubjectScores(user.id);
       setSubjectScores(scores);
     } catch (error) {
       console.error('Failed to load scores:', error);
@@ -28,6 +34,8 @@ export function useATAR() {
     examPrediction: number,
     studyRank: number
   ): Promise<void> {
+    if (!user) return;
+
     const predictedStudyScore = calculateStudyScore(
       subjectId,
       sacAverage,
@@ -35,6 +43,22 @@ export function useATAR() {
       studyRank
     );
 
+    // Save to database
+    const { error } = await saveSubjectScore(
+      user.id,
+      subjectId,
+      sacAverage,
+      examPrediction,
+      studyRank,
+      predictedStudyScore
+    );
+
+    if (error) {
+      alert(error);
+      return;
+    }
+
+    // Update local state
     const existingIndex = subjectScores.findIndex(s => s.subjectId === subjectId);
     let updatedScores: SubjectScore[];
 
@@ -61,13 +85,21 @@ export function useATAR() {
     }
 
     setSubjectScores(updatedScores);
-    await saveSubjectScores(updatedScores);
   }
 
   async function removeScore(subjectId: string): Promise<void> {
+    if (!user) return;
+
+    const { deleteSubjectScore } = await import('@/services/scoresService');
+    const { error } = await deleteSubjectScore(user.id, subjectId);
+
+    if (error) {
+      alert(error);
+      return;
+    }
+
     const filtered = subjectScores.filter(s => s.subjectId !== subjectId);
     setSubjectScores(filtered);
-    await saveSubjectScores(filtered);
   }
 
   function getPrediction() {

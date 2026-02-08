@@ -1,21 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from './useAuth';
 import { 
-  getActiveTimer, 
-  saveActiveTimer, 
-  saveStudySession, 
-  getStudySessions 
-} from '@/services/storage';
-import { StudySession } from '@/types';
+  startStudySession, 
+  endStudySession, 
+  getStudyTimeBySubject 
+} from '@/services/studyService';
 
 export function useStudyTimer() {
+  const { user } = useAuth();
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  // Load active timer on mount
-  useEffect(() => {
-    loadActiveTimer();
-  }, []);
 
   // Update elapsed time every second
   useEffect(() => {
@@ -30,82 +26,64 @@ export function useStudyTimer() {
     return () => clearInterval(interval);
   }, [activeSubject, startTime]);
 
-  async function loadActiveTimer() {
-    const timer = await getActiveTimer();
-    if (timer) {
-      setActiveSubject(timer.subjectId);
-      setStartTime(new Date(timer.startTime));
-    }
-  }
-
   async function startTimer(subjectId: string) {
+    if (!user) return;
+
     // Stop current timer if any
-    if (activeSubject) {
+    if (activeSubject && activeSessionId) {
       await stopTimer();
     }
 
     const now = new Date();
+    const { sessionId, error } = await startStudySession(user.id, subjectId);
+
+    if (error || !sessionId) {
+      alert(error || 'Failed to start timer');
+      return;
+    }
+
     setActiveSubject(subjectId);
+    setActiveSessionId(sessionId);
     setStartTime(now);
     setElapsedSeconds(0);
-    
-    await saveActiveTimer({
-      subjectId,
-      startTime: now.toISOString(),
-    });
   }
 
-  async function stopTimer(): Promise<StudySession | null> {
-    if (!activeSubject || !startTime) return null;
+  async function stopTimer() {
+    if (!activeSubject || !activeSessionId || !startTime) return;
 
     const now = new Date();
-    const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60); // minutes
+    const durationMinutes = (now.getTime() - startTime.getTime()) / 1000 / 60;
 
-    const session: StudySession = {
-      id: 'session_' + Date.now(),
-      subjectId: activeSubject,
-      startTime: startTime.toISOString(),
-      endTime: now.toISOString(),
-      duration,
-      date: now.toISOString().split('T')[0],
-    };
-
-    await saveStudySession(session);
-    await saveActiveTimer(null);
+    const { error } = await endStudySession(activeSessionId, durationMinutes);
+    if (error) {
+      console.error('Failed to stop timer:', error);
+    }
 
     setActiveSubject(null);
+    setActiveSessionId(null);
     setStartTime(null);
     setElapsedSeconds(0);
-
-    return session;
   }
 
   async function getTodayStudyTime(): Promise<{ [subjectId: string]: number }> {
-    const today = new Date().toISOString().split('T')[0];
-    const sessions = await getStudySessions();
-    const todaySessions = sessions.filter(s => s.date === today);
+    if (!user) return {};
 
-    const timeBySubject: { [subjectId: string]: number } = {};
-    todaySessions.forEach(session => {
-      timeBySubject[session.subjectId] = (timeBySubject[session.subjectId] || 0) + session.duration;
-    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return timeBySubject;
+    return await getStudyTimeBySubject(user.id, today, tomorrow);
   }
 
   async function getWeeklyStudyTime(): Promise<{ [subjectId: string]: number }> {
-    const sessions = await getStudySessions();
-    const oneWeekAgo = new Date();
+    if (!user) return {};
+
+    const today = new Date();
+    const oneWeekAgo = new Date(today);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    const recentSessions = sessions.filter(s => new Date(s.date) >= oneWeekAgo);
-
-    const timeBySubject: { [subjectId: string]: number } = {};
-    recentSessions.forEach(session => {
-      timeBySubject[session.subjectId] = (timeBySubject[session.subjectId] || 0) + session.duration;
-    });
-
-    return timeBySubject;
+    return await getStudyTimeBySubject(user.id, oneWeekAgo, today);
   }
 
   return {

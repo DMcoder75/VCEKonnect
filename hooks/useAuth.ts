@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getUserProfile, saveUserProfile } from '@/services/storage';
 import { UserProfile } from '@/types';
+import {
+  loginUser,
+  registerUser,
+  getCurrentUser,
+  updateUserProfile,
+  logoutUser,
+} from '@/services/authService';
 
 export function useAuth() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -11,67 +17,50 @@ export function useAuth() {
   }, []);
 
   async function loadUser() {
-    try {
-      const profile = await getUserProfile();
-      setUser(profile);
-    } catch (error) {
-      console.error('Failed to load user:', error);
-    } finally {
-      setIsLoading(false);
+    setIsLoading(true);
+    const currentUser = await getCurrentUser();
+    setUser(currentUser);
+    setIsLoading(false);
+  }
+
+  async function login(email: string, password: string) {
+    const { user: loggedInUser, error } = await loginUser(email, password);
+    if (error) {
+      alert(error);
+      return;
     }
+    setUser(loggedInUser);
   }
 
-  async function login(email: string, password: string): Promise<boolean> {
-    // Mock login - V1.0 uses local storage
-    const mockUser: UserProfile = {
-      id: 'user_' + Date.now(),
-      email,
-      name: email.split('@')[0],
-      yearLevel: 12,
-      selectedSubjects: [],
-      targetUniversities: [],
-      isPremium: false,
-    };
-    
-    await saveUserProfile(mockUser);
-    setUser(mockUser);
-    return true;
-  }
-
-  async function signup(email: string, password: string, name: string): Promise<boolean> {
-    const newUser: UserProfile = {
-      id: 'user_' + Date.now(),
-      email,
-      name,
-      yearLevel: 12,
-      selectedSubjects: [],
-      targetUniversities: [],
-      isPremium: false,
-    };
-    
-    await saveUserProfile(newUser);
+  async function register(email: string, password: string, name: string) {
+    const { user: newUser, error } = await registerUser(email, password, name);
+    if (error) {
+      alert(error);
+      return;
+    }
     setUser(newUser);
-    return true;
   }
 
-  async function updateProfile(updates: Partial<UserProfile>): Promise<void> {
+  async function updateProfile(updates: Partial<UserProfile>) {
     if (!user) return;
-    
-    const updatedUser = { ...user, ...updates };
-    await saveUserProfile(updatedUser);
-    setUser(updatedUser);
+    const { error } = await updateUserProfile(user.id, updates);
+    if (error) {
+      alert(error);
+      return;
+    }
+    setUser({ ...user, ...updates });
   }
 
-  async function logout(): Promise<void> {
+  async function logout() {
+    await logoutUser();
     setUser(null);
   }
 
   return {
     user,
     isLoading,
-    isAuthenticated: !!user,
     login,
-    signup,
+    register,
     updateProfile,
     logout,
   };

@@ -7,22 +7,37 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Input, Button } from '@/components';
 
-export default function LoginScreen() {
+export default function SignupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { register } = useAuth();
   
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  async function handleLogin() {
-    if (!email || !password) return;
+  async function handleSignup() {
+    if (!name || !email || !password || !confirmPassword) {
+      alert('Please fill in all fields');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
     
     setIsLoading(true);
-    await login(email, password);
+    await register(email, password, name);
     setIsLoading(false);
-    router.replace('/');
+    router.replace('/onboarding');
   }
 
   return (
@@ -37,17 +52,18 @@ export default function LoginScreen() {
             <MaterialIcons name="school" size={48} color={colors.primary} />
           </View>
           <Text style={styles.appName}>VCE Konnect</Text>
-          <Text style={styles.tagline}>Your ATAR Journey Starts Here</Text>
-        </View>
-
-        {/* Mock Notice */}
-        <View style={styles.mockNotice}>
-          <MaterialIcons name="info-outline" size={20} color={colors.warning} />
-          <Text style={styles.mockText}>DEMO MODE - Enter any credentials</Text>
+          <Text style={styles.tagline}>Create Your Account</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
+          <Input
+            label="Full Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="John Smith"
+          />
+          
           <Input
             label="Email"
             value={email}
@@ -65,29 +81,30 @@ export default function LoginScreen() {
             secureTextEntry
           />
           
+          <Input
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="••••••••"
+            secureTextEntry
+          />
+          
           <Button
-            title={isLoading ? 'Logging in...' : 'Log In'}
-            onPress={handleLogin}
-            disabled={!email || !password || isLoading}
+            title={isLoading ? 'Creating Account...' : 'Sign Up'}
+            onPress={handleSignup}
+            disabled={!name || !email || !password || !confirmPassword || isLoading}
             fullWidth
           />
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Pressable onPress={() => router.push('/auth/signup')}>
+          <Pressable onPress={() => router.back()}>
             <Text style={styles.footerText}>
-              Don't have an account?{' '}
-              <Text style={styles.footerLink}>Sign Up</Text>
+              Already have an account?{' '}
+              <Text style={styles.footerLink}>Log In</Text>
             </Text>
           </Pressable>
-        </View>
-
-        {/* Demo Credentials */}
-        <View style={styles.demoBox}>
-          <Text style={styles.demoTitle}>Demo Credentials</Text>
-          <Text style={styles.demoText}>Email: test@example.com</Text>
-          <Text style={styles.demoText}>Password: 123456</Text>
         </View>
       </ScrollView>
     </View>
@@ -127,23 +144,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-  mockNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.warning,
-  },
-  mockText: {
-    fontSize: typography.bodySmall,
-    color: colors.warning,
-    fontWeight: typography.semibold,
-  },
   form: {
     marginBottom: spacing.lg,
   },
@@ -158,24 +158,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontWeight: typography.semibold,
-  },
-  demoBox: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  demoTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  demoText: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    fontFamily: 'monospace',
   },
 });

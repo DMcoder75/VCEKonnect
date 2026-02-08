@@ -1,75 +1,149 @@
-# Welcome to OnSpace AI
+# VCE Konnect - ATAR Tracking App for Victorian Students
 
-Onspace AI empowers anyone to turn ideas into powerful AI applications in minutes—no coding required. Our free, no-code platform enables effortless creation of custom AI apps; simply describe your vision and our agentic AI handles the rest. The onspace-app, built with React Native and Expo, demonstrates this capability—integrating popular third-party libraries to deliver seamless cross-platform performance across iOS, Android, and Web environments.
+A comprehensive React Native mobile app for Victorian Certificate of Education (VCE) students to track progress, predict ATAR, manage study time, take notes, and plan university pathways.
+
+## Features
+
+### ✅ Completed Features
+- **User Authentication** - Custom authentication with email/password (no Supabase auth.users)
+- **ATAR Predictor** - Real 2024 VTAC scaling formulas with official subject scaling data
+- **Study Time Tracker** - Per-subject timers with daily/weekly analytics
+- **Notes & Progress Journal** - Subject-based notes with searchable content
+- **Career & Uni Pathway Planner** - Course suggestions based on predicted ATAR
+- **Dashboard & Analytics** - Real-time ATAR prediction, study time graphs
+- **Complete VCE Subjects List** - All 80+ subjects from 2024 VCE scaling report
+
+### 📊 Database Schema (vk_ prefix)
+- `vk_users` - User profiles (custom auth, no auth.users dependency)
+- `vk_subject_scores` - SAC averages and exam predictions per subject
+- `vk_study_sessions` - Study timer session logs
+- `vk_notes` - Study notes with tags and timestamps
+- `vk_vce_subjects` - Reference table with 2024 scaling data
+
+## Tech Stack
+- **Frontend:** React Native, Expo, TypeScript, Expo Router
+- **Backend:** External Supabase (xududbaqaaffcaejwuix.supabase.co)
+- **Database:** PostgreSQL with Row Level Security (RLS)
+- **State:** React Hooks with real-time backend sync
+- **Design:** Dark mode, VCE-specific UI, Australian English
+
+## External Supabase Connection
+This project uses an external Supabase instance:
+- **URL:** https://xududbaqaaffcaejwuix.supabase.co
+- **Database:** Custom vk_* tables with RLS policies
+- **Auth:** Custom table-based auth (not Supabase Auth)
+
+## 2024 VCE Subjects Included
+Complete list from official 2024 VTAC scaling report:
+
+### English (Mandatory)
+- English (EN) - Mean: 28.2
+- English as Additional Language (EF) - Mean: 27.7
+- English Language (EG) - Mean: 32.6
+- Literature (L) - Mean: 31.2
+
+### Mathematics
+- Foundation Mathematics (MA10) - Mean: 21.3
+- General Mathematics (NF) - Mean: 27.8
+- Mathematical Methods (NJ) - Mean: 34.5
+- Specialist Mathematics (NS) - Mean: 41.6
+
+### Sciences
+- Biology (BI) - Mean: 30.4
+- Chemistry (CH) - Mean: 33.7
+- Physics (PH) - Mean: 32.2
+- Psychology (PY) - Mean: 28.4
+- Environmental Science (EV) - Mean: 28.0
+
+### Humanities (15+ subjects)
+Accounting, Business Management, Economics, Geography, History (Ancient/Australian/Revolutions), Legal Studies, Philosophy, Politics, Sociology, Health & Human Development, Classical Studies, Religion and Society
+
+### Arts
+Art Creative Practice, Dance, Drama, Media, Music (Composition/Performance/Inquiry)
+
+### Technology
+Algorithmics, Applied Computing (Data Analytics/Software Dev), Product Design
+
+### Languages (25+ languages)
+Arabic, Auslan, Chinese (First/Second/Advanced), French, German, Greek, Indonesian, Italian, Japanese, Korean, Spanish, Vietnamese, and more
+
+### Other
+Agricultural Studies, Food Studies, Physical Education, Outdoor Studies, Extended Investigation
+
+## ATAR Calculation Method
+Uses official 2024 VTAC formulas:
+1. **Scaled Study Scores** - Subject-specific scaling using 2024 mean/std deviation
+2. **Aggregate Calculation** - English + Best 3 + 10% of 5th/6th subjects
+3. **ATAR Conversion** - Official 2024 aggregate-to-ATAR lookup table
+4. **Scenarios** - Best case (+10% exams) and worst case (-10% exams)
 
 ## Getting Started
 
-### 1. Install Dependencies
+### Prerequisites
+- Node.js 18+
+- Expo CLI
+- iOS Simulator or Android Emulator
+- Access to external Supabase instance
 
+### Installation
 ```bash
 npm install
-# or
-yarn install
 ```
 
-### 2. Start the Project
+### Required Dependencies
+The project auto-installs these via depcheck:
+- `@supabase/supabase-js` - Database client
+- `@react-native-async-storage/async-storage` - Session storage
+- `react-native-bcrypt` - Password hashing
+- Other Expo and React Native core packages
 
-- Start the development server (choose your platform):
-
+### Running the App
 ```bash
-npm run start         # Start Expo development server
-npm run android       # Launch Android emulator
-npm run ios           # Launch iOS simulator
-npm run web           # Start the web version
+# Start development server
+npx expo start
+
+# iOS
+npx expo start --ios
+
+# Android
+npx expo start --android
+
+# Web (limited support)
+npx expo start --web
 ```
 
-- Reset the project (clear cache, etc.):
+## Database Setup
 
-```bash
-npm run reset-project
-```
+All database tables have been created with the SQL script in the development logs. Tables use `vk_` prefix and include:
+- RLS policies for user data isolation
+- Indexes for performance
+- Triggers for `updated_at` timestamps
+- Custom set_config function for RLS context
 
-### 3. Lint the Code
+## Authentication Flow
+1. User signs up → hashed password stored in vk_users
+2. Login → password verification → session stored in AsyncStorage
+3. RLS policies use app.user_id context (set via set_config function)
+4. No dependency on Supabase auth.users table
 
-```bash
-npm run lint
-```
+## Future Enhancements (Not in V1.0)
+- [ ] SAC Calendar with reminders
+- [ ] Weekly study goals and progress bars
+- [ ] CSV export for study logs
+- [ ] Subject performance comparison charts
+- [ ] Real Stripe payment integration (currently mocked)
+- [ ] Push notifications for study reminders
+- [ ] Community features (anonymized ATAR sharing)
+- [ ] Offline mode with sync
 
-## Main Dependencies
+## Known Limitations
+- Premium features are mocked (no real Stripe integration in V1.0)
+- ATAR predictions are approximations (not official VTAC results)
+- Google OAuth not implemented in V1.0
+- Requires internet connection (no offline mode)
 
-- React Native: 0.79.4
-- React: 19.0.0
-- Expo: ~53.0.12
-- Expo Router: ~5.1.0
-- Supabase: ^2.50.0
-- Other commonly used libraries:  
-  - @expo/vector-icons  
-  - react-native-paper  
-  - react-native-calendars  
-  - lottie-react-native  
-  - react-native-webview  
-  - and more
-
-For a full list of dependencies, see [package.json](./package.json).
-
-## Development Tools
-
-- TypeScript: ~5.8.3
-- ESLint: ^9.25.0
-- @babel/core: ^7.25.2
-
-## Contributing
-
-1. Fork this repository
-2. Create a new branch (`git checkout -b main`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
+## Support
+For issues or questions, contact the development team.
 
 ## License
-
-This project is private ("private": true). For collaboration inquiries, please contact the author.
-
----
-
-Feel free to add project screenshots, API documentation, feature descriptions, or any other information as needed.
+Proprietary - All rights reserved

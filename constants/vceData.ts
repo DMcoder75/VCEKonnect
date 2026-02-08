@@ -2,42 +2,103 @@ export interface VCESubject {
   id: string;
   name: string;
   code: string;
-  category: 'English' | 'Mathematics' | 'Science' | 'Humanities' | 'Languages' | 'Arts' | 'Other';
+  category: 'English' | 'Mathematics' | 'Science' | 'Humanities' | 'Languages' | 'Arts' | 'Technology' | 'Other';
+  scaledMean?: number;
+  scaledStdDev?: number;
 }
 
+// Complete VCE Subjects List - 2024 Scaling Report
 export const VCE_SUBJECTS: VCESubject[] = [
-  // English (mandatory)
-  { id: 'eng', name: 'English', code: 'ENG', category: 'English' },
-  { id: 'eal', name: 'English as Additional Language', code: 'EAL', category: 'English' },
-  { id: 'lit', name: 'Literature', code: 'LIT', category: 'English' },
+  // === ENGLISH (Mandatory - at least one required) ===
+  { id: 'en', name: 'English', code: 'EN', category: 'English', scaledMean: 28.2, scaledStdDev: 7.6 },
+  { id: 'ef', name: 'English as an Additional Language', code: 'EF', category: 'English', scaledMean: 27.7, scaledStdDev: 8.3 },
+  { id: 'eg', name: 'English Language', code: 'EG', category: 'English', scaledMean: 32.6, scaledStdDev: 7.1 },
+  { id: 'l', name: 'Literature', code: 'L', category: 'English', scaledMean: 31.2, scaledStdDev: 7.3 },
   
-  // Mathematics
-  { id: 'mathm', name: 'Mathematical Methods', code: 'MATHM', category: 'Mathematics' },
-  { id: 'spesh', name: 'Specialist Mathematics', code: 'SPESH', category: 'Mathematics' },
-  { id: 'further', name: 'Further Mathematics', code: 'FURTHER', category: 'Mathematics' },
+  // === MATHEMATICS ===
+  { id: 'ma10', name: 'Foundation Mathematics', code: 'MA10', category: 'Mathematics', scaledMean: 21.3, scaledStdDev: 6.9 },
+  { id: 'nf', name: 'General Mathematics', code: 'NF', category: 'Mathematics', scaledMean: 27.8, scaledStdDev: 7.2 },
+  { id: 'nj', name: 'Mathematical Methods', code: 'NJ', category: 'Mathematics', scaledMean: 34.5, scaledStdDev: 8.4 },
+  { id: 'ns', name: 'Specialist Mathematics', code: 'NS', category: 'Mathematics', scaledMean: 41.6, scaledStdDev: 8.3 },
   
-  // Sciences
-  { id: 'bio', name: 'Biology', code: 'BIO', category: 'Science' },
-  { id: 'chem', name: 'Chemistry', code: 'CHEM', category: 'Science' },
-  { id: 'phys', name: 'Physics', code: 'PHYS', category: 'Science' },
-  { id: 'psych', name: 'Psychology', code: 'PSYCH', category: 'Science' },
+  // === SCIENCES ===
+  { id: 'bi', name: 'Biology', code: 'BI', category: 'Science', scaledMean: 30.4, scaledStdDev: 7.4 },
+  { id: 'ch', name: 'Chemistry', code: 'CH', category: 'Science', scaledMean: 33.7, scaledStdDev: 7.3 },
+  { id: 'ph', name: 'Physics', code: 'PH', category: 'Science', scaledMean: 32.2, scaledStdDev: 7.4 },
+  { id: 'py', name: 'Psychology', code: 'PY', category: 'Science', scaledMean: 28.4, scaledStdDev: 7.5 },
+  { id: 'ev', name: 'Environmental Science', code: 'EV', category: 'Science', scaledMean: 28.0, scaledStdDev: 7.0 },
   
-  // Humanities
-  { id: 'hist', name: 'History: Revolutions', code: 'HIST', category: 'Humanities' },
-  { id: 'legal', name: 'Legal Studies', code: 'LEGAL', category: 'Humanities' },
-  { id: 'bus', name: 'Business Management', code: 'BUS', category: 'Humanities' },
-  { id: 'acc', name: 'Accounting', code: 'ACC', category: 'Humanities' },
-  { id: 'econ', name: 'Economics', code: 'ECON', category: 'Humanities' },
+  // === HUMANITIES ===
+  { id: 'ac', name: 'Accounting', code: 'AC', category: 'Humanities', scaledMean: 30.8, scaledStdDev: 7.4 },
+  { id: 'bm', name: 'Business Management', code: 'BM', category: 'Humanities', scaledMean: 27.1, scaledStdDev: 7.3 },
+  { id: 'ec', name: 'Economics', code: 'EC', category: 'Humanities', scaledMean: 31.5, scaledStdDev: 7.1 },
+  { id: 'ge', name: 'Geography', code: 'GE', category: 'Humanities', scaledMean: 28.5, scaledStdDev: 7.4 },
+  { id: 'hi17', name: 'History: Ancient History', code: 'HI17', category: 'Humanities', scaledMean: 27.9, scaledStdDev: 8.0 },
+  { id: 'ha', name: 'History: Australian History', code: 'HA', category: 'Humanities', scaledMean: 27.8, scaledStdDev: 8.2 },
+  { id: 'hr', name: 'History: Revolutions', code: 'HR', category: 'Humanities', scaledMean: 28.6, scaledStdDev: 7.7 },
+  { id: 'ls', name: 'Legal Studies', code: 'LS', category: 'Humanities', scaledMean: 28.4, scaledStdDev: 7.6 },
+  { id: 'pl', name: 'Philosophy', code: 'PL', category: 'Humanities', scaledMean: 29.6, scaledStdDev: 7.4 },
+  { id: 'ps03', name: 'Politics: Australian Politics', code: 'PS03', category: 'Humanities', scaledMean: 32.2, scaledStdDev: 7.1 },
+  { id: 'ps05', name: 'Politics: Global Politics', code: 'PS05', category: 'Humanities', scaledMean: 32.2, scaledStdDev: 7.1 },
+  { id: 'rs', name: 'Religion and Society', code: 'RS', category: 'Humanities', scaledMean: 28.3, scaledStdDev: 7.8 },
+  { id: 'so03', name: 'Sociology', code: 'SO03', category: 'Humanities', scaledMean: 26.0, scaledStdDev: 7.0 },
+  { id: 'hh', name: 'Health and Human Development', code: 'HH', category: 'Humanities', scaledMean: 26.3, scaledStdDev: 7.3 },
+  { id: 'cc', name: 'Classical Studies', code: 'CC', category: 'Humanities', scaledMean: 30.4, scaledStdDev: 7.6 },
   
-  // Arts
-  { id: 'art', name: 'Studio Arts', code: 'ART', category: 'Arts' },
-  { id: 'media', name: 'Media', code: 'MEDIA', category: 'Arts' },
-  { id: 'drama', name: 'Drama', code: 'DRAMA', category: 'Arts' },
+  // === ARTS ===
+  { id: 'at', name: 'Art Creative Practice', code: 'AT', category: 'Arts', scaledMean: 27.5, scaledStdDev: 7.5 },
+  { id: 'sa', name: 'Art Making and Exhibiting', code: 'SA', category: 'Arts', scaledMean: 26.6, scaledStdDev: 7.3 },
+  { id: 'da', name: 'Dance', code: 'DA', category: 'Arts', scaledMean: 28.0, scaledStdDev: 7.0 },
+  { id: 'dr', name: 'Drama', code: 'DR', category: 'Arts', scaledMean: 28.3, scaledStdDev: 7.2 },
+  { id: 'me', name: 'Media', code: 'ME', category: 'Arts', scaledMean: 27.1, scaledStdDev: 7.1 },
+  { id: 'md', name: 'Music: Composition', code: 'MD', category: 'Arts', scaledMean: 31.2, scaledStdDev: 7.3 },
+  { id: 'mc06', name: 'Music: Contemporary Performance', code: 'MC06', category: 'Arts', scaledMean: 27.5, scaledStdDev: 6.9 },
+  { id: 'mc05', name: 'Music: Inquiry', code: 'MC05', category: 'Arts', scaledMean: 27.7, scaledStdDev: 7.0 },
+  { id: 'mc04', name: 'Music: Repertoire Performance', code: 'MC04', category: 'Arts', scaledMean: 32.4, scaledStdDev: 6.7 },
   
-  // Languages
-  { id: 'french', name: 'French', code: 'FRENCH', category: 'Languages' },
-  { id: 'chinese', name: 'Chinese', code: 'CHINESE', category: 'Languages' },
-  { id: 'japanese', name: 'Japanese', code: 'JAPANESE', category: 'Languages' },
+  // === TECHNOLOGY ===
+  { id: 'al03', name: 'Algorithmics (HESS)', code: 'AL03', category: 'Technology', scaledMean: 37.9, scaledStdDev: 6.6 },
+  { id: 'it02', name: 'Applied Computing: Data Analytics', code: 'IT02', category: 'Technology', scaledMean: 26.9, scaledStdDev: 7.2 },
+  { id: 'it03', name: 'Applied Computing: Software Development', code: 'IT03', category: 'Technology', scaledMean: 28.8, scaledStdDev: 7.1 },
+  { id: 'dt', name: 'Product Design and Technologies', code: 'DT', category: 'Technology', scaledMean: 25.4, scaledStdDev: 7.4 },
+  
+  // === OTHER ===
+  { id: 'ah', name: 'Agricultural & Horticultural Studies', code: 'AH', category: 'Other', scaledMean: 24.7, scaledStdDev: 6.5 },
+  { id: 'ft', name: 'Food Studies', code: 'FT', category: 'Other', scaledMean: 24.1, scaledStdDev: 7.3 },
+  { id: 'ie', name: 'Industry and Enterprise', code: 'IE', category: 'Other', scaledMean: 22.1, scaledStdDev: 7.1 },
+  { id: 'os', name: 'Outdoor and Environmental Studies', code: 'OS', category: 'Other', scaledMean: 25.5, scaledStdDev: 7.1 },
+  { id: 'pe', name: 'Physical Education', code: 'PE', category: 'Other', scaledMean: 27.5, scaledStdDev: 7.3 },
+  { id: 'xi03', name: 'Extended Investigation', code: 'XI03', category: 'Other', scaledMean: 32.5, scaledStdDev: 6.8 },
+  
+  // === LANGUAGES ===
+  { id: 'ar', name: 'Arabic', code: 'AR', category: 'Languages', scaledMean: 30.0, scaledStdDev: 7.4 },
+  { id: 'au', name: 'Auslan', code: 'AU', category: 'Languages', scaledMean: 29.6, scaledStdDev: 6.8 },
+  { id: 'cn', name: 'Chinese First Language', code: 'CN', category: 'Languages', scaledMean: 34.8, scaledStdDev: 6.1 },
+  { id: 'lo57', name: 'Chinese Language Culture and Society', code: 'LO57', category: 'Languages', scaledMean: 37.5, scaledStdDev: 7.6 },
+  { id: 'ck', name: 'Chinese Second Language Advanced', code: 'CK', category: 'Languages', scaledMean: 40.6, scaledStdDev: 6.5 },
+  { id: 'cl', name: 'Chinese Second Language', code: 'CL', category: 'Languages', scaledMean: 31.0, scaledStdDev: 7.0 },
+  { id: 'fr', name: 'French', code: 'FR', category: 'Languages', scaledMean: 33.1, scaledStdDev: 6.9 },
+  { id: 'gm', name: 'German', code: 'GM', category: 'Languages', scaledMean: 35.1, scaledStdDev: 6.5 },
+  { id: 'gk', name: 'Greek', code: 'GK', category: 'Languages', scaledMean: 34.8, scaledStdDev: 6.2 },
+  { id: 'he', name: 'Hebrew', code: 'HE', category: 'Languages', scaledMean: 33.9, scaledStdDev: 6.8 },
+  { id: 'hi', name: 'Hindi', code: 'HI', category: 'Languages', scaledMean: 33.4, scaledStdDev: 6.6 },
+  { id: 'in', name: 'Indonesian First Language', code: 'IN', category: 'Languages', scaledMean: 31.9, scaledStdDev: 7.1 },
+  { id: 'is', name: 'Indonesian Second Language', code: 'IS', category: 'Languages', scaledMean: 38.2, scaledStdDev: 6.8 },
+  { id: 'it', name: 'Italian', code: 'IT', category: 'Languages', scaledMean: 34.6, scaledStdDev: 6.7 },
+  { id: 'jp', name: 'Japanese First Language', code: 'JP', category: 'Languages', scaledMean: 39.2, scaledStdDev: 6.3 },
+  { id: 'js', name: 'Japanese Second Language', code: 'JS', category: 'Languages', scaledMean: 40.9, scaledStdDev: 6.7 },
+  { id: 'kh', name: 'Khmer', code: 'KH', category: 'Languages', scaledMean: 32.2, scaledStdDev: 6.9 },
+  { id: 'ko', name: 'Korean First Language', code: 'KO', category: 'Languages', scaledMean: 36.2, scaledStdDev: 5.7 },
+  { id: 'ks', name: 'Korean Second Language', code: 'KS', category: 'Languages', scaledMean: 45.0, scaledStdDev: 6.3 },
+  { id: 'ma', name: 'Macedonian', code: 'MA', category: 'Languages', scaledMean: 29.4, scaledStdDev: 7.6 },
+  { id: 'l049', name: 'Punjabi', code: 'L049', category: 'Languages', scaledMean: 33.1, scaledStdDev: 6.6 },
+  { id: 'ru', name: 'Russian', code: 'RU', category: 'Languages', scaledMean: 34.3, scaledStdDev: 5.4 },
+  { id: 'se', name: 'Serbian', code: 'SE', category: 'Languages', scaledMean: 29.5, scaledStdDev: 6.7 },
+  { id: 'si', name: 'Sinhala', code: 'SI', category: 'Languages', scaledMean: 36.9, scaledStdDev: 5.9 },
+  { id: 'sp', name: 'Spanish', code: 'SP', category: 'Languages', scaledMean: 34.9, scaledStdDev: 7.3 },
+  { id: 'tu', name: 'Turkish', code: 'TU', category: 'Languages', scaledMean: 28.2, scaledStdDev: 6.5 },
+  { id: 'lo54', name: 'Vietnamese First Language', code: 'LO54', category: 'Languages', scaledMean: 32.1, scaledStdDev: 6.7 },
+  { id: 'lo31', name: 'Vietnamese Second Language', code: 'LO31', category: 'Languages', scaledMean: 36.0, scaledStdDev: 6.4 },
 ];
 
 export interface CareerPath {
@@ -148,3 +209,47 @@ export const UNIVERSITY_COURSES: UniversityCourse[] = [
   { id: 'monash-arch', universityId: 'monash', name: 'Architectural Design', atar: 85, careerPathIds: ['architecture'], prerequisites: ['Portfolio'], pathway: '' },
   { id: 'rmit-arch', universityId: 'rmit', name: 'Architecture', atar: 82, careerPathIds: ['architecture'], prerequisites: ['Portfolio'], pathway: '' },
 ];
+
+// 2024 ATAR to Aggregate Conversion Table (from official VTAC data)
+export const ATAR_TO_AGGREGATE: { [atar: number]: number } = {
+  99.90: 208.16,
+  99.80: 205.09,
+  99.70: 202.15,
+  99.60: 199.80,
+  99.50: 198.02,
+  99.25: 194.97,
+  99.00: 192.07,
+  98.50: 187.35,
+  98.00: 183.84,
+  97.50: 180.73,
+  97.00: 178.13,
+  96.00: 173.65,
+  95.00: 169.54,
+  94.00: 166.18,
+  93.00: 162.88,
+  92.00: 159.98,
+  91.00: 157.43,
+  90.00: 154.85,
+  88.00: 150.38,
+  86.00: 146.34,
+  85.00: 144.51,
+  84.00: 142.60,
+  82.00: 138.99,
+  80.00: 135.55,
+  78.00: 132.20,
+  76.00: 129.25,
+  75.00: 127.72,
+  74.00: 126.28,
+  72.00: 123.25,
+  70.00: 120.37,
+  68.00: 117.59,
+  66.00: 114.90,
+  65.00: 113.43,
+  64.00: 112.08,
+  62.00: 109.61,
+  60.00: 106.90,
+  55.00: 100.30,
+  50.00: 93.66,
+  45.00: 86.80,
+  40.00: 79.51,
+};
