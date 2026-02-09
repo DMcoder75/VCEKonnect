@@ -1,23 +1,10 @@
 import { supabase, setUserContext } from './supabase';
 import { UserProfile } from '@/types';
+import bcryptjs from 'bcryptjs';
 
 export interface AuthResponse {
   user: UserProfile | null;
   error: string | null;
-}
-
-// Web-compatible password hashing using Web Crypto API
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password);
-  return passwordHash === hash;
 }
 
 // Register new user
@@ -27,7 +14,8 @@ export async function registerUser(
   name: string
 ): Promise<AuthResponse> {
   try {
-    const passwordHash = await hashPassword(password);
+    // Use bcryptjs for web compatibility
+    const passwordHash = await bcryptjs.hash(password, 10);
 
     const { data, error } = await supabase
       .from('vk_users')
@@ -85,7 +73,8 @@ export async function loginUser(
       return { user: null, error: 'Invalid email or password' };
     }
 
-    const isValid = await verifyPassword(password, data.password_hash);
+    // Use bcryptjs to verify password
+    const isValid = await bcryptjs.compare(password, data.password_hash);
     if (!isValid) {
       return { user: null, error: 'Invalid email or password' };
     }
