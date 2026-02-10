@@ -12,6 +12,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'apikey': supabaseAnonKey,
+    },
+  },
+  db: {
+    schema: 'public',
+  },
 });
 
 // Helper to set user context for RLS
