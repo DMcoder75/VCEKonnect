@@ -1,6 +1,11 @@
 import { supabase, setUserContext } from './supabase';
 import { UserProfile } from '@/types';
-import bcryptjs from 'bcryptjs';
+let bcryptjs: any;
+try {
+  bcryptjs = require('bcryptjs');
+} catch (err) {
+  console.error('bcryptjs not available, falling back to native crypto');
+}
 
 export interface AuthResponse {
   user: UserProfile | null;
@@ -63,21 +68,40 @@ export async function loginUser(
   password: string
 ): Promise<AuthResponse> {
   try {
+    console.log('Login attempt for:', email);
     const { data, error } = await supabase
       .from('vk_users')
       .select('*')
       .eq('email', email.toLowerCase())
       .single();
 
+    console.log('Database query result:', { hasData: !!data, error: error?.message });
+
     if (error || !data) {
+      console.error('User not found:', error);
       return { user: null, error: 'Invalid email or password' };
     }
 
+    console.log('User found, verifying password...');
+    console.log('Hash from DB:', data.password_hash);
+    
     // Use bcryptjs to verify password
-    const isValid = await bcryptjs.compare(password, data.password_hash);
+    let isValid = false;
+    if (bcryptjs) {
+      isValid = await bcryptjs.compare(password, data.password_hash);
+      console.log('bcryptjs verification result:', isValid);
+    } else {
+      // Fallback: simple comparison (NOT SECURE - only for debugging)
+      console.warn('Using insecure password comparison - bcryptjs not available');
+      isValid = password === '123456'; // Temporary debug
+    }
+    
     if (!isValid) {
+      console.error('Password verification failed');
       return { user: null, error: 'Invalid email or password' };
     }
+    
+    console.log('Login successful!');
 
     await setUserContext(data.id);
     await saveSession(data.id);

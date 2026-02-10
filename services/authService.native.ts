@@ -66,21 +66,33 @@ export async function loginUser(
   password: string
 ): Promise<AuthResponse> {
   try {
+    console.log('Native login attempt for:', email);
     const { data, error } = await supabase
       .from('vk_users')
       .select('*')
       .eq('email', email.toLowerCase())
       .single();
 
+    console.log('Database query result:', { hasData: !!data, error: error?.message });
+
     if (error || !data) {
+      console.error('User not found:', error);
       return { user: null, error: 'Invalid email or password' };
     }
 
+    console.log('User found, verifying password...');
+    console.log('Hash from DB:', data.password_hash);
+
     // Verify password
     const isValid = bcrypt.compareSync(password, data.password_hash);
+    console.log('bcrypt verification result:', isValid);
+    
     if (!isValid) {
+      console.error('Password verification failed');
       return { user: null, error: 'Invalid email or password' };
     }
+
+    console.log('Login successful!');
 
     // Set user context and save session
     await setUserContext(data.id);

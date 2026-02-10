@@ -17,12 +17,21 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogin() {
-    if (!email || !password) return;
+    if (!email || !password) {
+      alert('Please enter email and password');
+      return;
+    }
     
     setIsLoading(true);
-    await login(email, password);
-    setIsLoading(false);
-    router.replace('/');
+    try {
+      await login(email, password);
+      router.replace('/');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      alert(error.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (

@@ -26,8 +26,7 @@ export function useAuth() {
   async function login(email: string, password: string) {
     const { user: loggedInUser, error } = await loginUser(email, password);
     if (error) {
-      alert(error);
-      return;
+      throw new Error(error);
     }
     setUser(loggedInUser);
   }
