@@ -1,4 +1,4 @@
-import { supabase, setUserContext } from './supabase';
+import { supabase } from './supabase';
 import { UserProfile } from '@/types';
 import bcrypt from 'react-native-bcrypt';
 
@@ -38,7 +38,6 @@ export async function registerUser(
     }
 
     // Store session
-    await setUserContext(data.id);
     await saveSession(data.id);
 
     return {
@@ -94,8 +93,7 @@ export async function loginUser(
 
     console.log('Login successful!');
 
-    // Set user context and save session
-    await setUserContext(data.id);
+    // Save session
     await saveSession(data.id);
 
     return {
@@ -130,8 +128,6 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       .single();
 
     if (error || !data) return null;
-
-    await setUserContext(data.id);
 
     return {
       id: data.id,
