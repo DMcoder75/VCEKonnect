@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { VCESubject } from './vceSubjectsService';
 
 export interface UserSubject {
   id: string;
@@ -9,13 +10,24 @@ export interface UserSubject {
 }
 
 /**
- * Get all subjects for a user
+ * Get all subjects for a user with full subject details from catalog
  */
-export async function getUserSubjects(userId: string): Promise<string[]> {
+export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
   try {
     const { data, error } = await supabase
       .from('vk_user_subjects')
-      .select('subject_id')
+      .select(`
+        subject_id,
+        vk_vce_subjects (
+          id,
+          code,
+          name,
+          category,
+          scaled_mean,
+          scaled_std_dev,
+          created_at
+        )
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
@@ -24,9 +36,46 @@ export async function getUserSubjects(userId: string): Promise<string[]> {
       return [];
     }
 
-    return data.map(row => row.subject_id);
+    // Map the joined data to VCESubject format
+    return data
+      .filter(row => row.vk_vce_subjects) // Filter out any null joins
+      .map(row => {
+        const subject = row.vk_vce_subjects as any;
+        return {
+          id: subject.id,
+          code: subject.code,
+          name: subject.name,
+          category: subject.category,
+          scaledMean: subject.scaled_mean,
+          scaledStdDev: subject.scaled_std_dev,
+          createdAt: subject.created_at,
+        };
+      });
   } catch (err) {
     console.error('getUserSubjects error:', err);
+    return [];
+  }
+}
+
+/**
+ * Get user subject IDs only (lightweight query)
+ */
+export async function getUserSubjectIds(userId: string): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('vk_user_subjects')
+      .select('subject_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching user subject IDs:', error);
+      return [];
+    }
+
+    return data.map(row => row.subject_id);
+  } catch (err) {
+    console.error('getUserSubjectIds error:', err);
     return [];
   }
 }
