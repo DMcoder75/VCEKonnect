@@ -131,7 +131,16 @@ export default function DashboardScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Start Timer</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Quick Start Timer</Text>
+            <Pressable
+              style={styles.manageButton}
+              onPress={() => router.push('/subjects')}
+            >
+              <MaterialIcons name="edit" size={16} color={colors.primary} />
+              <Text style={styles.manageButtonText}>Manage</Text>
+            </Pressable>
+          </View>
           {isLoadingSubjects ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -141,12 +150,7 @@ export default function DashboardScreen() {
             <View style={styles.emptyState}>
               <MaterialIcons name="subject" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyText}>No subjects selected</Text>
-              <Pressable
-                style={styles.addButton}
-                onPress={() => router.push('/subjects')}
-              >
-                <Text style={styles.addButtonText}>Add Subjects</Text>
-              </Pressable>
+              <Text style={styles.emptySubtext}>Add subjects to start tracking your study time</Text>
             </View>
           ) : (
             userSubjects.slice(0, 3).map(subject => (
@@ -306,11 +310,32 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   sectionTitle: {
     fontSize: typography.h3,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  manageButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.primary,
   },
   emptyState: {
     alignItems: 'center',
@@ -318,9 +343,15 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: typography.body,
+    fontWeight: typography.semibold,
     color: colors.textSecondary,
     marginTop: spacing.md,
-    marginBottom: spacing.md,
+  },
+  emptySubtext: {
+    fontSize: typography.bodySmall,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -333,17 +364,7 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
   },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    fontSize: typography.body,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
-  },
+
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
