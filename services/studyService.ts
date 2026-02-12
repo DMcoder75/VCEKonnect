@@ -1,6 +1,14 @@
 import { supabase } from './supabase';
 import { StudySession } from '@/types';
 
+// Helper function to get local date string in YYYY-MM-DD format (no timezone conversion)
+function getLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Get study sessions for a user
 export async function getStudySessions(
   userId: string,
@@ -14,8 +22,8 @@ export async function getStudySessions(
       .eq('user_id', userId)
       .order('start_time', { ascending: false });
 
-    const startDateStr = startDate?.toISOString().split('T')[0];
-    const endDateStr = endDate?.toISOString().split('T')[0];
+    const startDateStr = startDate ? getLocalDateString(startDate) : undefined;
+    const endDateStr = endDate ? getLocalDateString(endDate) : undefined;
 
     console.log('🔍 Querying study sessions:', {
       userId,
@@ -70,7 +78,7 @@ export async function startStudySession(
         user_id: userId,
         subject_id: subjectId,
         start_time: now.toISOString(),
-        session_date: now.toISOString().split('T')[0],
+        session_date: getLocalDateString(now),
         duration_minutes: 0,
       })
       .select()
