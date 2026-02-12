@@ -98,6 +98,8 @@ export default function StudyScreen() {
                 <View key={subject.id}>
                   <StudyTimerCard
                     subjectId={subject.id}
+                    subjectName={subject.name}
+                    subjectCode={subject.code}
                     elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
                     isActive={activeSubject === subject.id}
                     onStart={() => startTimer(subject.id)}

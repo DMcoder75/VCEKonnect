@@ -2,10 +2,11 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
-import { VCE_SUBJECTS } from '@/constants/vceData';
 
 interface StudyTimerCardProps {
   subjectId: string;
+  subjectName: string;
+  subjectCode: string;
   elapsedSeconds: number;
   isActive: boolean;
   onStart: () => void;
@@ -14,12 +15,13 @@ interface StudyTimerCardProps {
 
 export function StudyTimerCard({
   subjectId,
+  subjectName,
+  subjectCode,
   elapsedSeconds,
   isActive,
   onStart,
   onStop,
 }: StudyTimerCardProps) {
-  const subject = VCE_SUBJECTS.find(s => s.id === subjectId);
   
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -36,8 +38,8 @@ export function StudyTimerCard({
     <View style={[styles.card, isActive && styles.cardActive]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.subjectName}>{subject?.name || subjectId}</Text>
-          <Text style={styles.subjectCode}>{subject?.code || ''}</Text>
+          <Text style={styles.subjectName}>{subjectName}</Text>
+          <Text style={styles.subjectCode}>{subjectCode}</Text>
         </View>
         <Pressable
           onPress={isActive ? onStop : onStart}
