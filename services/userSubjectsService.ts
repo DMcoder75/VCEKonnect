@@ -14,56 +14,61 @@ export interface UserSubject {
  */
 export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
   try {
-    console.log('🔍 Fetching subjects for user:', userId);
+    console.log('🔍 Step 1: Fetching subject IDs for user:', userId);
 
-    const { data, error } = await supabase
+    // Step 1: Get user's subject IDs
+    const { data: userSubjectsData, error: userSubjectsError } = await supabase
       .from('vk_user_subjects')
-      .select(`
-        subject_id,
-        vk_vce_subjects (
-          id,
-          code,
-          name,
-          category,
-          scaled_mean,
-          scaled_std_dev,
-          created_at
-        )
-      `)
+      .select('subject_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('❌ Error fetching user subjects:', error);
+    if (userSubjectsError) {
+      console.error('❌ Error fetching user subjects:', userSubjectsError);
       return [];
     }
 
-    console.log('📦 Raw query result:', JSON.stringify(data, null, 2));
-    console.log('📊 Total rows returned:', data?.length);
+    console.log('📦 User subject IDs:', userSubjectsData);
 
-    // Map the joined data to VCESubject format
-    const subjects = data
-      .filter(row => {
-        const hasSubject = !!row.vk_vce_subjects;
-        if (!hasSubject) {
-          console.warn('⚠️ No matching VCE subject found for ID:', row.subject_id);
-        }
-        return hasSubject;
-      })
-      .map(row => {
-        const subject = row.vk_vce_subjects as any;
-        return {
-          id: subject.id,
-          code: subject.code,
-          name: subject.name,
-          category: subject.category,
-          scaledMean: subject.scaled_mean,
-          scaledStdDev: subject.scaled_std_dev,
-          createdAt: subject.created_at,
-        };
-      });
+    if (!userSubjectsData || userSubjectsData.length === 0) {
+      console.warn('⚠️ No subjects found for user');
+      return [];
+    }
 
-    console.log('✅ Mapped subjects:', subjects.length);
+    const subjectIds = userSubjectsData.map(row => row.subject_id);
+    console.log('🔍 Step 2: Fetching subject details for IDs:', subjectIds);
+
+    // Step 2: Get full subject details from catalog
+    const { data: subjectsData, error: subjectsError } = await supabase
+      .from('vk_vce_subjects')
+      .select('*')
+      .in('id', subjectIds);
+
+    if (subjectsError) {
+      console.error('❌ Error fetching VCE subjects:', subjectsError);
+      return [];
+    }
+
+    console.log('📦 VCE subjects data:', subjectsData);
+
+    if (!subjectsData || subjectsData.length === 0) {
+      console.warn('⚠️ No matching subjects found in vk_vce_subjects table for IDs:', subjectIds);
+      return [];
+    }
+
+    // Step 3: Map to VCESubject format
+    const subjects = subjectsData.map(row => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      category: row.category,
+      scaledMean: row.scaled_mean,
+      scaledStdDev: row.scaled_std_dev,
+      createdAt: row.created_at,
+    }));
+
+    console.log('✅ Final subjects count:', subjects.length);
+    console.log('✅ Subjects:', subjects);
     return subjects;
   } catch (err) {
     console.error('💥 getUserSubjects error:', err);
