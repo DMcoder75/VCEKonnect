@@ -27,7 +27,8 @@ export async function getStudySessions(
       query = query.gte('session_date', startDateStr!);
     }
     if (endDate) {
-      query = query.lt('session_date', endDateStr!);
+      // Use lte (less than or equal) instead of lt to include the end date
+      query = query.lte('session_date', endDateStr!);
     }
 
     const { data, error } = await query;

@@ -71,10 +71,13 @@ export function useStudyTimer() {
     console.log('👤 Current user ID:', user.id);
 
     const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    today.setHours(0, 0, 0, 0); // Start of today
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999); // End of today
 
-    const result = await getStudyTimeBySubject(user.id, today, tomorrow);
+    console.log('📅 Fetching today sessions from', today.toISOString().split('T')[0], 'to', endOfToday.toISOString().split('T')[0]);
+
+    const result = await getStudyTimeBySubject(user.id, today, endOfToday);
     console.log('⏱️ Today study time result:', result);
     return result;
   }
@@ -86,10 +89,14 @@ export function useStudyTimer() {
 
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    oneWeekAgo.setHours(0, 0, 0, 0);
+    
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
 
-    const result = await getStudyTimeBySubject(user.id, oneWeekAgo, tomorrow);
+    console.log('📅 Fetching weekly sessions from', oneWeekAgo.toISOString().split('T')[0], 'to', today.toISOString().split('T')[0]);
+
+    const result = await getStudyTimeBySubject(user.id, oneWeekAgo, today);
     console.log('📅 Weekly study time result:', result);
     return result;
   }
