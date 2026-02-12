@@ -18,7 +18,7 @@ export async function getStudySessions(
       query = query.gte('session_date', startDate.toISOString().split('T')[0]);
     }
     if (endDate) {
-      query = query.lte('session_date', endDate.toISOString().split('T')[0]);
+      query = query.lt('session_date', endDate.toISOString().split('T')[0]);
     }
 
     const { data, error } = await query;
