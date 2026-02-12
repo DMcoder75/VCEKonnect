@@ -10,6 +10,7 @@ import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { ATARDisplay } from '@/components/ui';
 import { StudyTimerCard } from '@/components/feature';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
+import { getUserSubjects } from '@/services/userSubjectsService';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -19,26 +20,26 @@ export default function DashboardScreen() {
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   
   const [todayTime, setTodayTime] = useState(0);
-  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
+  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
   const prediction = getPrediction();
-  const userSubjects = allSubjects.filter(s => 
-    user?.selectedSubjects.includes(s.id)
-  );
 
   useEffect(() => {
-    loadSubjects();
-  }, []);
+    if (user) {
+      loadSubjects();
+    }
+  }, [user]);
 
   useEffect(() => {
     loadTodayTime();
   }, []);
 
   async function loadSubjects() {
+    if (!user) return;
     setIsLoadingSubjects(true);
-    const subjects = await getAllVCESubjects();
-    setAllSubjects(subjects);
+    const subjects = await getUserSubjects(user.id);
+    setUserSubjects(subjects);
     setIsLoadingSubjects(false);
   }
 

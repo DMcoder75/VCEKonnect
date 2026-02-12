@@ -6,7 +6,8 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { StudyTimerCard } from '@/components/feature';
-import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
+import { VCESubject } from '@/services/vceSubjectsService';
+import { getUserSubjects } from '@/services/userSubjectsService';
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
@@ -14,21 +15,24 @@ export default function StudyScreen() {
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, getWeeklyStudyTime } = useStudyTimer();
   
   const [weeklyTime, setWeeklyTime] = useState<{ [key: string]: number }>({});
-  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
+  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
   useEffect(() => {
-    loadSubjects();
-  }, []);
+    if (user) {
+      loadSubjects();
+    }
+  }, [user]);
 
   useEffect(() => {
     loadWeeklyTime();
   }, [activeSubject]);
 
   async function loadSubjects() {
+    if (!user) return;
     setIsLoadingSubjects(true);
-    const subjects = await getAllVCESubjects();
-    setAllSubjects(subjects);
+    const subjects = await getUserSubjects(user.id);
+    setUserSubjects(subjects);
     setIsLoadingSubjects(false);
   }
 
@@ -36,8 +40,6 @@ export default function StudyScreen() {
     const time = await getWeeklyStudyTime();
     setWeeklyTime(time);
   }
-
-  const userSubjects = allSubjects.filter(s => user?.selectedSubjects.includes(s.id));
 
   async function handleStopTimer() {
     await stopTimer();
