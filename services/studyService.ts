@@ -31,12 +31,13 @@ export async function getStudySessions(
       endDate: endDateStr,
     });
 
-    if (startDate) {
-      query = query.gte('session_date', startDateStr!);
+    // Only apply date filters if dates are provided
+    if (startDate && startDateStr) {
+      query = query.gte('session_date', startDateStr);
     }
-    if (endDate) {
+    if (endDate && endDateStr) {
       // Use lte (less than or equal) instead of lt to include the end date
-      query = query.lte('session_date', endDateStr!);
+      query = query.lte('session_date', endDateStr);
     }
 
     const { data, error } = await query;

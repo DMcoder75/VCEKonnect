@@ -19,8 +19,8 @@ export default function DashboardScreen() {
   const { getPrediction, subjectScores } = useATAR();
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   
-  const [todayTime, setTodayTime] = useState(0);
-  const [todayTimeBySubject, setTodayTimeBySubject] = useState<{ [key: string]: number }>({});
+  const [allTime, setAllTime] = useState(0);
+  const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
@@ -34,7 +34,7 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (user) {
-      loadTodayTime();
+      loadAllTime();
     }
   }, [user]);
 
@@ -46,13 +46,24 @@ export default function DashboardScreen() {
     setIsLoadingSubjects(false);
   }
 
-  async function loadTodayTime() {
+  async function loadAllTime() {
     if (!user) return;
     
-    const timeBySubject = await getTodayStudyTime();
+    // Get ALL study time (no date filtering)
+    const timeBySubject = await getAllStudyTime();
     const total = Object.values(timeBySubject).reduce((sum, time) => sum + time, 0);
-    setTodayTime(total);
-    setTodayTimeBySubject(timeBySubject);
+    setAllTime(total);
+    setAllTimeBySubject(timeBySubject);
+  }
+
+  async function getAllStudyTime(): Promise<{ [subjectId: string]: number }> {
+    if (!user) return {};
+    
+    // Import the service function directly
+    const { getStudyTimeBySubject } = await import('@/services/studyService');
+    
+    // Get all time - pass undefined for both dates to skip filtering
+    return await getStudyTimeBySubject(user.id, undefined, undefined);
   }
 
   function handleStartTimer(subjectId: string) {
@@ -61,7 +72,7 @@ export default function DashboardScreen() {
 
   async function handleStopTimer() {
     await stopTimer();
-    loadTodayTime();
+    loadAllTime();
   }
 
   if (!user) {
@@ -139,26 +150,26 @@ export default function DashboardScreen() {
             </View>
           )}
           <View style={styles.debugSection}>
-            <Text style={styles.debugLabel}>Today's Study Time Data:</Text>
-            <Text style={styles.debugText}>Total Minutes: {todayTime}</Text>
-            {Object.entries(todayTimeBySubject).length > 0 ? (
-              Object.entries(todayTimeBySubject).map(([subjectId, minutes]) => (
+            <Text style={styles.debugLabel}>All Study Time Data (No Date Filter):</Text>
+            <Text style={styles.debugText}>Total Minutes: {allTime}</Text>
+            {Object.entries(allTimeBySubject).length > 0 ? (
+              Object.entries(allTimeBySubject).map(([subjectId, minutes]) => (
                 <Text key={subjectId} style={styles.debugText}>  • {subjectId}: {minutes} min</Text>
               ))
             ) : (
-              <Text style={styles.debugText}>  No sessions today</Text>
+              <Text style={styles.debugText}>  No sessions found</Text>
             )}
           </View>
         </View>
 
-        {/* Today's Study Time */}
+        {/* All Study Time */}
         <View style={styles.todayCard}>
           <View style={styles.todayHeader}>
-            <MaterialIcons name="today" size={24} color={colors.primary} />
-            <Text style={styles.todayTitle}>Today's Study Time</Text>
+            <MaterialIcons name="access-time" size={24} color={colors.primary} />
+            <Text style={styles.todayTitle}>Total Study Time (All Time)</Text>
           </View>
           <Text style={styles.todayTime}>
-            {Math.floor(todayTime / 60)}h {todayTime % 60}m
+            {Math.floor(allTime / 60)}h {allTime % 60}m
           </Text>
         </View>
 
