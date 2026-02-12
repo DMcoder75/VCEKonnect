@@ -47,7 +47,12 @@ export default function SubjectsScreen() {
     setHasChanges(true);
   }
 
-  async function handleSave() {
+  function removeSubject(subjectId: string) {
+    setSelectedSubjects(prev => prev.filter(id => id !== subjectId));
+    setHasChanges(true);
+  }
+
+  async function handleDone() {
     if (!user) return;
     
     setIsSaving(true);
@@ -62,6 +67,9 @@ export default function SubjectsScreen() {
       setIsSaving(false);
     }
   }
+
+  // Get selected subject details for display
+  const selectedSubjectDetails = allSubjects.filter(s => selectedSubjects.includes(s.id));
 
   // Filter and group subjects
   const filteredSubjects = allSubjects.filter(subject => {
@@ -117,11 +125,30 @@ export default function SubjectsScreen() {
               </View>
             </View>
 
-            <View style={styles.selectedCount}>
-              <Text style={styles.selectedCountText}>
-                {selectedSubjects.length} subject{selectedSubjects.length !== 1 ? 's' : ''} selected
-              </Text>
-            </View>
+            {/* Selected Subjects Section */}
+            {selectedSubjects.length > 0 && (
+              <View style={styles.selectedSection}>
+                <Text style={styles.selectedSectionTitle}>
+                  Selected Subjects ({selectedSubjects.length})
+                </Text>
+                <View style={styles.selectedCardsContainer}>
+                  {selectedSubjectDetails.map(subject => (
+                    <View key={subject.id} style={styles.selectedCard}>
+                      <Pressable
+                        style={styles.removeButton}
+                        onPress={() => removeSubject(subject.id)}
+                      >
+                        <MaterialIcons name="close" size={14} color={colors.error} />
+                      </Pressable>
+                      <Text style={styles.selectedCardCode}>{subject.code}</Text>
+                      <Text style={styles.selectedCardName} numberOfLines={2}>
+                        {subject.name}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
@@ -217,16 +244,14 @@ export default function SubjectsScreen() {
           </ScrollView>
 
           {/* Fixed Bottom Button */}
-          {hasChanges && (
-            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.md }]}>
-              <Button
-                title={isSaving ? 'Saving...' : `Save ${selectedSubjects.length} Subject${selectedSubjects.length !== 1 ? 's' : ''}`}
-                onPress={handleSave}
-                fullWidth
-                disabled={isSaving}
-              />
-            </View>
-          )}
+          <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.md }]}>
+            <Button
+              title={isSaving ? 'Saving...' : 'Done'}
+              onPress={handleDone}
+              fullWidth
+              disabled={isSaving || !hasChanges}
+            />
+          </View>
         </>
       )}
     </View>
@@ -293,17 +318,52 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
   },
-  selectedCount: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-    alignItems: 'center',
+  selectedSection: {
+    marginBottom: spacing.lg,
   },
-  selectedCountText: {
+  selectedSectionTitle: {
     fontSize: typography.body,
     fontWeight: typography.semibold,
-    color: colors.primary,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  selectedCardsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  selectedCard: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    paddingRight: spacing.md,
+    position: 'relative',
+    minWidth: 100,
+    maxWidth: '31%',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    backgroundColor: colors.textPrimary,
+    borderRadius: borderRadius.full,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  selectedCardCode: {
+    fontSize: typography.caption,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+    marginTop: spacing.xs,
+  },
+  selectedCardName: {
+    fontSize: 11,
+    color: colors.textPrimary,
+    lineHeight: 14,
   },
   searchContainer: {
     flexDirection: 'row',
