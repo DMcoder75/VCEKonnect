@@ -22,9 +22,9 @@ export function StudyTimerCard({
   onStart,
   onStop,
 }: StudyTimerCardProps) {
-  // Use provided subject data or fallback to ID
-  const displayName = subjectName || subjectId;
-  const displayCode = subjectCode || '';
+  // Use code as primary display, name as secondary
+  const displayCode = subjectCode || subjectId;
+  const displayName = subjectName || '';
   
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -41,8 +41,8 @@ export function StudyTimerCard({
     <View style={[styles.card, isActive && styles.cardActive]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.subjectName}>{displayName}</Text>
           <Text style={styles.subjectCode}>{displayCode}</Text>
+          {displayName && <Text style={styles.subjectName}>{displayName}</Text>}
         </View>
         <Pressable
           onPress={isActive ? onStop : onStart}
@@ -88,12 +88,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  subjectName: {
-    fontSize: typography.body,
-    fontWeight: typography.semibold,
+  subjectCode: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
     color: colors.textPrimary,
   },
-  subjectCode: {
+  subjectName: {
     fontSize: typography.caption,
     color: colors.textTertiary,
     marginTop: 2,
