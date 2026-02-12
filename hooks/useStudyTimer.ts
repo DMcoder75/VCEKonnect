@@ -68,22 +68,30 @@ export function useStudyTimer() {
   async function getTodayStudyTime(): Promise<{ [subjectId: string]: number }> {
     if (!user) return {};
 
+    console.log('👤 Current user ID:', user.id);
+
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return await getStudyTimeBySubject(user.id, today, tomorrow);
+    const result = await getStudyTimeBySubject(user.id, today, tomorrow);
+    console.log('⏱️ Today study time result:', result);
+    return result;
   }
 
   async function getWeeklyStudyTime(): Promise<{ [subjectId: string]: number }> {
     if (!user) return {};
+
+    console.log('👤 Current user ID:', user.id);
 
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return await getStudyTimeBySubject(user.id, oneWeekAgo, tomorrow);
+    const result = await getStudyTimeBySubject(user.id, oneWeekAgo, tomorrow);
+    console.log('📅 Weekly study time result:', result);
+    return result;
   }
 
   return {

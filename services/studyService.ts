@@ -14,14 +14,28 @@ export async function getStudySessions(
       .eq('user_id', userId)
       .order('start_time', { ascending: false });
 
+    const startDateStr = startDate?.toISOString().split('T')[0];
+    const endDateStr = endDate?.toISOString().split('T')[0];
+
+    console.log('🔍 Querying study sessions:', {
+      userId,
+      startDate: startDateStr,
+      endDate: endDateStr,
+    });
+
     if (startDate) {
-      query = query.gte('session_date', startDate.toISOString().split('T')[0]);
+      query = query.gte('session_date', startDateStr!);
     }
     if (endDate) {
-      query = query.lt('session_date', endDate.toISOString().split('T')[0]);
+      query = query.lt('session_date', endDateStr!);
     }
 
     const { data, error } = await query;
+
+    console.log('📊 Query result:', { count: data?.length || 0, error: error?.message });
+    if (data && data.length > 0) {
+      console.log('📝 Sample session:', data[0]);
+    }
 
     if (error) {
       console.error('Failed to fetch sessions:', error);
