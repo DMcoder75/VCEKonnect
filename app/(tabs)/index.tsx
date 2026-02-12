@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -133,33 +134,6 @@ export default function DashboardScreen() {
             <Text style={styles.atarButtonText}>View Full Prediction</Text>
             <MaterialIcons name="arrow-forward" size={20} color={colors.primary} />
           </Pressable>
-        </View>
-
-        {/* Debug Info */}
-        <View style={styles.debugCard}>
-          <Text style={styles.debugTitle}>🔍 Debug Info</Text>
-          <Text style={styles.debugText}>User ID: {user.id}</Text>
-          <Text style={styles.debugText}>User Name: {user.name}</Text>
-          <Text style={styles.debugText}>Subjects Count: {userSubjects.length}</Text>
-          {userSubjects.length > 0 && (
-            <View style={styles.debugSection}>
-              <Text style={styles.debugLabel}>Selected Subjects:</Text>
-              {userSubjects.map(s => (
-                <Text key={s.id} style={styles.debugText}>  • {s.code} - {s.name}</Text>
-              ))}
-            </View>
-          )}
-          <View style={styles.debugSection}>
-            <Text style={styles.debugLabel}>All Study Time Data (No Date Filter):</Text>
-            <Text style={styles.debugText}>Total Minutes: {allTime}</Text>
-            {Object.entries(allTimeBySubject).length > 0 ? (
-              Object.entries(allTimeBySubject).map(([subjectId, minutes]) => (
-                <Text key={subjectId} style={styles.debugText}>  • {subjectId}: {minutes} min</Text>
-              ))
-            ) : (
-              <Text style={styles.debugText}>  No sessions found</Text>
-            )}
-          </View>
         </View>
 
         {/* All Study Time */}
@@ -463,34 +437,5 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
-  },
-  debugCard: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: '#f39c12',
-  },
-  debugTitle: {
-    fontSize: typography.body,
-    fontWeight: typography.bold,
-    color: '#f39c12',
-    marginBottom: spacing.sm,
-  },
-  debugSection: {
-    marginTop: spacing.sm,
-  },
-  debugLabel: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: '#ecf0f1',
-    marginTop: spacing.xs,
-  },
-  debugText: {
-    fontSize: typography.caption,
-    color: '#bdc3c7',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginTop: 2,
   },
 });
