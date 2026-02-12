@@ -7,6 +7,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
+import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 
 export default function SubjectsScreen() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function SubjectsScreen() {
   const { user, updateProfile } = useAuth();
   
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(user?.selectedSubjects || []);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -22,19 +23,19 @@ export default function SubjectsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
-    loadSubjects();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      setSelectedSubjects(user.selectedSubjects || []);
-    }
+    loadData();
   }, [user]);
 
-  async function loadSubjects() {
+  async function loadData() {
+    if (!user) return;
+    
     setIsLoading(true);
-    const subjects = await getAllVCESubjects();
+    const [subjects, userSubjectIds] = await Promise.all([
+      getAllVCESubjects(),
+      getUserSubjectIds(user.id)
+    ]);
     setAllSubjects(subjects);
+    setSelectedSubjects(userSubjectIds);
     setIsLoading(false);
   }
 
@@ -57,7 +58,8 @@ export default function SubjectsScreen() {
     
     setIsSaving(true);
     try {
-      await updateProfile({ selectedSubjects });
+      // Update user subjects in junction table
+      await updateUserSubjects(user.id, selectedSubjects);
       setHasChanges(false);
       router.back();
     } catch (error) {
