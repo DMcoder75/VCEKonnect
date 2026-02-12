@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { ATARDisplay } from '@/components/ui';
 import { StudyTimerCard } from '@/components/feature';
-import { VCE_SUBJECTS } from '@/constants/vceData';
+import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -19,15 +19,28 @@ export default function DashboardScreen() {
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning } = useStudyTimer();
   
   const [todayTime, setTodayTime] = useState(0);
+  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
   const prediction = getPrediction();
-  const userSubjects = VCE_SUBJECTS.filter(s => 
+  const userSubjects = allSubjects.filter(s => 
     user?.selectedSubjects.includes(s.id)
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
+    loadSubjects();
+  }, []);
+
+  useEffect(() => {
     loadTodayTime();
   }, []);
+
+  async function loadSubjects() {
+    setIsLoadingSubjects(true);
+    const subjects = await getAllVCESubjects();
+    setAllSubjects(subjects);
+    setIsLoadingSubjects(false);
+  }
 
   async function loadTodayTime() {
     const { getTodayStudyTime } = useStudyTimer();
@@ -119,7 +132,12 @@ export default function DashboardScreen() {
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Start Timer</Text>
-          {userSubjects.length === 0 ? (
+          {isLoadingSubjects ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loadingText}>Loading subjects...</Text>
+            </View>
+          ) : userSubjects.length === 0 ? (
             <View style={styles.emptyState}>
               <MaterialIcons name="subject" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyText}>No subjects selected</Text>
@@ -303,6 +321,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.md,
     marginBottom: spacing.md,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  loadingText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
   },
   addButton: {
     backgroundColor: colors.primary,
