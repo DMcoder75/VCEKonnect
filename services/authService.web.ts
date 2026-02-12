@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { UserProfile } from '@/types';
+import { getUserSubjects, updateUserSubjects } from './userSubjectsService';
+
 let bcryptjs: any;
 try {
   bcryptjs = require('bcryptjs');
@@ -42,13 +44,16 @@ export async function registerUser(
 
     await saveSession(data.id);
 
+    // Get user subjects from junction table
+    const selectedSubjects = await getUserSubjects(data.id);
+
     return {
       user: {
         id: data.id,
         email: data.email,
         name: data.name,
         yearLevel: data.year_level,
-        selectedSubjects: data.selected_subjects || [],
+        selectedSubjects,
         targetCareer: data.target_career,
         targetUniversities: data.target_universities || [],
         isPremium: data.is_premium,
@@ -111,13 +116,16 @@ export async function loginUser(
 
     await saveSession(data.id);
 
+    // Get user subjects from junction table
+    const selectedSubjects = await getUserSubjects(data.id);
+
     return {
       user: {
         id: data.id,
         email: data.email,
         name: data.name,
         yearLevel: data.year_level,
-        selectedSubjects: data.selected_subjects || [],
+        selectedSubjects,
         targetCareer: data.target_career,
         targetUniversities: data.target_universities || [],
         isPremium: data.is_premium,
@@ -144,12 +152,15 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 
     if (error || !data) return null;
 
+    // Get user subjects from junction table
+    const selectedSubjects = await getUserSubjects(data.id);
+
     return {
       id: data.id,
       email: data.email,
       name: data.name,
       yearLevel: data.year_level,
-      selectedSubjects: data.selected_subjects || [],
+      selectedSubjects,
       targetCareer: data.target_career,
       targetUniversities: data.target_universities || [],
       isPremium: data.is_premium,
@@ -166,12 +177,18 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>
 ): Promise<{ error: string | null }> {
   try {
+    // Update subjects in junction table if provided
+    if (updates.selectedSubjects !== undefined) {
+      const { error: subjectsError } = await updateUserSubjects(userId, updates.selectedSubjects);
+      if (subjectsError) return { error: subjectsError };
+    }
+
+    // Update other profile fields in vk_users
     const { error } = await supabase
       .from('vk_users')
       .update({
         name: updates.name,
         year_level: updates.yearLevel,
-        selected_subjects: updates.selectedSubjects,
         target_career: updates.targetCareer,
         target_universities: updates.targetUniversities,
       })
