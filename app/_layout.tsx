@@ -18,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="auth/login" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="subjects" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="premium"
