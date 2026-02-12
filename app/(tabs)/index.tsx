@@ -197,18 +197,22 @@ export default function DashboardScreen() {
               <Text style={styles.emptySubtext}>Add subjects to start tracking your study time</Text>
             </View>
           ) : (
-            userSubjects.map(subject => (
-              <StudyTimerCard
-                key={subject.id}
-                subjectId={subject.id}
-                subjectCode={subject.code}
-                subjectName={subject.name}
-                elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
-                isActive={activeSubject === subject.id}
-                onStart={() => handleStartTimer(subject.id)}
-                onStop={handleStopTimer}
-              />
-            ))
+            userSubjects.map(subject => {
+              const subjectMins = allTimeBySubject[subject.id] || 0;
+              return (
+                <StudyTimerCard
+                  key={subject.id}
+                  subjectId={subject.id}
+                  subjectCode={subject.code}
+                  subjectName={subject.name}
+                  elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
+                  isActive={activeSubject === subject.id}
+                  totalMinutes={subjectMins}
+                  onStart={() => handleStartTimer(subject.id)}
+                  onStop={handleStopTimer}
+                />
+              );
+            })
           )}
         </View>
 

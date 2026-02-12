@@ -99,22 +99,17 @@ export default function StudyScreen() {
             {userSubjects.map(subject => {
               const subjectMins = allTime[subject.id] || 0;
               return (
-                <View key={subject.id}>
-                  <StudyTimerCard
-                    subjectId={subject.id}
-                    subjectCode={subject.code}
-                    subjectName={subject.name}
-                    elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
-                    isActive={activeSubject === subject.id}
-                    onStart={() => startTimer(subject.id)}
-                    onStop={handleStopTimer}
-                  />
-                  <View style={styles.allTimeContainer}>
-                    <Text style={styles.allTimeText}>
-                      Total time: {Math.floor(subjectMins / 60)}h {subjectMins % 60}m
-                    </Text>
-                  </View>
-                </View>
+                <StudyTimerCard
+                  key={subject.id}
+                  subjectId={subject.id}
+                  subjectCode={subject.code}
+                  subjectName={subject.name}
+                  elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
+                  isActive={activeSubject === subject.id}
+                  totalMinutes={subjectMins}
+                  onStart={() => startTimer(subject.id)}
+                  onStop={handleStopTimer}
+                />
               );
             })}
           </>
@@ -184,15 +179,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
-  allTimeContainer: {
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
-    paddingLeft: spacing.md,
-  },
-  allTimeText: {
-    fontSize: typography.caption,
-    color: colors.textTertiary,
-  },
+
   emptyState: {
     alignItems: 'center',
     paddingTop: spacing.xxl,
