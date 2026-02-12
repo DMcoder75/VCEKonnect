@@ -20,6 +20,7 @@ export default function DashboardScreen() {
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   
   const [todayTime, setTodayTime] = useState(0);
+  const [todayTimeBySubject, setTodayTimeBySubject] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
@@ -27,7 +28,6 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (user) {
-      Alert.alert('Debug: User Loaded', `User ID: ${user.id}\nName: ${user.name}`);
       loadSubjects();
     }
   }, [user]);
@@ -44,12 +44,6 @@ export default function DashboardScreen() {
     const subjects = await getUserSubjects(user.id);
     setUserSubjects(subjects);
     setIsLoadingSubjects(false);
-    
-    const subjectsList = subjects.map(s => `${s.code} - ${s.name}`).join('\n');
-    Alert.alert(
-      'Debug: Subjects Loaded',
-      `User ID: ${user.id}\n\nSubjects Count: ${subjects.length}\n\n${subjectsList || 'No subjects'}`
-    );
   }
 
   async function loadTodayTime() {
@@ -58,15 +52,7 @@ export default function DashboardScreen() {
     const timeBySubject = await getTodayStudyTime();
     const total = Object.values(timeBySubject).reduce((sum, time) => sum + time, 0);
     setTodayTime(total);
-    
-    const breakdown = Object.entries(timeBySubject)
-      .map(([subjectId, minutes]) => `${subjectId}: ${minutes} min`)
-      .join('\n');
-    
-    Alert.alert(
-      'Debug: Today Study Time',
-      `User ID: ${user.id}\n\nTotal: ${total} minutes\n\nBreakdown:\n${breakdown || 'No sessions today'}`
-    );
+    setTodayTimeBySubject(timeBySubject);
   }
 
   function handleStartTimer(subjectId: string) {
@@ -136,6 +122,33 @@ export default function DashboardScreen() {
             <Text style={styles.atarButtonText}>View Full Prediction</Text>
             <MaterialIcons name="arrow-forward" size={20} color={colors.primary} />
           </Pressable>
+        </View>
+
+        {/* Debug Info */}
+        <View style={styles.debugCard}>
+          <Text style={styles.debugTitle}>🔍 Debug Info</Text>
+          <Text style={styles.debugText}>User ID: {user.id}</Text>
+          <Text style={styles.debugText}>User Name: {user.name}</Text>
+          <Text style={styles.debugText}>Subjects Count: {userSubjects.length}</Text>
+          {userSubjects.length > 0 && (
+            <View style={styles.debugSection}>
+              <Text style={styles.debugLabel}>Selected Subjects:</Text>
+              {userSubjects.map(s => (
+                <Text key={s.id} style={styles.debugText}>  • {s.code} - {s.name}</Text>
+              ))}
+            </View>
+          )}
+          <View style={styles.debugSection}>
+            <Text style={styles.debugLabel}>Today's Study Time Data:</Text>
+            <Text style={styles.debugText}>Total Minutes: {todayTime}</Text>
+            {Object.entries(todayTimeBySubject).length > 0 ? (
+              Object.entries(todayTimeBySubject).map(([subjectId, minutes]) => (
+                <Text key={subjectId} style={styles.debugText}>  • {subjectId}: {minutes} min</Text>
+              ))
+            ) : (
+              <Text style={styles.debugText}>  No sessions today</Text>
+            )}
+          </View>
         </View>
 
         {/* Today's Study Time */}
@@ -435,5 +448,34 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
+  },
+  debugCard: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: '#f39c12',
+  },
+  debugTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: '#f39c12',
+    marginBottom: spacing.sm,
+  },
+  debugSection: {
+    marginTop: spacing.sm,
+  },
+  debugLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: '#ecf0f1',
+    marginTop: spacing.xs,
+  },
+  debugText: {
+    fontSize: typography.caption,
+    color: '#bdc3c7',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginTop: 2,
   },
 });
