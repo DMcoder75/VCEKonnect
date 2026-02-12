@@ -125,7 +125,7 @@ export default function DashboardScreen() {
               <Text style={styles.emptyText}>No subjects selected</Text>
               <Pressable
                 style={styles.addButton}
-                onPress={() => router.push('/onboarding/subjects')}
+                onPress={() => router.push('/settings')}
               >
                 <Text style={styles.addButtonText}>Add Subjects</Text>
               </Pressable>
