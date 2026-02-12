@@ -1,23 +1,36 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { StudyTimerCard } from '@/components/feature';
-import { VCE_SUBJECTS } from '@/constants/vceData';
+import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { activeSubject, elapsedSeconds, startTimer, stopTimer } = useStudyTimer();
   
-  const [weeklyTime, setWeeklyTime] = React.useState<{ [key: string]: number }>({});
+  const [weeklyTime, setWeeklyTime] = useState<{ [key: string]: number }>({});
+  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    loadSubjects();
+  }, []);
+
+  useEffect(() => {
     loadWeeklyTime();
   }, [activeSubject]);
+
+  async function loadSubjects() {
+    setIsLoadingSubjects(true);
+    const subjects = await getAllVCESubjects();
+    setAllSubjects(subjects);
+    setIsLoadingSubjects(false);
+  }
 
   async function loadWeeklyTime() {
     const { getWeeklyStudyTime } = useStudyTimer();
@@ -25,7 +38,7 @@ export default function StudyScreen() {
     setWeeklyTime(time);
   }
 
-  const userSubjects = VCE_SUBJECTS.filter(s => user?.selectedSubjects.includes(s.id));
+  const userSubjects = allSubjects.filter(s => user?.selectedSubjects.includes(s.id));
 
   async function handleStopTimer() {
     await stopTimer();
@@ -65,7 +78,12 @@ export default function StudyScreen() {
 
         {/* Subject Timers */}
         <Text style={styles.sectionTitle}>Your Subjects</Text>
-        {userSubjects.length === 0 ? (
+        {isLoadingSubjects ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading subjects...</Text>
+          </View>
+        ) : userSubjects.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialIcons name="subject" size={64} color={colors.textTertiary} />
             <Text style={styles.emptyText}>No subjects selected</Text>
@@ -181,5 +199,14 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textTertiary,
     marginTop: spacing.xs,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingTop: spacing.xxl,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
   },
 });
