@@ -14,6 +14,8 @@ export interface UserSubject {
  */
 export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
   try {
+    console.log('🔍 Fetching subjects for user:', userId);
+
     const { data, error } = await supabase
       .from('vk_user_subjects')
       .select(`
@@ -32,13 +34,22 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching user subjects:', error);
+      console.error('❌ Error fetching user subjects:', error);
       return [];
     }
 
+    console.log('📦 Raw query result:', JSON.stringify(data, null, 2));
+    console.log('📊 Total rows returned:', data?.length);
+
     // Map the joined data to VCESubject format
-    return data
-      .filter(row => row.vk_vce_subjects) // Filter out any null joins
+    const subjects = data
+      .filter(row => {
+        const hasSubject = !!row.vk_vce_subjects;
+        if (!hasSubject) {
+          console.warn('⚠️ No matching VCE subject found for ID:', row.subject_id);
+        }
+        return hasSubject;
+      })
       .map(row => {
         const subject = row.vk_vce_subjects as any;
         return {
@@ -51,8 +62,11 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
           createdAt: subject.created_at,
         };
       });
+
+    console.log('✅ Mapped subjects:', subjects.length);
+    return subjects;
   } catch (err) {
-    console.error('getUserSubjects error:', err);
+    console.error('💥 getUserSubjects error:', err);
     return [];
   }
 }
