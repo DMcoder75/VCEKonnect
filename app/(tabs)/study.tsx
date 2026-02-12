@@ -11,7 +11,7 @@ import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { activeSubject, elapsedSeconds, startTimer, stopTimer } = useStudyTimer();
+  const { activeSubject, elapsedSeconds, startTimer, stopTimer, getWeeklyStudyTime } = useStudyTimer();
   
   const [weeklyTime, setWeeklyTime] = useState<{ [key: string]: number }>({});
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
@@ -33,7 +33,6 @@ export default function StudyScreen() {
   }
 
   async function loadWeeklyTime() {
-    const { getWeeklyStudyTime } = useStudyTimer();
     const time = await getWeeklyStudyTime();
     setWeeklyTime(time);
   }

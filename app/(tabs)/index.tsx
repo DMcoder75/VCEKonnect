@@ -16,7 +16,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { getPrediction, subjectScores } = useATAR();
-  const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning } = useStudyTimer();
+  const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   
   const [todayTime, setTodayTime] = useState(0);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
@@ -43,7 +43,6 @@ export default function DashboardScreen() {
   }
 
   async function loadTodayTime() {
-    const { getTodayStudyTime } = useStudyTimer();
     const timeBySubject = await getTodayStudyTime();
     const total = Object.values(timeBySubject).reduce((sum, time) => sum + time, 0);
     setTodayTime(total);
