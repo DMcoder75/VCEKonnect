@@ -12,9 +12,9 @@ import { getUserSubjects } from '@/services/userSubjectsService';
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { activeSubject, elapsedSeconds, startTimer, stopTimer, getWeeklyStudyTime } = useStudyTimer();
+  const { activeSubject, elapsedSeconds, startTimer, stopTimer } = useStudyTimer();
   
-  const [weeklyTime, setWeeklyTime] = useState<{ [key: string]: number }>({});
+  const [allTime, setAllTime] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
 
@@ -25,8 +25,10 @@ export default function StudyScreen() {
   }, [user]);
 
   useEffect(() => {
-    loadWeeklyTime();
-  }, [activeSubject]);
+    if (user) {
+      loadAllTime();
+    }
+  }, [user, activeSubject]);
 
   async function loadSubjects() {
     if (!user) return;
@@ -36,17 +38,19 @@ export default function StudyScreen() {
     setIsLoadingSubjects(false);
   }
 
-  async function loadWeeklyTime() {
-    const time = await getWeeklyStudyTime();
-    setWeeklyTime(time);
+  async function loadAllTime() {
+    if (!user) return;
+    const { getStudyTimeBySubject } = await import('@/services/studyService');
+    const time = await getStudyTimeBySubject(user.id, undefined, undefined);
+    setAllTime(time);
   }
 
   async function handleStopTimer() {
     await stopTimer();
-    loadWeeklyTime();
+    loadAllTime();
   }
 
-  const totalWeeklyMinutes = Object.values(weeklyTime).reduce((sum, time) => sum + time, 0);
+  const totalMinutes = Object.values(allTime).reduce((sum, time) => sum + time, 0);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -61,17 +65,17 @@ export default function StudyScreen() {
           <MaterialIcons name="timer" size={32} color={colors.primary} />
         </View>
 
-        {/* Weekly Summary */}
+        {/* All Time Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>This Week's Total</Text>
+          <Text style={styles.summaryLabel}>Total Study Time (All Time)</Text>
           <Text style={styles.summaryTime}>
-            {Math.floor(totalWeeklyMinutes / 60)}h {totalWeeklyMinutes % 60}m
+            {Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m
           </Text>
           <View style={styles.summaryStats}>
             <View style={styles.statItem}>
               <MaterialIcons name="local-fire-department" size={20} color={colors.warning} />
               <Text style={styles.statText}>
-                {Math.floor(totalWeeklyMinutes / 7)}m daily avg
+                {userSubjects.length} subjects tracked
               </Text>
             </View>
           </View>
@@ -93,7 +97,7 @@ export default function StudyScreen() {
         ) : (
           <>
             {userSubjects.map(subject => {
-              const weeklyMins = weeklyTime[subject.id] || 0;
+              const subjectMins = allTime[subject.id] || 0;
               return (
                 <View key={subject.id}>
                   <StudyTimerCard
@@ -105,9 +109,9 @@ export default function StudyScreen() {
                     onStart={() => startTimer(subject.id)}
                     onStop={handleStopTimer}
                   />
-                  <View style={styles.weeklyTimeContainer}>
-                    <Text style={styles.weeklyTimeText}>
-                      This week: {Math.floor(weeklyMins / 60)}h {weeklyMins % 60}m
+                  <View style={styles.allTimeContainer}>
+                    <Text style={styles.allTimeText}>
+                      Total time: {Math.floor(subjectMins / 60)}h {subjectMins % 60}m
                     </Text>
                   </View>
                 </View>
@@ -180,12 +184,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
-  weeklyTimeContainer: {
+  allTimeContainer: {
     marginTop: -spacing.sm,
     marginBottom: spacing.md,
     paddingLeft: spacing.md,
   },
-  weeklyTimeText: {
+  allTimeText: {
     fontSize: typography.caption,
     color: colors.textTertiary,
   },
