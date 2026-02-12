@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
-import { VCE_SUBJECTS, CAREER_PATHS } from '@/constants/vceData';
+import { CAREER_PATHS } from '@/constants/vceData';
+import { getAllVCESubjects, getSubjectCategories, VCESubject } from '@/services/vceSubjectsService';
+import { updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
 
@@ -17,6 +19,19 @@ export default function OnboardingScreen() {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>('');
   const [yearLevel, setYearLevel] = useState<11 | 12>(12);
+  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadSubjects();
+  }, []);
+
+  async function loadSubjects() {
+    setIsLoading(true);
+    const subjects = await getAllVCESubjects();
+    setAllSubjects(subjects);
+    setIsLoading(false);
+  }
 
   function toggleSubject(subjectId: string) {
     setSelectedSubjects(prev =>
@@ -27,19 +42,25 @@ export default function OnboardingScreen() {
   }
 
   async function handleComplete() {
+    if (!user) return;
+    
+    // Update user subjects in database
+    await updateUserSubjects(user.id, selectedSubjects);
+    
+    // Update user profile
     await updateProfile({
-      selectedSubjects,
       targetCareer,
       yearLevel,
     });
+    
     router.replace('/(tabs)');
   }
 
-  const subjectsByCategory = VCE_SUBJECTS.reduce((acc, subject) => {
+  const subjectsByCategory = allSubjects.reduce((acc, subject) => {
     if (!acc[subject.category]) acc[subject.category] = [];
     acc[subject.category].push(subject);
     return acc;
-  }, {} as Record<string, typeof VCE_SUBJECTS>);
+  }, {} as Record<string, VCESubject[]>);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

@@ -1,5 +1,5 @@
 import { SubjectScore } from '@/types';
-import { VCE_SUBJECTS, ATAR_TO_AGGREGATE } from '@/constants/vceData';
+import { ATAR_TO_AGGREGATE } from '@/constants/vceData';
 
 /**
  * Calculate predicted study score from SAC and exam percentages using 2024 VTAC scaling data
@@ -9,12 +9,11 @@ export function calculateStudyScore(
   subjectId: string,
   sacAverage: number,
   examPrediction: number,
-  studyRank: number
+  studyRank: number,
+  scaledMean: number = 30,
+  scaledStdDev: number = 7
 ): number {
-  // Find subject scaling data
-  const subject = VCE_SUBJECTS.find(s => s.id === subjectId);
-  const scaledMean = subject?.scaledMean || 30;
-  const scaledStdDev = subject?.scaledStdDev || 7;
+  // Use provided scaling data or defaults
   
   // Raw score: 50% SAC + 50% exam (out of 100)
   const rawPercentage = (sacAverage * 0.5) + (examPrediction * 0.5);

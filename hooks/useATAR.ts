@@ -1,28 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { getSubjectScores, saveSubjectScore } from '@/services/scoresService';
+import { getUserSubjects } from '@/services/userSubjectsService';
 import { calculateStudyScore, calculateATAR, calculateATARScenarios } from '@/services/atarCalculator';
 import { SubjectScore } from '@/types';
+import { VCESubject } from '@/services/vceSubjectsService';
 
 export function useATAR() {
   const { user } = useAuth();
   const [subjectScores, setSubjectScores] = useState<SubjectScore[]>([]);
+  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadScores();
+      loadData();
     }
   }, [user]);
 
-  async function loadScores() {
+  async function loadData() {
     if (!user) return;
     
     try {
-      const scores = await getSubjectScores(user.id);
+      const [scores, subjects] = await Promise.all([
+        getSubjectScores(user.id),
+        getUserSubjects(user.id)
+      ]);
       setSubjectScores(scores);
+      setUserSubjects(subjects);
     } catch (error) {
-      console.error('Failed to load scores:', error);
+      console.error('Failed to load data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -36,11 +43,18 @@ export function useATAR() {
   ): Promise<void> {
     if (!user) return;
 
+    // Get subject scaling data
+    const subject = userSubjects.find(s => s.id === subjectId);
+    const scaledMean = subject?.scaledMean ?? 30;
+    const scaledStdDev = subject?.scaledStdDev ?? 7;
+
     const predictedStudyScore = calculateStudyScore(
       subjectId,
       sacAverage,
       examPrediction,
-      studyRank
+      studyRank,
+      scaledMean,
+      scaledStdDev
     );
 
     // Save to database

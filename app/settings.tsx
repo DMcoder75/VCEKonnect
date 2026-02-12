@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
-import { VCE_SUBJECTS, CAREER_PATHS } from '@/constants/vceData';
+import { CAREER_PATHS } from '@/constants/vceData';
+import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
+import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
 
@@ -13,10 +15,28 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, updateProfile, logout } = useAuth();
   
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(user?.selectedSubjects || []);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
   const [yearLevel, setYearLevel] = useState<11 | 12>(user?.yearLevel || 12);
   const [hasChanges, setHasChanges] = useState(false);
+  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  async function loadData() {
+    if (!user) return;
+    setIsLoading(true);
+    const [subjects, userSubjectIds] = await Promise.all([
+      getAllVCESubjects(),
+      getUserSubjectIds(user.id)
+    ]);
+    setAllSubjects(subjects);
+    setSelectedSubjects(userSubjectIds);
+    setIsLoading(false);
+  }
 
   function toggleSubject(subjectId: string) {
     setSelectedSubjects(prev =>
@@ -28,11 +48,17 @@ export default function SettingsScreen() {
   }
 
   async function handleSave() {
+    if (!user) return;
+    
+    // Update user subjects in database
+    await updateUserSubjects(user.id, selectedSubjects);
+    
+    // Update user profile
     await updateProfile({
-      selectedSubjects,
       targetCareer,
       yearLevel,
     });
+    
     setHasChanges(false);
     router.back();
   }
@@ -42,11 +68,11 @@ export default function SettingsScreen() {
     router.replace('/auth/login');
   }
 
-  const subjectsByCategory = VCE_SUBJECTS.reduce((acc, subject) => {
+  const subjectsByCategory = allSubjects.reduce((acc, subject) => {
     if (!acc[subject.category]) acc[subject.category] = [];
     acc[subject.category].push(subject);
     return acc;
-  }, {} as Record<string, typeof VCE_SUBJECTS>);
+  }, {} as Record<string, VCESubject[]>);
 
   if (!user) return null;
 

@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
-import { VCE_SUBJECTS } from '@/constants/vceData';
-
 interface SubjectScoreCardProps {
   subjectId: string;
+  subjectName?: string;
+  subjectCode?: string;
   sacAverage: number;
   examPrediction: number;
   predictedStudyScore: number;
@@ -14,11 +14,14 @@ interface SubjectScoreCardProps {
 
 export function SubjectScoreCard({
   subjectId,
+  subjectName,
+  subjectCode,
   sacAverage,
   examPrediction,
   predictedStudyScore,
 }: SubjectScoreCardProps) {
-  const subject = VCE_SUBJECTS.find(s => s.id === subjectId);
+  const displayName = subjectName || subjectId;
+  const displayCode = subjectCode || '';
 
   const getScoreColor = (score: number) => {
     if (score >= 40) return colors.atarHigh;
@@ -30,8 +33,8 @@ export function SubjectScoreCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.subjectInfo}>
-          <Text style={styles.subjectName}>{subject?.name || subjectId}</Text>
-          <Text style={styles.subjectCode}>{subject?.code || ''}</Text>
+          <Text style={styles.subjectName}>{displayName}</Text>
+          <Text style={styles.subjectCode}>{displayCode}</Text>
         </View>
         <View style={styles.scoreCircle}>
           <Text style={[styles.studyScore, { color: getScoreColor(predictedStudyScore) }]}>

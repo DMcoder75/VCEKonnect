@@ -6,7 +6,8 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/types';
-import { VCE_SUBJECTS } from '@/constants/vceData';
+import { getUserSubjects } from '@/services/userSubjectsService';
+import { VCESubject } from '@/services/vceSubjectsService';
 
 export default function NotesScreen() {
   const insets = useSafeAreaInsets();
@@ -18,11 +19,24 @@ export default function NotesScreen() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
+  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+
   const filteredNotes = selectedSubject === 'all'
     ? notes
     : notes.filter(n => n.subjectId === selectedSubject);
 
-  const userSubjects = VCE_SUBJECTS.filter(s => user?.selectedSubjects.includes(s.id));
+  useEffect(() => {
+    loadSubjects();
+  }, [user]);
+
+  async function loadSubjects() {
+    if (!user) return;
+    setIsLoadingSubjects(true);
+    const subjects = await getUserSubjects(user.id);
+    setUserSubjects(subjects);
+    setIsLoadingSubjects(false);
+  }
 
   async function handleSaveNote() {
     const note: Note = {
@@ -144,7 +158,7 @@ export default function NotesScreen() {
             </View>
           ) : (
             filteredNotes.map(note => {
-              const subject = VCE_SUBJECTS.find(s => s.id === note.subjectId);
+              const subject = userSubjects.find(s => s.id === note.subjectId);
               return (
                 <View key={note.id} style={styles.noteCard}>
                   <View style={styles.noteHeader}>

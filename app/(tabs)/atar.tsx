@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,7 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { ATARDisplay, Input, Button } from '@/components';
 import { SubjectScoreCard } from '@/components/feature';
-import { VCE_SUBJECTS } from '@/constants/vceData';
+import { getUserSubjects } from '@/services/userSubjectsService';
+import { VCESubject } from '@/services/vceSubjectsService';
 import { useRouter } from 'expo-router';
 
 export default function ATARScreen() {
@@ -21,9 +22,22 @@ export default function ATARScreen() {
   const [examInput, setExamInput] = useState('');
   const [rankInput, setRankInput] = useState('');
 
+  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const prediction = getPrediction();
   const scenarios = getScenarios();
-  const userSubjects = VCE_SUBJECTS.filter(s => user?.selectedSubjects.includes(s.id));
+
+  useEffect(() => {
+    loadSubjects();
+  }, [user]);
+
+  async function loadSubjects() {
+    if (!user) return;
+    setIsLoadingSubjects(true);
+    const subjects = await getUserSubjects(user.id);
+    setUserSubjects(subjects);
+    setIsLoadingSubjects(false);
+  }
 
   function handleEditSubject(subjectId: string) {
     const existing = subjectScores.find(s => s.subjectId === subjectId);
@@ -116,6 +130,8 @@ export default function ATARScreen() {
                 <Pressable onPress={() => handleEditSubject(subject.id)}>
                   <SubjectScoreCard
                     subjectId={subject.id}
+                    subjectName={subject.name}
+                    subjectCode={subject.code}
                     sacAverage={score.sacAverage}
                     examPrediction={score.examPrediction}
                     predictedStudyScore={score.predictedStudyScore}
