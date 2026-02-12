@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -27,13 +27,16 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (user) {
+      Alert.alert('Debug: User Loaded', `User ID: ${user.id}\nName: ${user.name}`);
       loadSubjects();
     }
   }, [user]);
 
   useEffect(() => {
-    loadTodayTime();
-  }, []);
+    if (user) {
+      loadTodayTime();
+    }
+  }, [user]);
 
   async function loadSubjects() {
     if (!user) return;
@@ -41,12 +44,29 @@ export default function DashboardScreen() {
     const subjects = await getUserSubjects(user.id);
     setUserSubjects(subjects);
     setIsLoadingSubjects(false);
+    
+    const subjectsList = subjects.map(s => `${s.code} - ${s.name}`).join('\n');
+    Alert.alert(
+      'Debug: Subjects Loaded',
+      `User ID: ${user.id}\n\nSubjects Count: ${subjects.length}\n\n${subjectsList || 'No subjects'}`
+    );
   }
 
   async function loadTodayTime() {
+    if (!user) return;
+    
     const timeBySubject = await getTodayStudyTime();
     const total = Object.values(timeBySubject).reduce((sum, time) => sum + time, 0);
     setTodayTime(total);
+    
+    const breakdown = Object.entries(timeBySubject)
+      .map(([subjectId, minutes]) => `${subjectId}: ${minutes} min`)
+      .join('\n');
+    
+    Alert.alert(
+      'Debug: Today Study Time',
+      `User ID: ${user.id}\n\nTotal: ${total} minutes\n\nBreakdown:\n${breakdown || 'No sessions today'}`
+    );
   }
 
   function handleStartTimer(subjectId: string) {
