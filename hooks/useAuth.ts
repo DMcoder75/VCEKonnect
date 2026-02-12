@@ -44,10 +44,10 @@ export function useAuth() {
     if (!user) return;
     const { error } = await updateUserProfile(user.id, updates);
     if (error) {
-      alert(error);
-      return;
+      throw new Error(error);
     }
-    setUser({ ...user, ...updates });
+    // Reload user to get fresh data from database
+    await loadUser();
   }
 
   async function logout() {
