@@ -153,7 +153,7 @@ export default function DashboardScreen() {
               <Text style={styles.emptySubtext}>Add subjects to start tracking your study time</Text>
             </View>
           ) : (
-            userSubjects.slice(0, 3).map(subject => (
+            userSubjects.map(subject => (
               <StudyTimerCard
                 key={subject.id}
                 subjectId={subject.id}
