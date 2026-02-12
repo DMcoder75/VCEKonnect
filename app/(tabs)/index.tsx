@@ -157,8 +157,6 @@ export default function DashboardScreen() {
               <StudyTimerCard
                 key={subject.id}
                 subjectId={subject.id}
-                subjectName={subject.name}
-                subjectCode={subject.code}
                 elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
                 isActive={activeSubject === subject.id}
                 onStart={() => handleStartTimer(subject.id)}

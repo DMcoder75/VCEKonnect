@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { getAllVCESubjects, VCESubject } from './vceSubjectsService';
 
 export interface UserSubject {
   id: string;
@@ -10,11 +9,10 @@ export interface UserSubject {
 }
 
 /**
- * Get all subjects for a user (returns full subject objects with name, code, etc.)
+ * Get all subjects for a user
  */
-export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
+export async function getUserSubjects(userId: string): Promise<string[]> {
   try {
-    // Get user's subject IDs
     const { data, error } = await supabase
       .from('vk_user_subjects')
       .select('subject_id')
@@ -26,13 +24,7 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
       return [];
     }
 
-    const userSubjectIds = data.map(row => row.subject_id);
-
-    // Get all VCE subjects
-    const allSubjects = await getAllVCESubjects();
-
-    // Filter to only user's subjects
-    return allSubjects.filter(subject => userSubjectIds.includes(subject.id));
+    return data.map(row => row.subject_id);
   } catch (err) {
     console.error('getUserSubjects error:', err);
     return [];
