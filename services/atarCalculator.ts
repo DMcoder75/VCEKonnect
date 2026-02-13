@@ -48,8 +48,9 @@ export function calculateATAR(subjectScores: SubjectScore[]): {
   }
   
   // Identify English subjects (mandatory)
-  const englishSubjects = ['en', 'ef', 'eg', 'l'];
-  const englishScore = subjectScores.find(s => englishSubjects.includes(s.subjectId));
+  // English subject IDs: EN (English), EAL (English as Additional Language)
+  const englishSubjects = ['EN', 'EAL'];
+  const englishScore = subjectScores.find(s => englishSubjects.includes(s.subjectId.toUpperCase()));
   const otherScores = subjectScores.filter(s => !englishSubjects.includes(s.subjectId));
   
   // Sort non-English subjects by scaled study score (descending)
