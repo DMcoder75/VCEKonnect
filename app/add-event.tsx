@@ -8,7 +8,9 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -33,6 +35,8 @@ export default function AddEventScreen() {
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [eventType, setEventType] = useState<'SAC' | 'Assessment' | 'Exam' | 'MockExam' | 'GAT'>('SAC');
   const [eventDate, setEventDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [duration, setDuration] = useState('');
@@ -110,6 +114,31 @@ export default function AddEventScreen() {
     if (subject) {
       await updateTitleWithNumber(selectedSubject, subject.code, type);
     }
+  }
+
+  function handleDateChange(event: any, date?: Date) {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    
+    if (date) {
+      setSelectedDate(date);
+      // Format as YYYY-MM-DD
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      setEventDate(`${year}-${month}-${day}`);
+    }
+  }
+
+  function formatDateDisplay(dateString: string): string {
+    if (!dateString) return 'Select date';
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-AU', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
   }
 
   async function handleSubmit() {
@@ -223,14 +252,34 @@ export default function AddEventScreen() {
         {/* Date */}
         <View style={styles.section}>
           <Text style={styles.label}>Date *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD (e.g., 2026-03-15)"
-            placeholderTextColor={colors.textTertiary}
-            value={eventDate}
-            onChangeText={setEventDate}
-          />
-          <Text style={styles.hint}>Format: YYYY-MM-DD</Text>
+          <Pressable
+            style={styles.datePickerButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <MaterialIcons name="event" size={20} color={colors.textSecondary} />
+            <Text style={styles.datePickerText}>
+              {formatDateDisplay(eventDate)}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={24} color={colors.textSecondary} />
+          </Pressable>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleDateChange}
+              minimumDate={new Date()}
+              themeVariant="dark"
+            />
+          )}
+          {Platform.OS === 'ios' && showDatePicker && (
+            <Pressable
+              style={styles.datePickerDone}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={styles.datePickerDoneText}>Done</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Title */}
@@ -411,6 +460,34 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  datePickerText: {
+    flex: 1,
+    fontSize: typography.body,
+    color: colors.textPrimary,
+  },
+  datePickerDone: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  datePickerDoneText: {
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
