@@ -117,18 +117,24 @@ export default function AddEventScreen() {
   }
 
   function handleDateChange(event: any, date?: Date) {
+    const currentDate = date || selectedDate;
+    
+    // On Android, check if user dismissed or confirmed
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
+      
+      // Only update if user confirmed (event.type === 'set')
+      if (event.type === 'dismissed') {
+        return;
+      }
     }
     
-    if (date) {
-      setSelectedDate(date);
-      // Format as YYYY-MM-DD
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      setEventDate(`${year}-${month}-${day}`);
-    }
+    // Update the selected date and formatted string
+    setSelectedDate(currentDate);
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    setEventDate(`${year}-${month}-${day}`);
   }
 
   function formatDateDisplay(dateString: string): string {
