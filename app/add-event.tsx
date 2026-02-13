@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -116,27 +116,26 @@ export default function AddEventScreen() {
     }
   }
 
-  function handleDateChange(event: any, date?: Date) {
-    // Handle Android picker dismissal
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-    
-    // Check if user cancelled (Android) or if date is undefined
-    if (event.type === 'dismissed' || !date) {
-      return;
-    }
-    
-    // Update the selected date and formatted string
+  function handleDateSelect(year: number, month: number, day: number) {
+    const monthStr = String(month).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    setEventDate(dateStr);
+    const date = new Date(year, month - 1, day);
     setSelectedDate(date);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    setEventDate(`${year}-${month}-${day}`);
+    setShowDatePicker(false);
   }
 
   function closeDatePicker() {
     setShowDatePicker(false);
+  }
+
+  function getCurrentYear() {
+    return new Date().getFullYear();
+  }
+
+  function getDaysInMonth(year: number, month: number) {
+    return new Date(year, month, 0).getDate();
   }
 
   function formatDateDisplay(dateString: string): string {
@@ -262,10 +261,7 @@ export default function AddEventScreen() {
           <Text style={styles.label}>Date *</Text>
           <Pressable
             style={styles.datePickerButton}
-            onPress={() => {
-              Alert.alert('Debug', 'Date picker button pressed');
-              setShowDatePicker(true);
-            }}
+            onPress={() => setShowDatePicker(true)}
           >
             <MaterialIcons name="event" size={20} color={colors.textSecondary} />
             <Text style={styles.datePickerText}>
@@ -274,27 +270,28 @@ export default function AddEventScreen() {
             <MaterialIcons name="arrow-drop-down" size={24} color={colors.textSecondary} />
           </Pressable>
           
-          {showDatePicker && (
-            <View style={styles.datePickerContainer}>
-              <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleDateChange}
-                minimumDate={new Date()}
-                themeVariant="dark"
-                style={styles.datePicker}
-              />
-              {Platform.OS === 'ios' && (
-                <Pressable
-                  style={styles.datePickerDone}
-                  onPress={closeDatePicker}
-                >
-                  <Text style={styles.datePickerDoneText}>Done</Text>
-                </Pressable>
-              )}
+          <Modal
+            visible={showDatePicker}
+            transparent
+            animationType="slide"
+            onRequestClose={closeDatePicker}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.datePickerModal}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Date</Text>
+                  <Pressable onPress={closeDatePicker}>
+                    <MaterialIcons name="close" size={24} color={colors.textPrimary} />
+                  </Pressable>
+                </View>
+                
+                <SimpleDatePicker
+                  selectedDate={selectedDate}
+                  onSelectDate={handleDateSelect}
+                />
+              </View>
             </View>
-          )}
+          </Modal>
         </View>
 
         {/* Title */}
@@ -353,6 +350,106 @@ export default function AddEventScreen() {
           )}
         </Pressable>
       </ScrollView>
+    </View>
+  );
+}
+
+interface SimpleDatePickerProps {
+  selectedDate: Date;
+  onSelectDate: (year: number, month: number, day: number) => void;
+}
+
+function SimpleDatePicker({ selectedDate, onSelectDate }: SimpleDatePickerProps) {
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(selectedDate.getFullYear() || currentYear);
+  const [month, setMonth] = useState(selectedDate.getMonth() + 1 || 1);
+  const [day, setDay] = useState(selectedDate.getDate() || 1);
+
+  const years = Array.from({ length: 5 }, (_, i) => currentYear + i);
+  const months = [
+    { value: 1, label: 'Jan' }, { value: 2, label: 'Feb' }, { value: 3, label: 'Mar' },
+    { value: 4, label: 'Apr' }, { value: 5, label: 'May' }, { value: 6, label: 'Jun' },
+    { value: 7, label: 'Jul' }, { value: 8, label: 'Aug' }, { value: 9, label: 'Sep' },
+    { value: 10, label: 'Oct' }, { value: 11, label: 'Nov' }, { value: 12, label: 'Dec' },
+  ];
+  
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  return (
+    <View style={styles.pickerContent}>
+      {/* Year */}
+      <View style={styles.pickerSection}>
+        <Text style={styles.pickerLabel}>Year</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pickerScroll}
+        >
+          {years.map(y => (
+            <Pressable
+              key={y}
+              style={[styles.pickerItem, year === y && styles.pickerItemActive]}
+              onPress={() => setYear(y)}
+            >
+              <Text style={[styles.pickerItemText, year === y && styles.pickerItemTextActive]}>
+                {y}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Month */}
+      <View style={styles.pickerSection}>
+        <Text style={styles.pickerLabel}>Month</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pickerScroll}
+        >
+          {months.map(m => (
+            <Pressable
+              key={m.value}
+              style={[styles.pickerItem, month === m.value && styles.pickerItemActive]}
+              onPress={() => setMonth(m.value)}
+            >
+              <Text style={[styles.pickerItemText, month === m.value && styles.pickerItemTextActive]}>
+                {m.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Day */}
+      <View style={styles.pickerSection}>
+        <Text style={styles.pickerLabel}>Day</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pickerScroll}
+        >
+          {days.map(d => (
+            <Pressable
+              key={d}
+              style={[styles.pickerItem, day === d && styles.pickerItemActive]}
+              onPress={() => setDay(d)}
+            >
+              <Text style={[styles.pickerItemText, day === d && styles.pickerItemTextActive]}>
+                {d}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      <Pressable
+        style={styles.confirmButton}
+        onPress={() => onSelectDate(year, month, day)}
+      >
+        <Text style={styles.confirmButtonText}>Confirm Date</Text>
+      </Pressable>
     </View>
   );
 }
@@ -502,18 +599,77 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginTop: spacing.sm,
   },
-  datePickerDoneText: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  datePickerModal: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    paddingBottom: spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  pickerContent: {
+    padding: spacing.md,
+  },
+  pickerSection: {
+    marginBottom: spacing.lg,
+  },
+  pickerLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  pickerScroll: {
+    gap: spacing.sm,
+  },
+  pickerItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  pickerItemActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  pickerItemText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  pickerItemTextActive: {
+    color: colors.textPrimary,
+  },
+  confirmButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  confirmButtonText: {
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
-  },
-  datePickerContainer: {
-    marginTop: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  datePicker: {
-    width: '100%',
   },
 });
