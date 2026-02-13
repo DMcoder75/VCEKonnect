@@ -32,16 +32,20 @@ export default function DashboardScreen() {
 
   const prediction = getPrediction();
 
+  // Memoize load functions to ensure stable references
+  const loadSubjectsMemoized = useCallback(loadSubjects, [user]);
+  const loadAllTimeMemoized = useCallback(loadAllTime, [user]);
+
   // Refresh data when dashboard comes into focus
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        loadSubjects();
-        loadAllTime();
+        loadSubjectsMemoized();
+        loadAllTimeMemoized();
         reloadScores(); // Reload ATAR scores when returning to dashboard
         loadActiveGoals(); // Reload study goals when returning to dashboard
       }
-    }, [user, reloadScores, loadActiveGoals])
+    }, [user, loadSubjectsMemoized, loadAllTimeMemoized, reloadScores, loadActiveGoals])
   );
 
   async function loadSubjects() {
