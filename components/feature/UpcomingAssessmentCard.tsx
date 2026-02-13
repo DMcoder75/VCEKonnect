@@ -80,12 +80,23 @@ export function UpcomingAssessmentCard({
         return;
       }
 
-      // Save score and mark complete
+      // Save score
       onUpdateScore?.(event.id, achieved, total);
-      onComplete(event.id);
+      
+      // Only mark complete if not already completed
+      if (!event.is_completed) {
+        onComplete(event.id);
+      }
     } else {
-      // No score entered - just mark complete
-      onComplete(event.id);
+      // No score entered
+      if (!event.is_completed) {
+        // If not complete, mark complete
+        onComplete(event.id);
+      } else {
+        // If already complete, just close modal
+        Alert.alert('No Score Entered', 'Please enter a score or click Cancel');
+        return;
+      }
     }
     
     setShowScoreModal(false);
@@ -207,22 +218,35 @@ export function UpcomingAssessmentCard({
             </Text>
 
             <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.modalButton, styles.skipButton]}
-                onPress={() => {
-                  onComplete(event.id);
-                  setShowScoreModal(false);
-                }}
-              >
-                <Text style={styles.skipButtonText}>Skip & Mark Complete</Text>
-              </Pressable>
+              {!event.is_completed && (
+                <Pressable
+                  style={[styles.modalButton, styles.skipButton]}
+                  onPress={() => {
+                    onComplete(event.id);
+                    setShowScoreModal(false);
+                  }}
+                >
+                  <Text style={styles.skipButtonText}>Skip & Mark Complete</Text>
+                </Pressable>
+              )}
 
               <Pressable
                 style={[styles.modalButton, styles.submitButton]}
                 onPress={handleScoreSubmit}
               >
-                <Text style={styles.submitButtonText}>Save Score</Text>
+                <Text style={styles.submitButtonText}>
+                  {event.is_completed ? 'Update Score' : 'Save Score'}
+                </Text>
               </Pressable>
+
+              {event.is_completed && (
+                <Pressable
+                  style={[styles.modalButton, styles.skipButton]}
+                  onPress={() => setShowScoreModal(false)}
+                >
+                  <Text style={styles.skipButtonText}>Cancel</Text>
+                </Pressable>
+              )}
             </View>
           </View>
         </View>
