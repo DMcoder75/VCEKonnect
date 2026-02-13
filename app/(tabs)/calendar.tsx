@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,20 +7,111 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
 import { UpcomingAssessmentCard } from '@/components/feature';
+import { CalendarEvent } from '@/services/calendarService';
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { upcomingEvents, loading, completeEvent, updateScore, loadUpcomingEvents } = useCalendar(user?.id);
+  const { upcomingEvents, loading, completeEvent, updateScore, loadUpcomingEvents, loadEventsByWeek } = useCalendar(user?.id);
   const [view, setView] = useState<'list' | 'week' | 'month'>('list');
+  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
+  const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
+  const [loadingWeek, setLoadingWeek] = useState(false);
 
   // Refresh events when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       loadUpcomingEvents();
-    }, [loadUpcomingEvents])
+      if (view === 'week') {
+        loadWeekEvents();
+      }
+    }, [loadUpcomingEvents, view])
   );
+
+  // Load week events when week changes
+  useEffect(() => {
+    if (view === 'week') {
+      loadWeekEvents();
+    }
+  }, [weekStart, view]);
+
+  function getWeekStart(date: Date): string {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day; // Sunday as start of week
+    d.setDate(diff);
+    return formatDateForDB(d);
+  }
+
+  function formatDateForDB(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  async function loadWeekEvents() {
+    if (!user) return;
+    setLoadingWeek(true);
+    const { data } = await loadEventsByWeek(weekStart);
+    setWeekEvents(data || []);
+    setLoadingWeek(false);
+  }
+
+  function goToPreviousWeek() {
+    const current = new Date(weekStart);
+    current.setDate(current.getDate() - 7);
+    setWeekStart(formatDateForDB(current));
+  }
+
+  function goToNextWeek() {
+    const current = new Date(weekStart);
+    current.setDate(current.getDate() + 7);
+    setWeekStart(formatDateForDB(current));
+  }
+
+  function goToToday() {
+    setWeekStart(getWeekStart(new Date()));
+  }
+
+  function getWeekDays(): Array<{ date: string; dayName: string; dayNum: string; isToday: boolean }> {
+    const days = [];
+    const start = new Date(weekStart);
+    const today = formatDateForDB(new Date());
+
+    for (let i = 0; i < 7; i++) {
+      const current = new Date(start);
+      current.setDate(start.getDate() + i);
+      const dateStr = formatDateForDB(current);
+
+      days.push({
+        date: dateStr,
+        dayName: current.toLocaleDateString('en-AU', { weekday: 'short' }),
+        dayNum: current.getDate().toString(),
+        isToday: dateStr === today,
+      });
+    }
+
+    return days;
+  }
+
+  function getEventsForDay(date: string): CalendarEvent[] {
+    return weekEvents.filter(event => event.event_date === date);
+  }
+
+  function getWeekRangeText(): string {
+    const start = new Date(weekStart);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    const startMonth = start.toLocaleDateString('en-AU', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-AU', { month: 'short' });
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay} - ${endDay}`;
+    }
+    return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+  }
 
   async function handleCompleteEvent(eventId: string) {
     await completeEvent(eventId);
@@ -168,10 +259,138 @@ export default function CalendarScreen() {
         )}
 
         {view === 'week' && (
-          <View style={styles.comingSoon}>
-            <MaterialIcons name="view-week" size={48} color={colors.textTertiary} />
-            <Text style={styles.comingSoonText}>Weekly View Coming Soon</Text>
-          </View>
+          <>
+            {/* Week Navigation */}
+            <View style={styles.weekNav}>
+              <Pressable style={styles.weekNavButton} onPress={goToPreviousWeek}>
+                <MaterialIcons name="chevron-left" size={24} color={colors.textPrimary} />
+              </Pressable>
+
+              <View style={styles.weekNavCenter}>
+                <Text style={styles.weekRangeText}>{getWeekRangeText()}</Text>
+                <Pressable style={styles.todayButton} onPress={goToToday}>
+                  <Text style={styles.todayButtonText}>Today</Text>
+                </Pressable>
+              </View>
+
+              <Pressable style={styles.weekNavButton} onPress={goToNextWeek}>
+                <MaterialIcons name="chevron-right" size={24} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            {loadingWeek ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading week...</Text>
+              </View>
+            ) : (
+              <View style={styles.weekGrid}>
+                {getWeekDays().map((day) => {
+                  const dayEvents = getEventsForDay(day.date);
+                  return (
+                    <View
+                      key={day.date}
+                      style={[
+                        styles.dayColumn,
+                        day.isToday && styles.dayColumnToday,
+                      ]}
+                    >
+                      {/* Day Header */}
+                      <View style={[styles.dayHeader, day.isToday && styles.dayHeaderToday]}>
+                        <Text
+                          style={[
+                            styles.dayName,
+                            day.isToday && styles.dayNameToday,
+                          ]}
+                        >
+                          {day.dayName}
+                        </Text>
+                        <View
+                          style={[
+                            styles.dayNumCircle,
+                            day.isToday && styles.dayNumCircleToday,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.dayNum,
+                              day.isToday && styles.dayNumToday,
+                            ]}
+                          >
+                            {day.dayNum}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Day Events */}
+                      <View style={styles.dayEvents}>
+                        {dayEvents.length === 0 ? (
+                          <View style={styles.noEvents}>
+                            <Text style={styles.noEventsText}>No events</Text>
+                          </View>
+                        ) : (
+                          dayEvents.map((event) => (
+                            <Pressable
+                              key={event.id}
+                              style={[
+                                styles.weekEventCard,
+                                event.is_completed && styles.weekEventCardCompleted,
+                              ]}
+                              onPress={() => {
+                                // Could open event details modal
+                              }}
+                            >
+                              <View style={styles.weekEventHeader}>
+                                <Text style={styles.weekEventCode} numberOfLines={1}>
+                                  {event.subject_code}
+                                </Text>
+                                {event.is_completed ? (
+                                  <MaterialIcons
+                                    name="check-circle"
+                                    size={14}
+                                    color={colors.success}
+                                  />
+                                ) : (
+                                  event.urgency_level && (
+                                    <View
+                                      style={[
+                                        styles.urgencyDot,
+                                        {
+                                          backgroundColor:
+                                            event.urgency_level === 'red'
+                                              ? colors.error
+                                              : event.urgency_level === 'orange'
+                                              ? '#FF9500'
+                                              : event.urgency_level === 'yellow'
+                                              ? '#FFD60A'
+                                              : colors.success,
+                                        },
+                                      ]}
+                                    />
+                                  )
+                                )}
+                              </View>
+                              <Text style={styles.weekEventType} numberOfLines={1}>
+                                {event.event_type}
+                              </Text>
+                              {event.score_percentage !== undefined &&
+                                event.score_percentage !== null && (
+                                  <View style={styles.weekEventScore}>
+                                    <Text style={styles.weekEventScoreText}>
+                                      {event.score_percentage.toFixed(0)}%
+                                    </Text>
+                                  </View>
+                                )}
+                            </Pressable>
+                          ))
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
         )}
 
         {view === 'month' && (
@@ -308,5 +527,154 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.textSecondary,
     marginTop: spacing.md,
+  },
+  weekNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  weekNavButton: {
+    padding: spacing.xs,
+  },
+  weekNavCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  weekRangeText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  todayButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+  },
+  todayButtonText: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  weekGrid: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  dayColumn: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  dayColumnToday: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  dayHeader: {
+    padding: spacing.sm,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dayHeaderToday: {
+    backgroundColor: colors.primary + '15',
+  },
+  dayName: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  dayNameToday: {
+    color: colors.primary,
+  },
+  dayNumCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayNumCircleToday: {
+    backgroundColor: colors.primary,
+  },
+  dayNum: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  dayNumToday: {
+    color: colors.textPrimary,
+  },
+  dayEvents: {
+    padding: spacing.xs,
+    gap: spacing.xs,
+  },
+  noEvents: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  noEventsText: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+  },
+  weekEventCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  weekEventCardCompleted: {
+    opacity: 0.7,
+  },
+  weekEventHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  weekEventCode: {
+    fontSize: 11,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  urgencyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  weekEventType: {
+    fontSize: 10,
+    color: colors.textSecondary,
+  },
+  weekEventScore: {
+    marginTop: 2,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    backgroundColor: colors.success + '20',
+    borderRadius: 3,
+    alignSelf: 'flex-start',
+  },
+  weekEventScoreText: {
+    fontSize: 9,
+    fontWeight: typography.semibold,
+    color: colors.success,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
   },
 });
