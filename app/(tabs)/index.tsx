@@ -149,6 +149,12 @@ export default function DashboardScreen() {
             <View style={styles.goalsHeader}>
               <MaterialIcons name="flag" size={20} color={colors.primary} />
               <Text style={styles.goalsTitle}>Study Goals Progress</Text>
+              <Pressable
+                style={styles.editGoalsButton}
+                onPress={() => router.push('/goals')}
+              >
+                <MaterialIcons name="edit" size={16} color={colors.primary} />
+              </Pressable>
             </View>
             <View style={styles.goalsRings}>
               {activeGoals.weekly && (
@@ -567,6 +573,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.md,
+  },
+  editGoalsButton: {
+    marginLeft: 'auto',
+    padding: spacing.xs,
   },
   goalsTitle: {
     fontSize: typography.body,
