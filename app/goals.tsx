@@ -108,20 +108,27 @@ export default function GoalsScreen() {
     logs.push(`📊 Weekly Total: ${weeklyTotal}`);
     logs.push(`📋 Current subject goals count: ${subjectGoals.length}`);
     
-    // Update subject goals with proper fallback for empty/invalid values
-    const updatedGoals = subjectGoals.map(goal => {
-      const weeklyValue = parseFloat(goal.weeklyHours) || 0;
-      const newMonthlyValue = (weeklyValue * 4.3).toFixed(1);
-      const subject = subjects.find(s => s.id === goal.subjectId);
-      logs.push(`  ${subject?.code || goal.subjectId}: ${goal.weeklyHours}h × 4.3 = ${newMonthlyValue}h`);
-      return {
-        ...goal,
-        monthlyHours: newMonthlyValue,
-      };
+    // Force React to recognize the update by using functional setState
+    setSubjectGoals(prevGoals => {
+      const updatedGoals = prevGoals.map(goal => {
+        const weeklyValue = parseFloat(goal.weeklyHours) || 0;
+        const newMonthlyValue = (weeklyValue * 4.3).toFixed(1);
+        const subject = subjects.find(s => s.id === goal.subjectId);
+        logs.push(`  ${subject?.code || goal.subjectId}: ${goal.weeklyHours}h × 4.3 = ${newMonthlyValue}h`);
+        
+        // Create completely new object to trigger re-render
+        return {
+          subjectId: goal.subjectId,
+          weeklyHours: goal.weeklyHours,
+          monthlyHours: newMonthlyValue,
+          termHours: goal.termHours,
+        };
+      });
+      
+      logs.push('✅ Updated goals array created');
+      logs.push(`📝 Sample updated value: ${updatedGoals[0]?.monthlyHours}`);
+      return updatedGoals;
     });
-    
-    logs.push('✅ Updated goals array created');
-    setSubjectGoals(updatedGoals);
 
     // Also update monthly total with proper fallback
     const weeklyValue = parseFloat(weeklyTotal) || 25;
@@ -129,7 +136,7 @@ export default function GoalsScreen() {
     logs.push(`💰 Monthly Total: ${weeklyTotal} × 4.3 = ${newMonthlyTotal}h`);
     setMonthlyTotal(newMonthlyTotal);
     
-    logs.push('✨ State updated successfully');
+    logs.push('✨ State update queued');
     setDebugLog(logs);
   }
 
