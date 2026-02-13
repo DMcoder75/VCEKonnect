@@ -102,20 +102,31 @@ export default function GoalsScreen() {
   }
 
   function handleCopyWeeklyToMonthly() {
+    console.log('Copy button clicked');
+    console.log('Current weeklyTotal:', weeklyTotal);
+    console.log('Current subjectGoals:', subjectGoals);
+    
     // Update subject goals with proper fallback for empty/invalid values
     const updatedGoals = subjectGoals.map(goal => {
       const weeklyValue = parseFloat(goal.weeklyHours) || 0;
+      const newMonthlyValue = (weeklyValue * 4.3).toFixed(1);
+      console.log(`${goal.subjectId}: ${goal.weeklyHours}h → ${newMonthlyValue}h`);
       return {
         ...goal,
-        monthlyHours: (weeklyValue * 4.3).toFixed(1),
+        monthlyHours: newMonthlyValue,
       };
     });
+    
+    console.log('Updated goals:', updatedGoals);
     setSubjectGoals(updatedGoals);
 
     // Also update monthly total with proper fallback
     const weeklyValue = parseFloat(weeklyTotal) || 25;
     const newMonthlyTotal = (weeklyValue * 4.3).toFixed(1);
+    console.log(`Monthly total: ${weeklyTotal} → ${newMonthlyTotal}`);
     setMonthlyTotal(newMonthlyTotal);
+    
+    alert(`Updated! Weekly ${weeklyTotal}h × 4.3 = Monthly ${newMonthlyTotal}h`);
   }
 
   function updateSubjectGoal(subjectId: string, field: keyof SubjectGoalInput, value: string) {
