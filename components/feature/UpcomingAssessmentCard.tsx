@@ -1,13 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Modal, TextInput, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing } from '@/constants/theme';
+import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { CalendarEvent } from '@/services/calendarService';
 
 interface UpcomingAssessmentCardProps {
   event: CalendarEvent;
   index: number;
   onComplete: (eventId: string) => void;
+  onUpdateScore?: (eventId: string, scoreAchieved: number, scoreTotal: number) => void;
   onPress?: (event: CalendarEvent) => void;
 }
 
@@ -15,8 +16,12 @@ export function UpcomingAssessmentCard({
   event,
   index,
   onComplete,
+  onUpdateScore,
   onPress,
 }: UpcomingAssessmentCardProps) {
+  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [scoreAchieved, setScoreAchieved] = useState(event.score_achieved?.toString() || '');
+  const [scoreTotal, setScoreTotal] = useState(event.score_total?.toString() || '');
   const getUrgencyColor = () => {
     switch (event.urgency_level) {
       case 'red':
@@ -45,6 +50,50 @@ export function UpcomingAssessmentCard({
       day: 'numeric',
       month: 'short',
     });
+  };
+
+  const handleCheckPress = () => {
+    if (event.is_completed) {
+      // Already completed - just toggle off
+      onComplete(event.id);
+    } else {
+      // Not completed - show score modal
+      setShowScoreModal(true);
+    }
+  };
+
+  const handleScoreSubmit = () => {
+    const achieved = parseFloat(scoreAchieved);
+    const total = parseFloat(scoreTotal);
+
+    if (scoreAchieved && scoreTotal) {
+      if (isNaN(achieved) || isNaN(total)) {
+        Alert.alert('Invalid Score', 'Please enter valid numbers');
+        return;
+      }
+      if (achieved > total) {
+        Alert.alert('Invalid Score', 'Score achieved cannot be greater than total');
+        return;
+      }
+      if (achieved < 0 || total <= 0) {
+        Alert.alert('Invalid Score', 'Please enter positive numbers');
+        return;
+      }
+
+      // Save score and mark complete
+      onUpdateScore?.(event.id, achieved, total);
+      onComplete(event.id);
+    } else {
+      // No score entered - just mark complete
+      onComplete(event.id);
+    }
+    
+    setShowScoreModal(false);
+  };
+
+  const handleAddScore = (e: any) => {
+    e.stopPropagation();
+    setShowScoreModal(true);
   };
 
   return (
@@ -78,19 +127,106 @@ export function UpcomingAssessmentCard({
         )}
       </View>
 
-      <Pressable
-        style={styles.checkButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          onComplete(event.id);
-        }}
+      <View style={styles.actionsContainer}>
+        {event.is_completed && event.score_percentage !== undefined && event.score_percentage !== null && (
+          <View style={styles.scoreChip}>
+            <Text style={styles.scoreText}>{event.score_percentage.toFixed(0)}%</Text>
+          </View>
+        )}
+        
+        {event.is_completed && !event.score_achieved && (
+          <Pressable style={styles.addScoreButton} onPress={handleAddScore}>
+            <MaterialIcons name="add" size={16} color={colors.primary} />
+            <Text style={styles.addScoreText}>Score</Text>
+          </Pressable>
+        )}
+
+        <Pressable
+          style={styles.checkButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleCheckPress();
+          }}
+        >
+          <MaterialIcons
+            name={event.is_completed ? 'check-circle' : 'radio-button-unchecked'}
+            size={24}
+            color={event.is_completed ? colors.success : colors.textSecondary}
+          />
+        </Pressable>
+      </View>
+
+      {/* Score Entry Modal */}
+      <Modal
+        visible={showScoreModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowScoreModal(false)}
       >
-        <MaterialIcons
-          name={event.is_completed ? 'check-circle' : 'radio-button-unchecked'}
-          size={24}
-          color={event.is_completed ? colors.success : colors.textSecondary}
-        />
-      </Pressable>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Score</Text>
+              <Pressable onPress={() => setShowScoreModal(false)}>
+                <MaterialIcons name="close" size={24} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalEventTitle}>{event.title}</Text>
+
+            <View style={styles.scoreInputContainer}>
+              <View style={styles.scoreInputWrapper}>
+                <Text style={styles.inputLabel}>Score Achieved</Text>
+                <TextInput
+                  style={styles.scoreInput}
+                  placeholder="e.g., 45"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="decimal-pad"
+                  value={scoreAchieved}
+                  onChangeText={setScoreAchieved}
+                />
+              </View>
+
+              <Text style={styles.scoreDivider}>/</Text>
+
+              <View style={styles.scoreInputWrapper}>
+                <Text style={styles.inputLabel}>Total Score</Text>
+                <TextInput
+                  style={styles.scoreInput}
+                  placeholder="e.g., 50"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="decimal-pad"
+                  value={scoreTotal}
+                  onChangeText={setScoreTotal}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.scoreHint}>
+              Optional: You can add your score now or skip and add it later
+            </Text>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.skipButton]}
+                onPress={() => {
+                  onComplete(event.id);
+                  setShowScoreModal(false);
+                }}
+              >
+                <Text style={styles.skipButtonText}>Skip & Mark Complete</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={handleScoreSubmit}
+              >
+                <Text style={styles.submitButtonText}>Save Score</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Pressable>
   );
 }
@@ -156,5 +292,128 @@ const styles = StyleSheet.create({
   },
   checkButton: {
     padding: 4,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  scoreChip: {
+    backgroundColor: colors.success + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  scoreText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.success,
+  },
+  addScoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  addScoreText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  modalEventTitle: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  scoreInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  scoreInputWrapper: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  scoreInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    fontSize: typography.body,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  scoreDivider: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+    color: colors.textSecondary,
+    marginTop: 20,
+  },
+  scoreHint: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  modalActions: {
+    gap: spacing.sm,
+  },
+  modalButton: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  skipButton: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  skipButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  submitButton: {
+    backgroundColor: colors.primary,
+  },
+  submitButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
   },
 });

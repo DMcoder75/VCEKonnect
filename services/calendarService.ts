@@ -12,6 +12,9 @@ export interface CalendarEvent {
   duration_minutes?: number;
   is_completed: boolean;
   completed_at?: string;
+  score_achieved?: number;
+  score_total?: number;
+  score_percentage?: number;
   days_remaining?: number;
   urgency_level?: 'red' | 'orange' | 'yellow' | 'green';
 }
@@ -246,6 +249,37 @@ export async function markEventComplete(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to mark event complete',
+    };
+  }
+}
+
+/**
+ * Update event score
+ */
+export async function updateEventScore(
+  eventId: string,
+  userId: string,
+  scoreAchieved: number,
+  scoreTotal: number
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = getSupabaseClient;
+    const { data, error } = await supabase.rpc('update_event_score', {
+      p_event_id: eventId,
+      p_user_id: userId,
+      p_score_achieved: scoreAchieved,
+      p_score_total: scoreTotal,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: data === true, error: null };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to update score',
     };
   }
 }

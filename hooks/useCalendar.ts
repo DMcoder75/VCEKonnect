@@ -6,6 +6,7 @@ import {
   createEvent,
   updateEvent,
   markEventComplete,
+  updateEventScore,
   deleteEvent,
   CalendarEvent,
   CreateEventData,
@@ -117,6 +118,22 @@ export function useCalendar(userId: string | undefined) {
     [userId, loadUpcomingEvents]
   );
 
+  const updateScore = useCallback(
+    async (eventId: string, scoreAchieved: number, scoreTotal: number) => {
+      if (!userId) return { success: false, error: 'User not authenticated' };
+
+      const { success, error: err } = await updateEventScore(eventId, userId, scoreAchieved, scoreTotal);
+
+      if (success) {
+        // Refresh upcoming events after updating score
+        await loadUpcomingEvents();
+      }
+
+      return { success, error: err };
+    },
+    [userId, loadUpcomingEvents]
+  );
+
   const removeEvent = useCallback(
     async (eventId: string) => {
       if (!userId) return { success: false, error: 'User not authenticated' };
@@ -147,6 +164,7 @@ export function useCalendar(userId: string | undefined) {
     addEvent,
     editEvent,
     completeEvent,
+    updateScore,
     removeEvent,
   };
 }

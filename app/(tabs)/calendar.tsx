@@ -12,7 +12,7 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { upcomingEvents, loading, completeEvent, loadUpcomingEvents } = useCalendar(user?.id);
+  const { upcomingEvents, loading, completeEvent, updateScore, loadUpcomingEvents } = useCalendar(user?.id);
   const [view, setView] = useState<'list' | 'week' | 'month'>('list');
 
   // Refresh events when screen comes into focus
@@ -24,6 +24,10 @@ export default function CalendarScreen() {
 
   async function handleCompleteEvent(eventId: string) {
     await completeEvent(eventId);
+  }
+
+  async function handleUpdateScore(eventId: string, scoreAchieved: number, scoreTotal: number) {
+    await updateScore(eventId, scoreAchieved, scoreTotal);
   }
 
   const pendingEvents = upcomingEvents.filter(e => !e.is_completed);
@@ -122,6 +126,7 @@ export default function CalendarScreen() {
                     event={event}
                     index={index + 1}
                     onComplete={handleCompleteEvent}
+                    onUpdateScore={handleUpdateScore}
                   />
                 ))}
               </View>
@@ -137,6 +142,7 @@ export default function CalendarScreen() {
                     event={event}
                     index={index + 1}
                     onComplete={handleCompleteEvent}
+                    onUpdateScore={handleUpdateScore}
                   />
                 ))}
               </View>
