@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -9,13 +9,13 @@ import { ATARDisplay, Input, Button } from '@/components';
 import { SubjectScoreCard } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 export default function ATARScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { subjectScores, updateScore, getScenarios, getPrediction } = useATAR();
+  const { subjectScores, updateScore, getScenarios, getPrediction, reloadScores } = useATAR();
   
   const [editingSubject, setEditingSubject] = useState<string | null>(null);
   const [sacInput, setSacInput] = useState('');
@@ -30,6 +30,15 @@ export default function ATARScreen() {
   useEffect(() => {
     loadSubjects();
   }, [user]);
+
+  // Reload scores when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        reloadScores();
+      }
+    }, [user])
+  );
 
   async function loadSubjects() {
     if (!user) return;
