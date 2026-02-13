@@ -117,24 +117,26 @@ export default function AddEventScreen() {
   }
 
   function handleDateChange(event: any, date?: Date) {
-    const currentDate = date || selectedDate;
-    
-    // On Android, check if user dismissed or confirmed
+    // Handle Android picker dismissal
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
-      
-      // Only update if user confirmed (event.type === 'set')
-      if (event.type === 'dismissed') {
-        return;
-      }
+    }
+    
+    // Check if user cancelled (Android) or if date is undefined
+    if (event.type === 'dismissed' || !date) {
+      return;
     }
     
     // Update the selected date and formatted string
-    setSelectedDate(currentDate);
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const day = String(currentDate.getDate()).padStart(2, '0');
+    setSelectedDate(date);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     setEventDate(`${year}-${month}-${day}`);
+  }
+
+  function closeDatePicker() {
+    setShowDatePicker(false);
   }
 
   function formatDateDisplay(dateString: string): string {
@@ -260,7 +262,10 @@ export default function AddEventScreen() {
           <Text style={styles.label}>Date *</Text>
           <Pressable
             style={styles.datePickerButton}
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => {
+              Alert.alert('Debug', 'Date picker button pressed');
+              setShowDatePicker(true);
+            }}
           >
             <MaterialIcons name="event" size={20} color={colors.textSecondary} />
             <Text style={styles.datePickerText}>
@@ -268,23 +273,27 @@ export default function AddEventScreen() {
             </Text>
             <MaterialIcons name="arrow-drop-down" size={24} color={colors.textSecondary} />
           </Pressable>
+          
           {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              minimumDate={new Date()}
-              themeVariant="dark"
-            />
-          )}
-          {Platform.OS === 'ios' && showDatePicker && (
-            <Pressable
-              style={styles.datePickerDone}
-              onPress={() => setShowDatePicker(false)}
-            >
-              <Text style={styles.datePickerDoneText}>Done</Text>
-            </Pressable>
+            <View style={styles.datePickerContainer}>
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                minimumDate={new Date()}
+                themeVariant="dark"
+                style={styles.datePicker}
+              />
+              {Platform.OS === 'ios' && (
+                <Pressable
+                  style={styles.datePickerDone}
+                  onPress={closeDatePicker}
+                >
+                  <Text style={styles.datePickerDoneText}>Done</Text>
+                </Pressable>
+              )}
+            </View>
           )}
         </View>
 
@@ -497,5 +506,14 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
+  },
+  datePickerContainer: {
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  datePicker: {
+    width: '100%',
   },
 });
