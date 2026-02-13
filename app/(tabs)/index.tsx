@@ -132,13 +132,13 @@ export default function DashboardScreen() {
         </View>
 
         {/* 2. Upcoming Assessments */}
-        {upcomingEvents.length > 0 && (
+        {upcomingEvents.filter(e => !e.is_completed).length > 0 && (
           <View style={styles.assessmentsSection}>
             <View style={styles.sectionHeaderInline}>
               <MaterialIcons name="event" size={20} color={colors.primary} />
               <Text style={styles.sectionTitleInline}>Upcoming Assessments</Text>
             </View>
-            {upcomingEvents.slice(0, 4).map((event, index) => (
+            {upcomingEvents.filter(e => !e.is_completed).slice(0, 4).map((event, index) => (
               <UpcomingAssessmentCard
                 key={event.id}
                 event={event}
@@ -146,12 +146,12 @@ export default function DashboardScreen() {
                 onComplete={handleCompleteEvent}
               />
             ))}
-            {upcomingEvents.length > 4 && (
+            {upcomingEvents.filter(e => !e.is_completed).length > 4 && (
               <Pressable
                 style={styles.viewAllButton}
                 onPress={() => router.push('/(tabs)/calendar')}
               >
-                <Text style={styles.viewAllText}>View All ({upcomingEvents.length})</Text>
+                <Text style={styles.viewAllText}>View All ({upcomingEvents.filter(e => !e.is_completed).length})</Text>
                 <MaterialIcons name="arrow-forward" size={16} color={colors.primary} />
               </Pressable>
             )}
