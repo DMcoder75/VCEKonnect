@@ -18,6 +18,12 @@ export default function CalendarScreen() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
   const [loadingWeek, setLoadingWeek] = useState(false);
+  const [monthDate, setMonthDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>([]);
+  const [loadingMonth, setLoadingMonth] = useState(false);
 
   // Refresh events when screen comes into focus
   useFocusEffect(
@@ -35,6 +41,13 @@ export default function CalendarScreen() {
       loadWeekEvents();
     }
   }, [weekStart, view]);
+
+  // Load month events when month changes
+  useEffect(() => {
+    if (view === 'month') {
+      loadMonthEvents();
+    }
+  }, [monthDate, view]);
 
   function getWeekStart(date: Date): string {
     const d = new Date(date);
@@ -70,6 +83,116 @@ export default function CalendarScreen() {
 
   function goToToday() {
     setWeekStart(getWeekStart(new Date()));
+  }
+
+  // Month view functions
+  function goToPreviousMonth() {
+    const [year, month] = monthDate.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() - 1);
+    setMonthDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  function goToNextMonth() {
+    const [year, month] = monthDate.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() + 1);
+    setMonthDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  function goToCurrentMonth() {
+    const now = new Date();
+    setMonthDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  function isCurrentMonth(): boolean {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return monthDate === currentMonth;
+  }
+
+  function getMonthName(): string {
+    const [year, month] = monthDate.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    return date.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+  }
+
+  function getMonthDays(): Array<{ date: string; dayNum: number; isCurrentMonth: boolean; isToday: boolean }> {
+    const [year, month] = monthDate.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
+    const today = formatDateForDB(new Date());
+
+    const days = [];
+
+    // Add previous month's trailing days
+    const prevMonth = new Date(year, month - 2, 1);
+    const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const dayNum = daysInPrevMonth - i;
+      const date = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), dayNum);
+      days.push({
+        date: formatDateForDB(date),
+        dayNum,
+        isCurrentMonth: false,
+        isToday: formatDateForDB(date) === today,
+      });
+    }
+
+    // Add current month's days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month - 1, i);
+      days.push({
+        date: formatDateForDB(date),
+        dayNum: i,
+        isCurrentMonth: true,
+        isToday: formatDateForDB(date) === today,
+      });
+    }
+
+    // Add next month's leading days to complete the grid (up to 42 days - 6 weeks)
+    const remainingDays = 42 - days.length;
+    const nextMonth = new Date(year, month, 1);
+    for (let i = 1; i <= remainingDays; i++) {
+      const date = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), i);
+      days.push({
+        date: formatDateForDB(date),
+        dayNum: i,
+        isCurrentMonth: false,
+        isToday: formatDateForDB(date) === today,
+      });
+    }
+
+    return days;
+  }
+
+  async function loadMonthEvents() {
+    if (!user) return;
+    setLoadingMonth(true);
+    const [year, month] = monthDate.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    
+    // Get first Sunday of the calendar grid
+    const startDayOfWeek = firstDay.getDay();
+    const calendarStart = new Date(firstDay);
+    calendarStart.setDate(firstDay.getDate() - startDayOfWeek);
+    
+    // Get all events from calendar start for 42 days (6 weeks)
+    const events: CalendarEvent[] = [];
+    for (let i = 0; i < 6; i++) {
+      const weekStart = new Date(calendarStart);
+      weekStart.setDate(calendarStart.getDate() + (i * 7));
+      const { data } = await loadEventsByWeek(formatDateForDB(weekStart));
+      if (data) {
+        events.push(...data);
+      }
+    }
+    
+    setMonthEvents(events);
+    setLoadingMonth(false);
   }
 
   function isCurrentWeek(): boolean {
@@ -410,10 +533,112 @@ export default function CalendarScreen() {
         )}
 
         {view === 'month' && (
-          <View style={styles.comingSoon}>
-            <MaterialIcons name="calendar-today" size={48} color={colors.textTertiary} />
-            <Text style={styles.comingSoonText}>Monthly View Coming Soon</Text>
-          </View>
+          <>
+            {/* Month Navigation */}
+            <View style={styles.monthNav}>
+              <Pressable style={styles.monthNavButton} onPress={goToPreviousMonth}>
+                <MaterialIcons name="chevron-left" size={24} color={colors.textPrimary} />
+              </Pressable>
+
+              <View style={styles.monthNavCenter}>
+                <Text style={styles.monthNameText}>{getMonthName()}</Text>
+                {!isCurrentMonth() && (
+                  <Pressable style={styles.todayButton} onPress={goToCurrentMonth}>
+                    <Text style={styles.todayButtonText}>Today</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <Pressable style={styles.monthNavButton} onPress={goToNextMonth}>
+                <MaterialIcons name="chevron-right" size={24} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            {loadingMonth ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading month...</Text>
+              </View>
+            ) : (
+              <>
+                {/* Weekday Headers */}
+                <View style={styles.weekdayHeaders}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <View key={day} style={styles.weekdayHeader}>
+                      <Text style={styles.weekdayHeaderText}>{day}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Month Grid */}
+                <View style={styles.monthGrid}>
+                  {getMonthDays().map((day, index) => {
+                    const dayEvents = monthEvents.filter(e => e.event_date === day.date);
+                    return (
+                      <View
+                        key={`${day.date}-${index}`}
+                        style={[
+                          styles.monthDayCell,
+                          !day.isCurrentMonth && styles.monthDayCellOtherMonth,
+                          day.isToday && styles.monthDayCellToday,
+                        ]}
+                      >
+                        {/* Day Number */}
+                        <View
+                          style={[
+                            styles.monthDayNum,
+                            day.isToday && styles.monthDayNumToday,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.monthDayNumText,
+                              !day.isCurrentMonth && styles.monthDayNumTextOther,
+                              day.isToday && styles.monthDayNumTextToday,
+                            ]}
+                          >
+                            {day.dayNum}
+                          </Text>
+                        </View>
+
+                        {/* Events */}
+                        <View style={styles.monthDayEvents}>
+                          {dayEvents.slice(0, 3).map((event) => (
+                            <Pressable
+                              key={event.id}
+                              style={[
+                                styles.monthEventDot,
+                                event.is_completed && styles.monthEventDotCompleted,
+                                {
+                                  backgroundColor: event.is_completed
+                                    ? colors.success
+                                    : event.urgency_level === 'red'
+                                    ? colors.error
+                                    : event.urgency_level === 'orange'
+                                    ? '#FF9500'
+                                    : event.urgency_level === 'yellow'
+                                    ? '#FFD60A'
+                                    : colors.primary,
+                                },
+                              ]}
+                              onPress={() => handleEventPress(event)}
+                            >
+                              <Text style={styles.monthEventDotText} numberOfLines={1}>
+                                {event.subject_code}
+                              </Text>
+                            </Pressable>
+                          ))}
+                          {dayEvents.length > 3 && (
+                            <Text style={styles.monthEventMore}>+{dayEvents.length - 3}</Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
@@ -692,5 +917,107 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: typography.body,
     color: colors.textSecondary,
+  },
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  monthNavButton: {
+    padding: spacing.xs,
+  },
+  monthNavCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  monthNameText: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  weekdayHeaders: {
+    flexDirection: 'row',
+    marginBottom: spacing.xs,
+  },
+  weekdayHeader: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  weekdayHeaderText: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+  },
+  monthDayCell: {
+    width: 'calc((100% - 12px) / 7)',
+    aspectRatio: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  monthDayCellOtherMonth: {
+    backgroundColor: colors.background,
+    opacity: 0.5,
+  },
+  monthDayCellToday: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  monthDayNum: {
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  monthDayNumToday: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+  },
+  monthDayNumText: {
+    fontSize: 12,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  monthDayNumTextOther: {
+    color: colors.textTertiary,
+  },
+  monthDayNumTextToday: {
+    color: colors.textPrimary,
+  },
+  monthDayEvents: {
+    gap: 2,
+  },
+  monthEventDot: {
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderRadius: 2,
+  },
+  monthEventDotCompleted: {
+    opacity: 0.6,
+  },
+  monthEventDotText: {
+    fontSize: 8,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  monthEventMore: {
+    fontSize: 8,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
