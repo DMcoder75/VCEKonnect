@@ -136,5 +136,6 @@ export function useATAR() {
     getPrediction,
     getScenarios,
     getScoreForSubject,
+    reloadScores: loadData,
   };
 }

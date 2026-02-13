@@ -19,7 +19,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { getPrediction, subjectScores } = useATAR();
+  const { getPrediction, subjectScores, reloadScores } = useATAR();
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
   
@@ -36,6 +36,7 @@ export default function DashboardScreen() {
       if (user) {
         loadSubjects();
         loadAllTime();
+        reloadScores(); // Reload ATAR scores when returning to dashboard
       }
     }, [user])
   );
