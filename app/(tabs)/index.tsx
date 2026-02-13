@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -29,17 +29,15 @@ export default function DashboardScreen() {
 
   const prediction = getPrediction();
 
-  useEffect(() => {
-    if (user) {
-      loadSubjects();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      loadAllTime();
-    }
-  }, [user]);
+  // Refresh data when dashboard comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadSubjects();
+        loadAllTime();
+      }
+    }, [user])
+  );
 
   async function loadSubjects() {
     if (!user) return;
@@ -122,30 +120,18 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
-        {/* ATAR Prediction Card */}
-        <View style={styles.atarCard}>
-          <ATARDisplay atar={prediction.atar} size="large" />
-          <View style={styles.atarStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{prediction.aggregate.toFixed(1)}</Text>
-              <Text style={styles.statLabel}>Aggregate</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{subjectScores.length}/{userSubjects.length}</Text>
-              <Text style={styles.statLabel}>Subjects Tracked</Text>
-            </View>
+        {/* 1. Total Study Time */}
+        <View style={styles.todayCard}>
+          <View style={styles.todayHeader}>
+            <MaterialIcons name="access-time" size={24} color={colors.primary} />
+            <Text style={styles.todayTitle}>Total Study Time (All Time)</Text>
           </View>
-          <Pressable
-            style={styles.atarButton}
-            onPress={() => router.push('/(tabs)/atar')}
-          >
-            <Text style={styles.atarButtonText}>View Full Prediction</Text>
-            <MaterialIcons name="arrow-forward" size={20} color={colors.primary} />
-          </Pressable>
+          <Text style={styles.todayTime}>
+            {Math.floor(allTime / 60)}h {allTime % 60}m
+          </Text>
         </View>
 
-        {/* Upcoming Assessments */}
+        {/* 2. Upcoming Assessments */}
         {upcomingEvents.length > 0 && (
           <View style={styles.assessmentsSection}>
             <View style={styles.sectionHeaderInline}>
@@ -172,18 +158,30 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* All Study Time */}
-        <View style={styles.todayCard}>
-          <View style={styles.todayHeader}>
-            <MaterialIcons name="access-time" size={24} color={colors.primary} />
-            <Text style={styles.todayTitle}>Total Study Time (All Time)</Text>
+        {/* 3. ATAR Prediction Card */}
+        <View style={styles.atarCard}>
+          <ATARDisplay atar={prediction.atar} size="large" />
+          <View style={styles.atarStats}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{prediction.aggregate.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>Aggregate</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{subjectScores.length}/{userSubjects.length}</Text>
+              <Text style={styles.statLabel}>Subjects Tracked</Text>
+            </View>
           </View>
-          <Text style={styles.todayTime}>
-            {Math.floor(allTime / 60)}h {allTime % 60}m
-          </Text>
+          <Pressable
+            style={styles.atarButton}
+            onPress={() => router.push('/(tabs)/atar')}
+          >
+            <Text style={styles.atarButtonText}>View Full Prediction</Text>
+            <MaterialIcons name="arrow-forward" size={20} color={colors.primary} />
+          </Pressable>
         </View>
 
-        {/* Quick Actions */}
+        {/* 4. Quick Start Timer */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick Start Timer</Text>
@@ -363,9 +361,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   todayTime: {
-    fontSize: typography.h1,
+    fontSize: 48,
     fontWeight: typography.bold,
     color: colors.primary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
   section: {
     marginBottom: spacing.lg,
