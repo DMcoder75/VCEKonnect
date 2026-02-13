@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
+import { getSupabaseClient } from '@/services/supabase.web';
 
 export default function AddEventScreen() {
   const router = useRouter();
@@ -30,18 +31,17 @@ export default function AddEventScreen() {
 
   // Form state
   const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [eventType, setEventType] = useState<'SAC1' | 'SAC2' | 'Exam1' | 'Exam2' | 'Mock' | 'GAT'>('SAC1');
+  const [eventType, setEventType] = useState<'SAC' | 'Assessment' | 'Exam' | 'MockExam' | 'GAT'>('SAC');
   const [eventDate, setEventDate] = useState('');
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [duration, setDuration] = useState('');
 
   const eventTypes = [
-    { value: 'SAC1', label: 'SAC 1' },
-    { value: 'SAC2', label: 'SAC 2' },
-    { value: 'Exam1', label: 'Exam 1' },
-    { value: 'Exam2', label: 'Exam 2' },
-    { value: 'Mock', label: 'Mock Exam' },
+    { value: 'SAC', label: 'SAC' },
+    { value: 'Assessment', label: 'Assessment' },
+    { value: 'Exam', label: 'Exam' },
+    { value: 'MockExam', label: 'Mock Exam' },
     { value: 'GAT', label: 'GAT' },
   ];
 
@@ -60,7 +60,7 @@ export default function AddEventScreen() {
       setUserSubjects(subjects);
       if (subjects.length > 0) {
         setSelectedSubject(subjects[0].id);
-        updateTitle(subjects[0].code, eventType);
+        await updateTitleWithNumber(subjects[0].id, subjects[0].code, eventType);
       }
     } catch (error) {
       console.error('Error loading subjects:', error);
@@ -70,23 +70,43 @@ export default function AddEventScreen() {
     }
   }
 
-  function updateTitle(subjectCode: string, type: string) {
-    setTitle(`${subjectCode} ${type}`);
-  }
+  async function updateTitleWithNumber(subjectId: string, subjectCode: string, type: string) {
+    if (!user) return;
 
-  function handleSubjectChange(subjectId: string) {
-    setSelectedSubject(subjectId);
-    const subject = userSubjects.find(s => s.id === subjectId);
-    if (subject) {
-      updateTitle(subject.code, eventType);
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.rpc('get_next_event_number', {
+        p_user_id: user.id,
+        p_subject_id: subjectId,
+        p_event_type: type,
+      });
+
+      if (error) {
+        console.error('Error getting next event number:', error);
+        setTitle(`${subjectCode} ${type} 1`);
+      } else {
+        const nextNumber = data || 1;
+        setTitle(`${subjectCode} ${type} ${nextNumber}`);
+      }
+    } catch (error) {
+      console.error('Error in updateTitleWithNumber:', error);
+      setTitle(`${subjectCode} ${type} 1`);
     }
   }
 
-  function handleEventTypeChange(type: typeof eventType) {
+  async function handleSubjectChange(subjectId: string) {
+    setSelectedSubject(subjectId);
+    const subject = userSubjects.find(s => s.id === subjectId);
+    if (subject) {
+      await updateTitleWithNumber(subjectId, subject.code, eventType);
+    }
+  }
+
+  async function handleEventTypeChange(type: typeof eventType) {
     setEventType(type);
     const subject = userSubjects.find(s => s.id === selectedSubject);
     if (subject) {
-      updateTitle(subject.code, type);
+      await updateTitleWithNumber(selectedSubject, subject.code, type);
     }
   }
 
@@ -213,7 +233,7 @@ export default function AddEventScreen() {
 
         {/* Title */}
         <View style={styles.section}>
-          <Text style={styles.label}>Title (auto-generated)</Text>
+          <Text style={styles.label}>Title (editable)</Text>
           <TextInput
             style={styles.input}
             placeholder="Event title"
@@ -221,6 +241,7 @@ export default function AddEventScreen() {
             value={title}
             onChangeText={setTitle}
           />
+          <Text style={styles.hint}>Auto-generated, but you can edit it</Text>
         </View>
 
         {/* Duration */}
