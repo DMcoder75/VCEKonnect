@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +10,7 @@ import { UpcomingAssessmentCard } from '@/components/feature';
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user } = useAuth();
   const { upcomingEvents, loading, completeEvent } = useCalendar(user?.id);
   const [view, setView] = useState<'list' | 'week' | 'month'>('list');
@@ -30,7 +32,10 @@ export default function CalendarScreen() {
             {pendingEvents.length} upcoming · {completedEvents.length} completed
           </Text>
         </View>
-        <Pressable style={styles.addButton}>
+        <Pressable 
+          style={styles.addButton}
+          onPress={() => router.push('/add-event')}
+        >
           <MaterialIcons name="add" size={24} color={colors.textPrimary} />
         </Pressable>
       </View>
@@ -137,7 +142,10 @@ export default function CalendarScreen() {
                 <Text style={styles.emptySubtitle}>
                   Add your SACs and exams to start tracking
                 </Text>
-                <Pressable style={styles.emptyButton}>
+                <Pressable 
+                  style={styles.emptyButton}
+                  onPress={() => router.push('/add-event')}
+                >
                   <MaterialIcons name="add" size={20} color={colors.textPrimary} />
                   <Text style={styles.emptyButtonText}>Add First Event</Text>
                 </Pressable>
