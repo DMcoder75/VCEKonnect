@@ -59,7 +59,11 @@ export default function AddEventScreen() {
 
   useEffect(() => {
     if (user) {
+      addLog(`👤 User authenticated: ${user.id}`);
+      addLog(`📧 User email: ${user.email}`);
       loadSubjects();
+    } else {
+      addLog('⚠️ No user found in useEffect');
     }
   }, [user]);
 
@@ -85,10 +89,30 @@ export default function AddEventScreen() {
   }
 
   async function updateTitleWithNumber(subjectId: string, subjectCode: string, type: string) {
-    if (!user) return;
+    if (!user) {
+      addLog('⚠️ updateTitleWithNumber: No user found');
+      return;
+    }
+
+    addLog(`🔍 Getting next event number for: user=${user.id.substring(0, 8)}..., subject=${subjectId.substring(0, 8)}..., type=${type}`);
 
     try {
       const supabase = getSupabaseClient();
+      
+      // First, let's check how many events actually exist
+      const { data: existingEvents, error: countError } = await supabase
+        .from('vk_calendar_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('subject_id', subjectId)
+        .eq('event_type', type);
+
+      addLog(`📊 Direct count query: ${existingEvents?.length || 0} events found`);
+      if (existingEvents && existingEvents.length > 0) {
+        addLog(`📝 Existing events: ${JSON.stringify(existingEvents.map(e => ({ title: e.title, date: e.event_date })))}`);
+      }
+
+      // Now call the RPC function
       const { data, error } = await supabase.rpc('get_next_event_number', {
         p_user_id: user.id,
         p_subject_id: subjectId,
@@ -96,14 +120,16 @@ export default function AddEventScreen() {
       });
 
       if (error) {
-        console.error('Error getting next event number:', error);
+        addLog(`❌ RPC Error: ${error.message}`);
         setTitle(`${subjectCode} ${type} 1`);
       } else {
         const nextNumber = data || 1;
+        addLog(`🎯 RPC returned next number: ${nextNumber}`);
         setTitle(`${subjectCode} ${type} ${nextNumber}`);
       }
     } catch (error) {
-      console.error('Error in updateTitleWithNumber:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      addLog(`💥 Exception in updateTitleWithNumber: ${errorMsg}`);
       setTitle(`${subjectCode} ${type} 1`);
     }
   }
