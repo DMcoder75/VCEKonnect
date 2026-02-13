@@ -80,9 +80,6 @@ export default function ATARScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>ATAR Predictor</Text>
-          <Pressable onPress={() => router.back()}>
-            <MaterialIcons name="close" size={24} color={colors.textSecondary} />
-          </Pressable>
         </View>
 
         {/* Main ATAR Display */}
