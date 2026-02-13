@@ -38,7 +38,7 @@ export default function DashboardScreen() {
         loadAllTime();
         reloadScores(); // Reload ATAR scores when returning to dashboard
       }
-    }, [user])
+    }, [user, reloadScores])
   );
 
   async function loadSubjects() {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { getSubjectScores, saveSubjectScore } from '@/services/scoresService';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -18,7 +18,7 @@ export function useATAR() {
     }
   }, [user]);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -33,7 +33,7 @@ export function useATAR() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [user]);
 
   async function updateScore(
     subjectId: string,
