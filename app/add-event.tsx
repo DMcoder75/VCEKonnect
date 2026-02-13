@@ -154,35 +154,21 @@ export default function AddEventScreen() {
       return;
     }
 
-    console.log('=== ADD EVENT DEBUG ===');
-    console.log('User ID:', user?.id);
-    console.log('Selected Subject:', selectedSubject);
-    console.log('Event Date:', eventDate);
-    console.log('Event Type:', eventType);
-    console.log('Title:', title);
-
     setSubmitting(true);
 
-    const eventPayload = {
+    const { data, error } = await addEvent({
       subject_id: selectedSubject,
       event_date: eventDate,
       event_type: eventType,
       title: title || `${userSubjects.find(s => s.id === selectedSubject)?.code} ${eventType}`,
       notes: notes || undefined,
       duration_minutes: duration ? parseInt(duration) : undefined,
-    };
-
-    console.log('Event Payload:', JSON.stringify(eventPayload, null, 2));
-
-    const { data, error } = await addEvent(eventPayload);
-
-    console.log('Result - Data:', data);
-    console.log('Result - Error:', error);
+    });
 
     setSubmitting(false);
 
     if (error) {
-      Alert.alert('Error', `Failed to add event: ${error}`);
+      Alert.alert('Error', error);
     } else {
       Alert.alert('Success', 'Event added successfully', [
         { text: 'OK', onPress: () => router.back() },
