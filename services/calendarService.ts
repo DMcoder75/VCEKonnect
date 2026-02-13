@@ -125,7 +125,11 @@ export async function createEvent(
   eventData: CreateEventData
 ): Promise<{ data: CalendarEvent | null; error: string | null }> {
   try {
+    console.log('🔧 [calendarService] createEvent called with:', JSON.stringify(eventData, null, 2));
+    
     const supabase = getSupabaseClient;
+    console.log('🔧 [calendarService] Supabase client obtained');
+    
     const { data, error } = await supabase
       .from('vk_calendar_events')
       .insert([eventData])
@@ -140,7 +144,10 @@ export async function createEvent(
       )
       .single();
 
+    console.log('🔧 [calendarService] Insert response:', { data, error });
+
     if (error) {
+      console.log('❌ [calendarService] Insert error:', error.message);
       return { data: null, error: error.message };
     }
 
@@ -159,11 +166,14 @@ export async function createEvent(
       completed_at: data.completed_at,
     };
 
+    console.log('✅ [calendarService] Event created successfully:', transformedData.id);
     return { data: transformedData, error: null };
   } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to create event';
+    console.log('💥 [calendarService] Exception:', errorMsg);
     return {
       data: null,
-      error: err instanceof Error ? err.message : 'Failed to create event',
+      error: errorMsg,
     };
   }
 }

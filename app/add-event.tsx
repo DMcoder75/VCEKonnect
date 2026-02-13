@@ -204,14 +204,17 @@ export default function AddEventScreen() {
     
     addLog(`📦 Preparing data: ${JSON.stringify(eventData, null, 2)}`);
     addLog(`👤 User ID: ${user?.id || 'NO USER'}`);
+    addLog(`🔗 Database: External Supabase (xududbaqaaffcaejwuix)`);
 
     setSubmitting(true);
-    addLog('⏳ Calling addEvent service...');
+    addLog('⏳ Calling addEvent hook...');
 
     try {
+      console.log('📱 [AddEvent] About to call addEvent hook');
       const { data, error } = await addEvent(eventData);
       
-      addLog(`📥 Response received`);
+      console.log('📱 [AddEvent] addEvent returned:', { data, error });
+      addLog(`📥 Response received from hook`);
       
       if (error) {
         addLog(`❌ Error: ${error}`);
@@ -226,6 +229,7 @@ export default function AddEventScreen() {
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.log('💥 [AddEvent] Exception:', errorMsg);
       addLog(`💥 Exception caught: ${errorMsg}`);
       Alert.alert('Exception', errorMsg);
     } finally {
