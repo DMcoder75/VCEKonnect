@@ -50,15 +50,24 @@ export default function AddEventScreen() {
   }, []);
 
   async function loadSubjects() {
-    if (!user) return;
-    setLoading(true);
-    const subjects = await getUserSubjects(user.id);
-    setUserSubjects(subjects);
-    if (subjects.length > 0) {
-      setSelectedSubject(subjects[0].id);
-      updateTitle(subjects[0].code, eventType);
+    if (!user) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+    setLoading(true);
+    try {
+      const subjects = await getUserSubjects(user.id);
+      setUserSubjects(subjects);
+      if (subjects.length > 0) {
+        setSelectedSubject(subjects[0].id);
+        updateTitle(subjects[0].code, eventType);
+      }
+    } catch (error) {
+      console.error('Error loading subjects:', error);
+      Alert.alert('Error', 'Failed to load subjects');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function updateTitle(subjectCode: string, type: string) {
