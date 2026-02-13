@@ -17,6 +17,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
 import { CalendarEvent } from '@/services/calendarService';
+import { useAlert } from '@/template';
 
 export default function EditEventScreen() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function EditEventScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams();
   const { upcomingEvents, editEvent, removeEvent, loading } = useCalendar(user?.id);
+  const { showAlert } = useAlert();
 
   const eventId = params.eventId as string;
   const event = upcomingEvents.find((e) => e.id === eventId);
@@ -85,12 +87,12 @@ export default function EditEventScreen() {
     if (!user || !event) return;
 
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title');
+      showAlert('Error', 'Please enter a title');
       return;
     }
 
     if (!selectedDate) {
-      Alert.alert('Error', 'Please select a date');
+      showAlert('Error', 'Please select a date');
       return;
     }
 
@@ -108,7 +110,7 @@ export default function EditEventScreen() {
     setSaving(false);
 
     if (error) {
-      Alert.alert('Error', error);
+      showAlert('Error', error);
       return;
     }
 
@@ -118,7 +120,7 @@ export default function EditEventScreen() {
   async function handleDelete() {
     if (!user || !event) return;
 
-    Alert.alert(
+    showAlert(
       'Delete Event',
       `Are you sure you want to delete "${event.title}"? This action cannot be undone.`,
       [
@@ -135,7 +137,7 @@ export default function EditEventScreen() {
             setDeleting(false);
 
             if (error) {
-              Alert.alert('Error', error);
+              showAlert('Error', error);
               return;
             }
 
