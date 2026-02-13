@@ -46,8 +46,10 @@ export default function AddEventScreen() {
   ];
 
   useEffect(() => {
-    loadSubjects();
-  }, []);
+    if (user) {
+      loadSubjects();
+    }
+  }, [user]);
 
   async function loadSubjects() {
     if (!user) {
