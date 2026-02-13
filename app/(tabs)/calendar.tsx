@@ -72,6 +72,11 @@ export default function CalendarScreen() {
     setWeekStart(getWeekStart(new Date()));
   }
 
+  function isCurrentWeek(): boolean {
+    const currentWeekStart = getWeekStart(new Date());
+    return weekStart === currentWeekStart;
+  }
+
   function getWeekDays(): Array<{ date: string; dayName: string; dayNum: string; isToday: boolean }> {
     const days = [];
     const start = new Date(weekStart);
@@ -268,9 +273,11 @@ export default function CalendarScreen() {
 
               <View style={styles.weekNavCenter}>
                 <Text style={styles.weekRangeText}>{getWeekRangeText()}</Text>
-                <Pressable style={styles.todayButton} onPress={goToToday}>
-                  <Text style={styles.todayButtonText}>Today</Text>
-                </Pressable>
+                {!isCurrentWeek() && (
+                  <Pressable style={styles.todayButton} onPress={goToToday}>
+                    <Text style={styles.todayButtonText}>Today</Text>
+                  </Pressable>
+                )}
               </View>
 
               <Pressable style={styles.weekNavButton} onPress={goToNextWeek}>
