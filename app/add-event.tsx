@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
-import { getSupabaseClient } from '@/template';
+import { supabase as supabaseClient } from '@/services/supabase.web';
 
 export default function AddEventScreen() {
   const router = useRouter();
@@ -97,7 +97,7 @@ export default function AddEventScreen() {
     addLog(`🔍 Getting next event number for: user=${user.id.substring(0, 8)}..., subject=${subjectId.substring(0, 8)}..., type=${type}`);
 
     try {
-      const supabase = getSupabaseClient();
+      const supabase = supabaseClient;
       
       // First, let's check how many events actually exist
       const { data: existingEvents, error: countError } = await supabase
