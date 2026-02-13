@@ -286,6 +286,18 @@ export default function DashboardScreen() {
           )}
         </View>
 
+        {/* Study Goals Card - Always visible */}
+        {!activeGoals?.weekly && !activeGoals?.monthly && !activeGoals?.term && (
+          <Pressable
+            style={styles.setGoalsCard}
+            onPress={() => router.push('/goals')}
+          >
+            <MaterialIcons name="flag" size={32} color={colors.warning} />
+            <Text style={styles.setGoalsTitle}>Set Study Goals</Text>
+            <Text style={styles.setGoalsDesc}>Set weekly, monthly & term targets</Text>
+          </Pressable>
+        )}
+
         {/* Action Cards */}
         <View style={styles.actionGrid}>
           <Pressable
@@ -589,5 +601,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     gap: spacing.md,
+  },
+  setGoalsCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.warning,
+    borderStyle: 'dashed',
+  },
+  setGoalsTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  setGoalsDesc: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
 });
