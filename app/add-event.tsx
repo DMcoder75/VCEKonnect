@@ -41,6 +41,14 @@ export default function AddEventScreen() {
   const [notes, setNotes] = useState('');
   const [duration, setDuration] = useState('');
 
+  // Debug logs
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  function addLog(message: string) {
+    const timestamp = new Date().toLocaleTimeString('en-AU');
+    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  }
+
   const eventTypes = [
     { value: 'SAC', label: 'SAC' },
     { value: 'Assessment', label: 'Assessment' },
@@ -149,30 +157,54 @@ export default function AddEventScreen() {
   }
 
   async function handleSubmit() {
+    addLog('🚀 Submit button clicked');
+    
     if (!selectedSubject || !eventDate) {
+      addLog('❌ Validation failed: Missing subject or date');
       Alert.alert('Missing Information', 'Please select a subject and date');
       return;
     }
 
-    setSubmitting(true);
-
-    const { data, error } = await addEvent({
+    addLog(`✅ Validation passed - Subject: ${selectedSubject}, Date: ${eventDate}`);
+    
+    const eventData = {
       subject_id: selectedSubject,
       event_date: eventDate,
       event_type: eventType,
       title: title || `${userSubjects.find(s => s.id === selectedSubject)?.code} ${eventType}`,
       notes: notes || undefined,
       duration_minutes: duration ? parseInt(duration) : undefined,
-    });
+    };
+    
+    addLog(`📦 Preparing data: ${JSON.stringify(eventData, null, 2)}`);
+    addLog(`👤 User ID: ${user?.id || 'NO USER'}`);
 
-    setSubmitting(false);
+    setSubmitting(true);
+    addLog('⏳ Calling addEvent service...');
 
-    if (error) {
-      Alert.alert('Error', error);
-    } else {
-      Alert.alert('Success', 'Event added successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+    try {
+      const { data, error } = await addEvent(eventData);
+      
+      addLog(`📥 Response received`);
+      
+      if (error) {
+        addLog(`❌ Error: ${error}`);
+        Alert.alert('Error', error);
+      } else if (data) {
+        addLog(`✅ Success! Event created with ID: ${data.id}`);
+        Alert.alert('Success', 'Event added successfully', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        addLog(`⚠️ No data and no error returned`);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      addLog(`💥 Exception caught: ${errorMsg}`);
+      Alert.alert('Exception', errorMsg);
+    } finally {
+      setSubmitting(false);
+      addLog('✔️ Submit process completed');
     }
   }
 
@@ -349,6 +381,25 @@ export default function AddEventScreen() {
             </>
           )}
         </Pressable>
+
+        {/* Debug Logs */}
+        {debugLogs.length > 0 && (
+          <View style={styles.debugSection}>
+            <View style={styles.debugHeader}>
+              <Text style={styles.debugTitle}>📋 Debug Logs</Text>
+              <Pressable onPress={() => setDebugLogs([])}>
+                <Text style={styles.debugClear}>Clear</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.debugScroll} nestedScrollEnabled>
+              {debugLogs.map((log, index) => (
+                <Text key={index} style={styles.debugLog}>
+                  {log}
+                </Text>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -671,5 +722,38 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
+  },
+  debugSection: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  debugTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  debugClear: {
+    fontSize: typography.bodySmall,
+    color: colors.primary,
+  },
+  debugScroll: {
+    maxHeight: 300,
+  },
+  debugLog: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    lineHeight: 16,
   },
 });
