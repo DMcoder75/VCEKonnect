@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { CalendarEvent } from '@/services/calendarService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -83,6 +84,13 @@ export default function DashboardScreen() {
     }
   }
 
+  function handleEventPress(event: CalendarEvent) {
+    router.push({
+      pathname: '/edit-event',
+      params: { eventId: event.id },
+    });
+  }
+
   if (!user) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -144,6 +152,7 @@ export default function DashboardScreen() {
                 event={event}
                 index={index + 1}
                 onComplete={handleCompleteEvent}
+                onPress={handleEventPress}
               />
             ))}
             {upcomingEvents.filter(e => !e.is_completed).length > 4 && (

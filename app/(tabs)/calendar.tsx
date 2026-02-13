@@ -126,6 +126,13 @@ export default function CalendarScreen() {
     await updateScore(eventId, scoreAchieved, scoreTotal);
   }
 
+  function handleEventPress(event: CalendarEvent) {
+    router.push({
+      pathname: '/edit-event',
+      params: { eventId: event.id },
+    });
+  }
+
   const pendingEvents = upcomingEvents.filter(e => !e.is_completed);
   const completedEvents = upcomingEvents.filter(e => e.is_completed);
 
@@ -223,6 +230,7 @@ export default function CalendarScreen() {
                     index={index + 1}
                     onComplete={handleCompleteEvent}
                     onUpdateScore={handleUpdateScore}
+                    onPress={handleEventPress}
                   />
                 ))}
               </View>
@@ -239,6 +247,7 @@ export default function CalendarScreen() {
                     index={index + 1}
                     onComplete={handleCompleteEvent}
                     onUpdateScore={handleUpdateScore}
+                    onPress={handleEventPress}
                   />
                 ))}
               </View>

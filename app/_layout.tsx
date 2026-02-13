@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings" />
           <Stack.Screen name="subjects" />
           <Stack.Screen name="add-event" />
+          <Stack.Screen name="edit-event" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="premium"
