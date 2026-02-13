@@ -35,6 +35,7 @@ export default function GoalsScreen() {
   const [subjectGoals, setSubjectGoals] = useState<SubjectGoalInput[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -102,31 +103,34 @@ export default function GoalsScreen() {
   }
 
   function handleCopyWeeklyToMonthly() {
-    console.log('Copy button clicked');
-    console.log('Current weeklyTotal:', weeklyTotal);
-    console.log('Current subjectGoals:', subjectGoals);
+    const logs: string[] = [];
+    logs.push('🔵 Copy button clicked');
+    logs.push(`📊 Weekly Total: ${weeklyTotal}`);
+    logs.push(`📋 Current subject goals count: ${subjectGoals.length}`);
     
     // Update subject goals with proper fallback for empty/invalid values
     const updatedGoals = subjectGoals.map(goal => {
       const weeklyValue = parseFloat(goal.weeklyHours) || 0;
       const newMonthlyValue = (weeklyValue * 4.3).toFixed(1);
-      console.log(`${goal.subjectId}: ${goal.weeklyHours}h → ${newMonthlyValue}h`);
+      const subject = subjects.find(s => s.id === goal.subjectId);
+      logs.push(`  ${subject?.code || goal.subjectId}: ${goal.weeklyHours}h × 4.3 = ${newMonthlyValue}h`);
       return {
         ...goal,
         monthlyHours: newMonthlyValue,
       };
     });
     
-    console.log('Updated goals:', updatedGoals);
+    logs.push('✅ Updated goals array created');
     setSubjectGoals(updatedGoals);
 
     // Also update monthly total with proper fallback
     const weeklyValue = parseFloat(weeklyTotal) || 25;
     const newMonthlyTotal = (weeklyValue * 4.3).toFixed(1);
-    console.log(`Monthly total: ${weeklyTotal} → ${newMonthlyTotal}`);
+    logs.push(`💰 Monthly Total: ${weeklyTotal} × 4.3 = ${newMonthlyTotal}h`);
     setMonthlyTotal(newMonthlyTotal);
     
-    alert(`Updated! Weekly ${weeklyTotal}h × 4.3 = Monthly ${newMonthlyTotal}h`);
+    logs.push('✨ State updated successfully');
+    setDebugLog(logs);
   }
 
   function updateSubjectGoal(subjectId: string, field: keyof SubjectGoalInput, value: string) {
@@ -252,6 +256,24 @@ export default function GoalsScreen() {
             Set your study targets for this week, month, and term. Your progress auto-updates from study timers.
           </Text>
         </View>
+
+        {/* Debug Log */}
+        {debugLog.length > 0 && (
+          <View style={styles.debugCard}>
+            <View style={styles.debugHeader}>
+              <MaterialIcons name="bug-report" size={18} color={colors.warning} />
+              <Text style={styles.debugTitle}>Debug Log</Text>
+              <Pressable onPress={() => setDebugLog([])} style={styles.clearButton}>
+                <MaterialIcons name="close" size={16} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+            <View style={styles.debugContent}>
+              {debugLog.map((log, index) => (
+                <Text key={index} style={styles.debugText}>{log}</Text>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
@@ -606,5 +628,36 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.background,
+  },
+  debugCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  debugTitle: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.warning,
+  },
+  clearButton: {
+    padding: spacing.xs,
+  },
+  debugContent: {
+    gap: 4,
+  },
+  debugText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily: 'monospace',
   },
 });
