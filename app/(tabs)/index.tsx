@@ -9,7 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { ATARDisplay } from '@/components/ui';
-import { StudyTimerCard } from '@/components/feature';
+import { StudyTimerCard, UpcomingAssessmentCard } from '@/components/feature';
+import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 
@@ -19,6 +20,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { getPrediction, subjectScores } = useATAR();
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
+  const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
   
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
@@ -74,6 +76,13 @@ export default function DashboardScreen() {
   async function handleStopTimer() {
     await stopTimer();
     loadAllTime();
+  }
+
+  async function handleCompleteEvent(eventId: string) {
+    const result = await completeEvent(eventId);
+    if (result.error) {
+      Alert.alert('Error', result.error);
+    }
   }
 
   if (!user) {
@@ -135,6 +144,33 @@ export default function DashboardScreen() {
             <MaterialIcons name="arrow-forward" size={20} color={colors.primary} />
           </Pressable>
         </View>
+
+        {/* Upcoming Assessments */}
+        {upcomingEvents.length > 0 && (
+          <View style={styles.assessmentsSection}>
+            <View style={styles.sectionHeaderInline}>
+              <MaterialIcons name="event" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitleInline}>Upcoming Assessments</Text>
+            </View>
+            {upcomingEvents.slice(0, 4).map((event, index) => (
+              <UpcomingAssessmentCard
+                key={event.id}
+                event={event}
+                index={index + 1}
+                onComplete={handleCompleteEvent}
+              />
+            ))}
+            {upcomingEvents.length > 4 && (
+              <Pressable
+                style={styles.viewAllButton}
+                onPress={() => router.push('/(tabs)/calendar')}
+              >
+                <Text style={styles.viewAllText}>View All ({upcomingEvents.length})</Text>
+                <MaterialIcons name="arrow-forward" size={16} color={colors.primary} />
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* All Study Time */}
         <View style={styles.todayCard}>
@@ -437,5 +473,32 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
+  },
+  assessmentsSection: {
+    marginBottom: spacing.md,
+  },
+  sectionHeaderInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  sectionTitleInline: {
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  viewAllText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.primary,
   },
 });
