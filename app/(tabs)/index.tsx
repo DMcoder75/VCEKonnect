@@ -9,8 +9,9 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
+import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { ATARDisplay } from '@/components/ui';
-import { StudyTimerCard, UpcomingAssessmentCard } from '@/components/feature';
+import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing } from '@/components/feature';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -22,6 +23,7 @@ export default function DashboardScreen() {
   const { getPrediction, subjectScores, reloadScores } = useATAR();
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
+  const { activeGoals, loadActiveGoals } = useStudyGoals();
   
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
@@ -37,8 +39,9 @@ export default function DashboardScreen() {
         loadSubjects();
         loadAllTime();
         reloadScores(); // Reload ATAR scores when returning to dashboard
+        loadActiveGoals(); // Reload study goals when returning to dashboard
       }
-    }, [user, reloadScores])
+    }, [user, reloadScores, loadActiveGoals])
   );
 
   async function loadSubjects() {
@@ -139,6 +142,48 @@ export default function DashboardScreen() {
             {Math.floor(allTime / 60)}h {allTime % 60}m
           </Text>
         </View>
+
+        {/* Multi-Period Goals */}
+        {activeGoals && (activeGoals.weekly || activeGoals.monthly || activeGoals.term) && (
+          <View style={styles.goalsCard}>
+            <View style={styles.goalsHeader}>
+              <MaterialIcons name="flag" size={20} color={colors.primary} />
+              <Text style={styles.goalsTitle}>Study Goals Progress</Text>
+            </View>
+            <View style={styles.goalsRings}>
+              {activeGoals.weekly && (
+                <StudyGoalRing
+                  label="Week"
+                  targetHours={activeGoals.weekly.targetHours}
+                  achievedHours={activeGoals.weekly.achievedHours}
+                  progressPercent={activeGoals.weekly.progressPercent}
+                  size="large"
+                  icon="calendar-today"
+                />
+              )}
+              {activeGoals.monthly && (
+                <StudyGoalRing
+                  label="Month"
+                  targetHours={activeGoals.monthly.targetHours}
+                  achievedHours={activeGoals.monthly.achievedHours}
+                  progressPercent={activeGoals.monthly.progressPercent}
+                  size="medium"
+                  icon="event-note"
+                />
+              )}
+              {activeGoals.term && (
+                <StudyGoalRing
+                  label="Term"
+                  targetHours={activeGoals.term.targetHours}
+                  achievedHours={activeGoals.term.achievedHours}
+                  progressPercent={activeGoals.term.progressPercent}
+                  size="medium"
+                  icon="school"
+                />
+              )}
+            </View>
+          </View>
+        )}
 
         {/* 2. Upcoming Assessments */}
         {upcomingEvents.filter(e => !e.is_completed).length > 0 && (
@@ -510,5 +555,28 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
     color: colors.primary,
+  },
+  goalsCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  goalsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  goalsTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  goalsRings: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: spacing.md,
   },
 });
