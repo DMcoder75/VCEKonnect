@@ -6,7 +6,7 @@ export interface CalendarEvent {
   subject_code?: string;
   subject_name?: string;
   event_date: string;
-  event_type: 'SAC1' | 'SAC2' | 'Exam1' | 'Exam2' | 'Mock' | 'GAT';
+  event_type: 'SAC' | 'Assessment' | 'Exam' | 'MockExam' | 'GAT';
   title: string;
   notes?: string;
   duration_minutes?: number;
@@ -20,7 +20,7 @@ export interface CreateEventData {
   user_id: string;
   subject_id: string;
   event_date: string;
-  event_type: 'SAC1' | 'SAC2' | 'Exam1' | 'Exam2' | 'Mock' | 'GAT';
+  event_type: 'SAC' | 'Assessment' | 'Exam' | 'MockExam' | 'GAT';
   title: string;
   notes?: string;
   duration_minutes?: number;
@@ -29,7 +29,7 @@ export interface CreateEventData {
 export interface UpdateEventData {
   subject_id?: string;
   event_date?: string;
-  event_type?: 'SAC1' | 'SAC2' | 'Exam1' | 'Exam2' | 'Mock' | 'GAT';
+  event_type?: 'SAC' | 'Assessment' | 'Exam' | 'MockExam' | 'GAT';
   title?: string;
   notes?: string;
   duration_minutes?: number;
