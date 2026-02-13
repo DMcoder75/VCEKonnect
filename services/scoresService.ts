@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase.web';
 import { SubjectScore } from '@/types';
 
 // Get all subject scores for current user
