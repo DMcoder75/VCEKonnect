@@ -8,7 +8,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { Modal } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -41,13 +40,7 @@ export default function AddEventScreen() {
   const [notes, setNotes] = useState('');
   const [duration, setDuration] = useState('');
 
-  // Debug logs
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
-  function addLog(message: string) {
-    const timestamp = new Date().toLocaleTimeString('en-AU');
-    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
-  }
 
   const eventTypes = [
     { value: 'SAC', label: 'SAC' },
@@ -59,11 +52,7 @@ export default function AddEventScreen() {
 
   useEffect(() => {
     if (user) {
-      addLog(`👤 User authenticated: ${user.id}`);
-      addLog(`📧 User email: ${user.email}`);
       loadSubjects();
-    } else {
-      addLog('⚠️ No user found in useEffect');
     }
   }, [user]);
 
@@ -89,30 +78,11 @@ export default function AddEventScreen() {
   }
 
   async function updateTitleWithNumber(subjectId: string, subjectCode: string, type: string) {
-    if (!user) {
-      addLog('⚠️ updateTitleWithNumber: No user found');
-      return;
-    }
-
-    addLog(`🔍 Getting next event number for: user=${user.id.substring(0, 8)}..., subject=${subjectId.substring(0, 8)}..., type=${type}`);
+    if (!user) return;
 
     try {
       const supabase = supabaseClient;
       
-      // First, let's check how many events actually exist
-      const { data: existingEvents, error: countError } = await supabase
-        .from('vk_calendar_events')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('subject_id', subjectId)
-        .eq('event_type', type);
-
-      addLog(`📊 Direct count query: ${existingEvents?.length || 0} events found`);
-      if (existingEvents && existingEvents.length > 0) {
-        addLog(`📝 Existing events: ${JSON.stringify(existingEvents.map(e => ({ title: e.title, date: e.event_date })))}`);
-      }
-
-      // Now call the RPC function
       const { data, error } = await supabase.rpc('get_next_event_number', {
         p_user_id: user.id,
         p_subject_id: subjectId,
@@ -120,16 +90,12 @@ export default function AddEventScreen() {
       });
 
       if (error) {
-        addLog(`❌ RPC Error: ${error.message}`);
         setTitle(`${subjectCode} ${type} 1`);
       } else {
         const nextNumber = data || 1;
-        addLog(`🎯 RPC returned next number: ${nextNumber}`);
         setTitle(`${subjectCode} ${type} ${nextNumber}`);
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      addLog(`💥 Exception in updateTitleWithNumber: ${errorMsg}`);
       setTitle(`${subjectCode} ${type} 1`);
     }
   }
@@ -183,15 +149,10 @@ export default function AddEventScreen() {
   }
 
   async function handleSubmit() {
-    addLog('🚀 Submit button clicked');
-    
     if (!selectedSubject || !eventDate) {
-      addLog('❌ Validation failed: Missing subject or date');
       Alert.alert('Missing Information', 'Please select a subject and date');
       return;
     }
-
-    addLog(`✅ Validation passed - Subject: ${selectedSubject}, Date: ${eventDate}`);
     
     const eventData = {
       subject_id: selectedSubject,
@@ -201,40 +162,22 @@ export default function AddEventScreen() {
       notes: notes || undefined,
       duration_minutes: duration ? parseInt(duration) : undefined,
     };
-    
-    addLog(`📦 Preparing data: ${JSON.stringify(eventData, null, 2)}`);
-    addLog(`👤 User ID: ${user?.id || 'NO USER'}`);
-    addLog(`🔗 Database: External Supabase (xududbaqaaffcaejwuix)`);
 
     setSubmitting(true);
-    addLog('⏳ Calling addEvent hook...');
 
     try {
-      console.log('📱 [AddEvent] About to call addEvent hook');
       const { data, error } = await addEvent(eventData);
       
-      console.log('📱 [AddEvent] addEvent returned:', { data, error });
-      addLog(`📥 Response received from hook`);
-      
       if (error) {
-        addLog(`❌ Error: ${error}`);
         Alert.alert('Error', error);
       } else if (data) {
-        addLog(`✅ Success! Event created with ID: ${data.id}`);
-        Alert.alert('Success', 'Event added successfully', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
-      } else {
-        addLog(`⚠️ No data and no error returned`);
+        router.back();
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      console.log('💥 [AddEvent] Exception:', errorMsg);
-      addLog(`💥 Exception caught: ${errorMsg}`);
       Alert.alert('Exception', errorMsg);
     } finally {
       setSubmitting(false);
-      addLog('✔️ Submit process completed');
     }
   }
 
@@ -411,25 +354,6 @@ export default function AddEventScreen() {
             </>
           )}
         </Pressable>
-
-        {/* Debug Logs */}
-        {debugLogs.length > 0 && (
-          <View style={styles.debugSection}>
-            <View style={styles.debugHeader}>
-              <Text style={styles.debugTitle}>📋 Debug Logs</Text>
-              <Pressable onPress={() => setDebugLogs([])}>
-                <Text style={styles.debugClear}>Clear</Text>
-              </Pressable>
-            </View>
-            <ScrollView style={styles.debugScroll} nestedScrollEnabled>
-              {debugLogs.map((log, index) => (
-                <Text key={index} style={styles.debugLog}>
-                  {log}
-                </Text>
-              ))}
-            </ScrollView>
-          </View>
-        )}
       </ScrollView>
     </View>
   );
@@ -752,38 +676,5 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
-  },
-  debugSection: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
-  debugHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  debugTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.bold,
-    color: colors.textPrimary,
-  },
-  debugClear: {
-    fontSize: typography.bodySmall,
-    color: colors.primary,
-  },
-  debugScroll: {
-    maxHeight: 300,
-  },
-  debugLog: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-    lineHeight: 16,
   },
 });

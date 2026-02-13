@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,8 +12,15 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { upcomingEvents, loading, completeEvent } = useCalendar(user?.id);
+  const { upcomingEvents, loading, completeEvent, loadUpcomingEvents } = useCalendar(user?.id);
   const [view, setView] = useState<'list' | 'week' | 'month'>('list');
+
+  // Refresh events when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUpcomingEvents();
+    }, [loadUpcomingEvents])
+  );
 
   async function handleCompleteEvent(eventId: string) {
     await completeEvent(eventId);

@@ -64,12 +64,7 @@ export function useCalendar(userId: string | undefined) {
 
   const addEvent = useCallback(
     async (eventData: Omit<CreateEventData, 'user_id'>) => {
-      console.log('🪝 [useCalendar] addEvent called');
-      console.log('🪝 [useCalendar] userId:', userId);
-      console.log('🪝 [useCalendar] eventData:', JSON.stringify(eventData, null, 2));
-      
       if (!userId) {
-        console.log('❌ [useCalendar] No userId, returning error');
         return { data: null, error: 'User not authenticated' };
       }
 
@@ -78,18 +73,11 @@ export function useCalendar(userId: string | undefined) {
         user_id: userId,
       };
       
-      console.log('🪝 [useCalendar] Calling createEvent with:', JSON.stringify(fullEventData, null, 2));
-      
       const { data, error: err } = await createEvent(fullEventData);
 
-      console.log('🪝 [useCalendar] createEvent returned:', { data, error: err });
-
       if (!err && data) {
-        console.log('✅ [useCalendar] Event created, refreshing list');
         // Refresh upcoming events after adding
         await loadUpcomingEvents();
-      } else if (err) {
-        console.log('❌ [useCalendar] Error from createEvent:', err);
       }
 
       return { data, error: err };
