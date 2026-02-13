@@ -46,6 +46,8 @@ export async function saveSubjectScore(
         exam_prediction: examPrediction,
         study_rank: studyRank,
         predicted_study_score: predictedStudyScore,
+      }, {
+        onConflict: 'user_id,subject_id',
       });
 
     if (error) return { error: error.message };
