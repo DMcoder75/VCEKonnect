@@ -79,6 +79,7 @@ export default function DashboardScreen() {
   async function handleStopTimer() {
     await stopTimer();
     loadAllTime();
+    loadActiveGoals(); // Refresh goal progress after timer stops
   }
 
   async function handleCompleteEvent(eventId: string) {
