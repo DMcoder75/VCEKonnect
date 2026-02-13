@@ -33,7 +33,7 @@ export default function CalendarScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerContent}>
           <Text style={styles.title}>SAC & Exam Calendar</Text>
           <Text style={styles.subtitle}>
             {pendingEvents.length} upcoming · {completedEvents.length} completed
@@ -185,21 +185,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
+  },
+  headerContent: {
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   title: {
     fontSize: typography.h1,
     fontWeight: typography.bold,
     color: colors.textPrimary,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+    textAlign: 'center',
   },
   addButton: {
     width: 40,
@@ -208,6 +211,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
   },
   viewSwitcher: {
     flexDirection: 'row',
