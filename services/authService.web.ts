@@ -177,6 +177,8 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>
 ): Promise<{ error: string | null }> {
   try {
+    console.log('🔧 updateUserProfile called with:', { userId, updates });
+    
     // Update subjects in junction table if provided
     if (updates.selectedSubjects !== undefined) {
       const { error: subjectsError } = await updateUserSubjects(userId, updates.selectedSubjects);
@@ -190,18 +192,32 @@ export async function updateUserProfile(
     if (updates.targetCareer !== undefined) updateData.target_career = updates.targetCareer;
     if (updates.targetUniversities !== undefined) updateData.target_universities = updates.targetUniversities;
 
+    console.log('🔧 Built updateData object:', updateData);
+    console.log('🔧 Updating user with ID:', userId);
+
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('vk_users')
         .update(updateData)
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
 
-      if (error) return { error: error.message };
+      console.log('🔧 Database response:', { data, error: error?.message });
+
+      if (error) {
+        console.error('🔧 Database update failed:', error);
+        return { error: error.message };
+      }
+
+      console.log('🔧 Database update successful, returned data:', data);
+    } else {
+      console.log('🔧 No fields to update');
     }
 
     return { error: null };
   } catch (err: any) {
+    console.error('🔧 Exception in updateUserProfile:', err);
     return { error: err.message || 'Update failed' };
   }
 }

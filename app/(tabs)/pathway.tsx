@@ -92,6 +92,7 @@ export default function PathwayScreen() {
       addLog(`👤 User ID: ${user.id}`);
       addLog(`📧 User email: ${user.email}`);
       addLog(`💾 Saving to external Supabase: https://xududbaqaaffcaejwuix.supabase.co`);
+      addLog(`📦 Update payload: { targetCareer: "${selectedCareer.toLowerCase()}" }`);
       
       await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
       
