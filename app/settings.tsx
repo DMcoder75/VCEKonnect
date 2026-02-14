@@ -202,6 +202,26 @@ export default function SettingsScreen() {
           ))}
         </View>
 
+        {/* App Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>App</Text>
+          
+          {/* Help & FAQ */}
+          <Pressable
+            style={styles.appOptionCard}
+            onPress={() => router.push('/faq')}
+          >
+            <View style={styles.appOptionLeft}>
+              <MaterialIcons name="help-outline" size={24} color={colors.primary} />
+              <View>
+                <Text style={styles.appOptionTitle}>Help & FAQ</Text>
+                <Text style={styles.appOptionDesc}>Get answers to common questions</Text>
+              </View>
+            </View>
+            <MaterialIcons name="arrow-forward" size={24} color={colors.textTertiary} />
+          </Pressable>
+        </View>
+
         {/* Premium Status */}
         {!user.isPremium && (
           <Pressable
@@ -436,6 +456,32 @@ const styles = StyleSheet.create({
     color: colors.premium,
   },
   premiumDesc: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  appOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  appOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  appOptionTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  appOptionDesc: {
     fontSize: typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
