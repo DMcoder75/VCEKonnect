@@ -1,22 +1,26 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions, PanResponder } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DRAWER_WIDTH = 280;
+const DRAG_HANDLE_WIDTH = 4;
+const SWIPE_THRESHOLD = 50;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface QuickAccessDrawerProps {
   isOpen: boolean;
+  onOpen: () => void;
   onClose: () => void;
 }
 
-export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawerProps) {
+export default function QuickAccessDrawer({ isOpen, onOpen, onClose }: QuickAccessDrawerProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const pan = useRef(new Animated.ValueXY()).current;
 
   React.useEffect(() => {
     Animated.timing(translateX, {
@@ -25,6 +29,48 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
       useNativeDriver: true,
     }).start();
   }, [isOpen]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const { dx, dy } = gestureState;
+        // Only respond to horizontal swipes
+        return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5;
+      },
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: pan.x._value,
+          y: 0,
+        });
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Allow dragging from -DRAWER_WIDTH to 0
+        const newX = Math.max(-DRAWER_WIDTH, Math.min(0, gestureState.dx + (isOpen ? 0 : -DRAWER_WIDTH)));
+        translateX.setValue(newX);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        pan.flattenOffset();
+        const { dx } = gestureState;
+        
+        // If swiped right more than threshold, open
+        if (dx > SWIPE_THRESHOLD && !isOpen) {
+          onOpen();
+        }
+        // If swiped left more than threshold, close
+        else if (dx < -SWIPE_THRESHOLD && isOpen) {
+          onClose();
+        }
+        // Otherwise, snap to current state
+        else {
+          Animated.timing(translateX, {
+            toValue: isOpen ? 0 : -DRAWER_WIDTH,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const menuItems = [
     {
@@ -52,18 +98,33 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
     router.push(route as any);
   }
 
-  if (!isOpen) return null;
-
   return (
     <>
-      {/* Backdrop */}
-      <Pressable
-        style={styles.backdrop}
-        onPress={onClose}
-      />
+      {/* Backdrop - only show when open */}
+      {isOpen && (
+        <Pressable
+          style={styles.backdrop}
+          onPress={onClose}
+        />
+      )}
+
+      {/* Drag Handle - always visible */}
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={[
+          styles.dragHandle,
+          {
+            top: insets.top + spacing.md,
+            transform: [{ translateX: Animated.add(translateX, DRAWER_WIDTH - DRAG_HANDLE_WIDTH) }],
+          },
+        ]}
+      >
+        <View style={styles.dragLine} />
+      </Animated.View>
 
       {/* Drawer */}
       <Animated.View
+        {...panResponder.panHandlers}
         style={[
           styles.drawer,
           {
@@ -115,6 +176,23 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
 }
 
 const styles = StyleSheet.create({
+  dragHandle: {
+    position: 'absolute',
+    left: 0,
+    width: 40,
+    height: 80,
+    zIndex: 1001,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dragLine: {
+    width: DRAG_HANDLE_WIDTH,
+    height: 50,
+    backgroundColor: colors.primary,
+    borderTopRightRadius: borderRadius.sm,
+    borderBottomRightRadius: borderRadius.sm,
+    opacity: 0.6,
+  },
   backdrop: {
     position: 'absolute',
     top: 0,
