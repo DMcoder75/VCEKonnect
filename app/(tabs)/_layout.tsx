@@ -1,11 +1,14 @@
+import React, { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { colors } from '@/constants/theme';
+import { QuickAccessDrawer, FloatingMenuButton } from '@/components/ui';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const tabBarStyle = {
     height: Platform.select({
@@ -26,7 +29,10 @@ export default function TabLayout() {
   };
 
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      <FloatingMenuButton onPress={() => setIsDrawerOpen(true)} />
+      <QuickAccessDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle,
@@ -93,5 +99,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }
