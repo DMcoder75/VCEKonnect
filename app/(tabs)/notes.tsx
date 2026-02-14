@@ -39,15 +39,20 @@ export default function NotesScreen() {
   }
 
   async function handleSaveNote() {
-    const note: Note = {
-      id: editingNote?.id || `note_${Date.now()}`,
+    const note: any = {
       subjectId: selectedSubject === 'all' ? userSubjects[0]?.id || 'general' : selectedSubject,
       title: title.trim() || 'Untitled Note',
       content: content.trim(),
       tags: [],
-      createdAt: editingNote?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
+
+    // Only include ID if editing existing note
+    if (editingNote?.id) {
+      note.id = editingNote.id;
+      note.createdAt = editingNote.createdAt;
+    }
+    
+    note.updatedAt = new Date().toISOString();
 
     await saveNoteHook(note);
     setIsCreating(false);
