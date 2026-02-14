@@ -33,6 +33,12 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
       color: colors.primary,
     },
     {
+      icon: 'gavel' as const,
+      label: 'Terms & Conditions',
+      route: '/terms',
+      color: colors.warning,
+    },
+    {
       icon: 'help-outline' as const,
       label: 'FAQ',
       route: '/faq',

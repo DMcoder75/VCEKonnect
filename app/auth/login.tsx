@@ -75,6 +75,17 @@ export default function LoginScreen() {
             secureTextEntry
             showPasswordToggle
           />
+
+          {/* Legal Links */}
+          <View style={styles.legalLinks}>
+            <Pressable onPress={() => router.push('/privacy')}>
+              <Text style={styles.legalText}>Privacy Policy</Text>
+            </Pressable>
+            <Text style={styles.legalSeparator}>•</Text>
+            <Pressable onPress={() => router.push('/terms')}>
+              <Text style={styles.legalText}>Terms & Conditions</Text>
+            </Pressable>
+          </View>
           
           <Button
             title={isLoading ? 'Logging in...' : 'Log In'}
@@ -193,5 +204,22 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
     fontFamily: 'monospace',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  legalText: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
   },
 });
