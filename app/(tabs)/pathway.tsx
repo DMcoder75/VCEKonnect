@@ -91,10 +91,17 @@ export default function PathwayScreen() {
       addLog(`📝 Attempting to save career: ${selectedCareer}`);
       addLog(`👤 User ID: ${user.id}`);
       addLog(`📧 User email: ${user.email}`);
+      addLog(`💾 Saving to external Supabase: https://xududbaqaaffcaejwuix.supabase.co`);
       
       await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
       
       addLog('✅ Career saved successfully to database');
+      addLog(`🔄 User data reloaded from DB`);
+      addLog(`📊 Updated career value: ${user?.targetCareer || 'null'}`);
+      
+      // Manually reload pathway data with new career
+      await loadPathwayData();
+      
       showAlert('Success', 'Dream career saved successfully!');
       setIsSelectingCareer(false);
     } catch (error: any) {
