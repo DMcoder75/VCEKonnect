@@ -383,7 +383,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
@@ -396,8 +397,7 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
+    paddingVertical: spacing.xs,
     gap: spacing.sm,
     alignItems: 'center',
   },
@@ -426,10 +426,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    marginTop: -spacing.sm,
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: 0,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
   },
   faqCard: {
