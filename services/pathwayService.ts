@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/services/supabase.web';
+import { supabase } from '@/services/supabase.web';
 
 export interface CareerPath {
   id: string;
@@ -41,8 +41,6 @@ export interface PathwaySuggestion {
     pathway?: string;
   }[];
 }
-
-const supabase = getSupabaseClient();
 
 /**
  * Get all career paths from external Supabase
