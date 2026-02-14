@@ -31,6 +31,13 @@ export default function PathwayScreen() {
   const targetCareer = selectedCareer || user?.targetCareer || 'medicine';
   const career = careerPaths.find(c => c.id === targetCareer);
 
+  // Sync selectedCareer with user's saved targetCareer when user data loads
+  useEffect(() => {
+    if (user?.targetCareer && !selectedCareer) {
+      setSelectedCareer(user.targetCareer);
+    }
+  }, [user?.targetCareer]);
+
   // Load data from external Supabase on mount and focus
   useFocusEffect(
     React.useCallback(() => {
