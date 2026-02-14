@@ -17,7 +17,7 @@ import { PathwayCourseCard } from '@/components/feature';
 
 export default function PathwayScreen() {
   const insets = useSafeAreaInsets();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, isLoading: authLoading } = useAuth();
   const { getPrediction } = useATAR();
   const [isSelectingCareer, setIsSelectingCareer] = useState(false);
   const [selectedCareer, setSelectedCareer] = useState(user?.targetCareer || '');
@@ -138,10 +138,12 @@ export default function PathwayScreen() {
               </>
             )}
           </View>
-        ) : isLoading ? (
+        ) : (authLoading || isLoading) ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading your pathway...</Text>
+            <Text style={styles.loadingText}>
+              {authLoading ? 'Loading your profile...' : 'Loading your pathway...'}
+            </Text>
           </View>
         ) : (
           <>
