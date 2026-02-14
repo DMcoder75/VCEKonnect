@@ -62,10 +62,13 @@ export default function PathwayScreen() {
     setIsLoading(false);
   }
 
-  async function handleSaveCareer(careerId: string) {
-    if (!user) return;
+  function handleSelectCareer(careerId: string) {
     setSelectedCareer(careerId);
-    await updateProfile({ targetCareer: careerId.toLowerCase() });
+  }
+
+  async function handleSaveCareer() {
+    if (!user || !selectedCareer) return;
+    await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
     setIsSelectingCareer(false);
   }
 
@@ -108,7 +111,7 @@ export default function PathwayScreen() {
                       styles.careerOption,
                       selectedCareer === careerOption.id && styles.careerOptionActive,
                     ]}
-                    onPress={() => handleSaveCareer(careerOption.id)}
+                    onPress={() => handleSelectCareer(careerOption.id)}
                   >
                     <View style={styles.careerOptionContent}>
                       <Text style={[
@@ -135,6 +138,18 @@ export default function PathwayScreen() {
                     Check VTAC for the latest official requirements.
                   </Text>
                 </View>
+
+                {/* Save Button */}
+                <Pressable
+                  style={[
+                    styles.saveButton,
+                    !selectedCareer && styles.saveButtonDisabled,
+                  ]}
+                  onPress={handleSaveCareer}
+                  disabled={!selectedCareer}
+                >
+                  <Text style={styles.saveButtonText}>Save Dream Career</Text>
+                </Pressable>
               </>
             )}
           </View>
@@ -408,5 +423,21 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     marginTop: spacing.md,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  saveButtonDisabled: {
+    backgroundColor: colors.border,
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
   },
 });
