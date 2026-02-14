@@ -59,7 +59,7 @@ export default function PathwayScreen() {
   async function handleSaveCareer(careerId: string) {
     if (!user) return;
     setSelectedCareer(careerId);
-    await updateUserProfile(user.id, { target_career: careerId });
+    await updateUserProfile(user.id, { targetCareer: careerId });
     setIsSelectingCareer(false);
   }
 
