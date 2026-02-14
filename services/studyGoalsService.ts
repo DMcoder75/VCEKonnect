@@ -67,7 +67,36 @@ export async function getActiveGoals(userId: string): Promise<ActiveGoalsRespons
       return null;
     }
 
-    return data as ActiveGoalsResponse;
+    if (!data) return null;
+
+    // Map database snake_case to TypeScript camelCase
+    const mapPeriod = (period: any): GoalPeriod | null => {
+      if (!period) return null;
+      return {
+        id: period.id,
+        periodType: period.period_type || 'weekly',
+        periodName: period.period_name,
+        startDate: period.start_date,
+        endDate: period.end_date,
+        targetHours: period.target_hours,
+        achievedMinutes: period.achieved_minutes,
+        achievedHours: period.achieved_hours,
+        progressPercent: period.progress_percent,
+        subjects: period.subjects?.map((s: any) => ({
+          subjectId: s.subject_id,
+          targetHours: s.target_hours,
+          achievedMinutes: s.achieved_minutes,
+          achievedHours: s.achieved_hours,
+          progressPercent: s.progress_percent,
+        })) || [],
+      };
+    };
+
+    return {
+      weekly: mapPeriod(data.weekly),
+      monthly: mapPeriod(data.monthly),
+      term: mapPeriod(data.term),
+    };
   } catch (err) {
     console.error('Error fetching active goals:', err);
     return null;
