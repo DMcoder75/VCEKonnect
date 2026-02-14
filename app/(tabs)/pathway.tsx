@@ -94,9 +94,10 @@ export default function PathwayScreen() {
       addLog(`💾 Saving to external Supabase: https://xududbaqaaffcaejwuix.supabase.co`);
       addLog(`📦 Update payload: { targetCareer: "${selectedCareer.toLowerCase()}" }`);
       
-      await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
+      const result = await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
       
       addLog('✅ Career saved successfully to database');
+      addLog(`✅ Update completed, reloading user data...`);
       addLog(`🔄 User data reloaded from DB`);
       addLog(`📊 Updated career value: ${user?.targetCareer || 'null'}`);
       

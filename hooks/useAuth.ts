@@ -48,6 +48,7 @@ export function useAuth() {
     }
     // Reload user to get fresh data from database
     await loadUser();
+    return { success: true };
   }
 
   async function logout() {

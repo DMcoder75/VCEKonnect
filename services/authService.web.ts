@@ -178,12 +178,19 @@ export async function updateUserProfile(
 
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
-      const { error } = await supabase
+      const { data, error, count } = await supabase
         .from('vk_users')
         .update(updateData)
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
 
-      if (error) return { error: error.message };
+      if (error) {
+        return { error: `DB Error: ${error.message} (Code: ${error.code})` };
+      }
+      
+      if (!data || data.length === 0) {
+        return { error: `No user found with ID: ${userId}. Update matched 0 rows.` };
+      }
     }
 
     return { error: null };
