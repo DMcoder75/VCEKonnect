@@ -167,18 +167,23 @@ export async function updateUserProfile(
       if (subjectsError) return { error: subjectsError };
     }
 
-    // Update other profile fields in vk_users
-    const { error } = await supabase
-      .from('vk_users')
-      .update({
-        name: updates.name,
-        year_level: updates.yearLevel,
-        target_career: updates.targetCareer,
-        target_universities: updates.targetUniversities,
-      })
-      .eq('id', userId);
+    // Build update object with only defined fields
+    const updateData: any = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.yearLevel !== undefined) updateData.year_level = updates.yearLevel;
+    if (updates.targetCareer !== undefined) updateData.target_career = updates.targetCareer;
+    if (updates.targetUniversities !== undefined) updateData.target_universities = updates.targetUniversities;
 
-    if (error) return { error: error.message };
+    // Only update if there are fields to update
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await supabase
+        .from('vk_users')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (error) return { error: error.message };
+    }
+
     return { error: null };
   } catch (err: any) {
     return { error: err.message || 'Update failed' };
