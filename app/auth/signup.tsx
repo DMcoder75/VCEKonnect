@@ -79,6 +79,7 @@ export default function SignupScreen() {
             onChangeText={setPassword}
             placeholder="••••••••"
             secureTextEntry
+            showPasswordToggle
           />
           
           <Input
@@ -87,6 +88,7 @@ export default function SignupScreen() {
             onChangeText={setConfirmPassword}
             placeholder="••••••••"
             secureTextEntry
+            showPasswordToggle
           />
           
           <Button
