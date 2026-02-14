@@ -101,33 +101,48 @@ export default function PathwayScreen() {
             {isLoading ? (
               <ActivityIndicator size="large" color={colors.primary} />
             ) : (
-              careerPaths.map(careerOption => (
-              <Pressable
-                key={careerOption.id}
-                style={[
-                  styles.careerOption,
-                  selectedCareer === careerOption.id && styles.careerOptionActive,
-                ]}
-                onPress={() => handleSaveCareer(careerOption.id)}
-              >
-                <View style={styles.careerOptionContent}>
-                  <Text style={[
-                    styles.careerOptionName,
-                    selectedCareer === careerOption.id && styles.careerOptionNameActive,
-                  ]}>
-                    {careerOption.name}
-                  </Text>
-                  <Text style={styles.careerOptionDesc}>{careerOption.description}</Text>
-                  <Text style={styles.careerOptionAtar}>
-                    Typical ATAR: {careerOption.typical_atar}
+              <>
+                {careerPaths.map(careerOption => (
+                  <Pressable
+                    key={careerOption.id}
+                    style={[
+                      styles.careerOption,
+                      selectedCareer === careerOption.id && styles.careerOptionActive,
+                    ]}
+                    onPress={() => handleSaveCareer(careerOption.id)}
+                  >
+                    <View style={styles.careerOptionContent}>
+                      <Text style={[
+                        styles.careerOptionName,
+                        selectedCareer === careerOption.id && styles.careerOptionNameActive,
+                      ]}>
+                        {careerOption.name}
+                      </Text>
+                      <Text style={styles.careerOptionDesc}>{careerOption.description}</Text>
+                      <Text style={styles.careerOptionAtar}>
+                        Typical ATAR: {careerOption.typical_atar}
+                      </Text>
+                    </View>
+                    {selectedCareer === careerOption.id && (
+                      <MaterialIcons name="check-circle" size={24} color={colors.primary} />
+                    )}
+                  </Pressable>
+                ))}
+                {/* Info */}
+                <View style={styles.infoCard}>
+                  <MaterialIcons name="info-outline" size={20} color={colors.primary} />
+                  <Text style={styles.infoText}>
+                    ATAR cutoffs change yearly based on demand. 
+                    Check VTAC for the latest official requirements.
                   </Text>
                 </View>
-                {selectedCareer === careerOption.id && (
-                  <MaterialIcons name="check-circle" size={24} color={colors.primary} />
-                )}
-              </Pressable>
-              ))
+              </>
             )}
+          </View>
+        ) : isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading your pathway...</Text>
           </View>
         ) : (
           <>
@@ -147,55 +162,47 @@ export default function PathwayScreen() {
               </View>
             </View>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading pathway data from Supabase...</Text>
-          </View>
-        ) : (
-          <>
             {/* Pathway Courses */}
             {pathway && (
-          <>
-            <Text style={styles.sectionTitle}>Available Pathways</Text>
-            <Text style={styles.sectionDesc}>
-              Based on your predicted ATAR: {prediction.atar.toFixed(2)}
-            </Text>
+              <>
+                <Text style={styles.sectionTitle}>Available Pathways</Text>
+                <Text style={styles.sectionDesc}>
+                  Based on your predicted ATAR: {prediction.atar.toFixed(2)}
+                </Text>
 
-            {pathway.courses.map(course => (
-              <PathwayCourseCard
-                key={course.id}
-                universityName={course.universityName}
-                courseName={course.courseName}
-                atar={course.atar}
-                isEligible={course.isEligible}
-                prerequisites={course.prerequisites}
-                pathway={course.pathway}
-              />
-            ))}
-          </>
-        )}
+                {pathway.courses.map(course => (
+                  <PathwayCourseCard
+                    key={course.id}
+                    universityName={course.universityName}
+                    courseName={course.courseName}
+                    atar={course.atar}
+                    isEligible={course.isEligible}
+                    prerequisites={course.prerequisites}
+                    pathway={course.pathway}
+                  />
+                ))}
+              </>
+            )}
 
             {/* Backup Careers */}
             {backups.length > 0 && prediction.atar < (career?.typical_atar || 0) && (
-          <>
-            <Text style={styles.sectionTitle}>Alternative Careers</Text>
-            <Text style={styles.sectionDesc}>
-              Consider these careers within your ATAR range
-            </Text>
-
-            {backups.map(backup => (
-              <View key={backup.id} style={styles.backupCard}>
-                <Text style={styles.backupName}>{backup.name}</Text>
-                <Text style={styles.backupDesc}>{backup.description}</Text>
-                <Text style={styles.backupAtar}>
-                  Typical ATAR: {backup.typicalATAR}
+              <>
+                <Text style={styles.sectionTitle}>Alternative Careers</Text>
+                <Text style={styles.sectionDesc}>
+                  Consider these careers within your ATAR range
                 </Text>
-              </View>
-            ))}
-          </>
-        )}
+
+                {backups.map(backup => (
+                  <View key={backup.id} style={styles.backupCard}>
+                    <Text style={styles.backupName}>{backup.name}</Text>
+                    <Text style={styles.backupDesc}>{backup.description}</Text>
+                    <Text style={styles.backupAtar}>
+                      Typical ATAR: {backup.typical_atar}
+                    </Text>
+                  </View>
+                ))}
+              </>
+            )}
 
             {/* Info */}
             <View style={styles.infoCard}>
@@ -205,8 +212,6 @@ export default function PathwayScreen() {
                 Check VTAC for the latest official requirements.
               </Text>
             </View>
-          </>
-        )}
           </>
         )}
       </ScrollView>
