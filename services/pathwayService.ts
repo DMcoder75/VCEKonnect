@@ -113,10 +113,11 @@ export async function getPathwaySuggestions(
   }
 
   // Fetch courses that match this career from external Supabase
+  // Use cs (contains) filter for JSONB array containment
   const { data: coursesData, error: coursesError } = await supabase
     .from('vk_university_courses')
     .select('*')
-    .contains('career_path_ids', [careerPathId])
+    .filter('career_path_ids', 'cs', JSON.stringify([careerPathId]))
     .order('atar', { ascending: true });
 
   if (coursesError) {
