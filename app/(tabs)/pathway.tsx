@@ -27,6 +27,13 @@ export default function PathwayScreen() {
   const [pathway, setPathway] = useState<any>(null);
   const [backups, setBackups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(true);
+
+  function addLog(message: string) {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 9)]);
+  }
   
   const prediction = getPrediction();
   const targetCareer = (selectedCareer || user?.targetCareer || 'medicine').toLowerCase();
@@ -48,18 +55,24 @@ export default function PathwayScreen() {
 
   async function loadPathwayData() {
     setIsLoading(true);
+    addLog('🔄 Loading pathway data...');
+    addLog(`🎯 Target career: ${targetCareer}`);
+    addLog(`📊 User saved career: ${user?.targetCareer || 'none'}`);
     
     // Fetch all career paths from external Supabase
     const careers = await getAllCareerPaths();
     setCareerPaths(careers);
+    addLog(`📚 Loaded ${careers.length} career paths from DB`);
 
     // Fetch pathway suggestions from external Supabase
     const pathwayData = await getPathwaySuggestions(targetCareer, prediction.atar);
     setPathway(pathwayData);
+    addLog(`🎓 Loaded pathway courses from DB`);
 
     // Fetch backup career suggestions from external Supabase
     const backupData = await getBackupCareerSuggestions(prediction.atar, [targetCareer]);
     setBackups(backupData);
+    addLog(`🔍 Loaded ${backupData.length} backup careers`);
 
     setIsLoading(false);
   }
@@ -69,19 +82,23 @@ export default function PathwayScreen() {
   }
 
   async function handleSaveCareer() {
-    if (!user || !selectedCareer) return;
+    if (!user || !selectedCareer) {
+      addLog('❌ Save failed: No user or no career selected');
+      return;
+    }
     
     try {
-      console.log('Saving career:', selectedCareer);
-      console.log('User ID:', user.id);
+      addLog(`📝 Attempting to save career: ${selectedCareer}`);
+      addLog(`👤 User ID: ${user.id}`);
+      addLog(`📧 User email: ${user.email}`);
       
       await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
       
-      console.log('Career saved successfully');
+      addLog('✅ Career saved successfully to database');
       showAlert('Success', 'Dream career saved successfully!');
       setIsSelectingCareer(false);
     } catch (error: any) {
-      console.error('Failed to save career:', error);
+      addLog(`❌ Save error: ${error.message || error}`);
       showAlert('Error', error.message || 'Failed to save career. Please try again.');
     }
   }
@@ -241,6 +258,52 @@ export default function PathwayScreen() {
                 ATAR cutoffs change yearly based on demand. 
                 Check VTAC for the latest official requirements.
               </Text>
+            </View>
+
+            {/* Debug Logs */}
+            <View style={styles.debugSection}>
+              <Pressable
+                style={styles.debugHeader}
+                onPress={() => setShowDebug(!showDebug)}
+              >
+                <Text style={styles.debugTitle}>🔧 Debug Logs</Text>
+                <MaterialIcons
+                  name={showDebug ? 'expand-less' : 'expand-more'}
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+              {showDebug && (
+                <View style={styles.debugContent}>
+                  <View style={styles.debugInfo}>
+                    <Text style={styles.debugLabel}>User ID:</Text>
+                    <Text style={styles.debugValue}>{user?.id || 'null'}</Text>
+                  </View>
+                  <View style={styles.debugInfo}>
+                    <Text style={styles.debugLabel}>User Email:</Text>
+                    <Text style={styles.debugValue}>{user?.email || 'null'}</Text>
+                  </View>
+                  <View style={styles.debugInfo}>
+                    <Text style={styles.debugLabel}>DB Saved Career:</Text>
+                    <Text style={styles.debugValue}>{user?.targetCareer || 'null'}</Text>
+                  </View>
+                  <View style={styles.debugInfo}>
+                    <Text style={styles.debugLabel}>Selected Career:</Text>
+                    <Text style={styles.debugValue}>{selectedCareer || 'null'}</Text>
+                  </View>
+                  <View style={styles.debugDivider} />
+                  <Text style={styles.debugLogsTitle}>Operation Logs:</Text>
+                  {debugLogs.length === 0 ? (
+                    <Text style={styles.debugLogEmpty}>No logs yet</Text>
+                  ) : (
+                    debugLogs.map((log, index) => (
+                      <Text key={index} style={styles.debugLog}>
+                        {log}
+                      </Text>
+                    ))
+                  )}
+                </View>
+              )}
             </View>
           </>
         )}
@@ -437,6 +500,65 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     marginTop: spacing.md,
+  },
+  debugSection: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  debugTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  debugContent: {
+    padding: spacing.md,
+    paddingTop: 0,
+  },
+  debugInfo: {
+    flexDirection: 'row',
+    marginBottom: spacing.xs,
+  },
+  debugLabel: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    width: 140,
+  },
+  debugValue: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    color: colors.primary,
+    fontFamily: 'monospace',
+  },
+  debugDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.sm,
+  },
+  debugLogsTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  debugLog: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    fontFamily: 'monospace',
+    marginBottom: spacing.xs,
+  },
+  debugLogEmpty: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
   },
   saveButton: {
     backgroundColor: colors.primary,
