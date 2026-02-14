@@ -58,18 +58,7 @@ export default function GoalsScreen() {
   }
 
   function initializeGoals() {
-    // If active goals exist, pre-fill with current values
-    if (activeGoals?.weekly) {
-      setWeeklyTotal(activeGoals.weekly.targetHours.toString());
-    }
-    if (activeGoals?.monthly) {
-      setMonthlyTotal(activeGoals.monthly.targetHours.toString());
-    }
-    if (activeGoals?.term) {
-      setTermTotal(activeGoals.term.targetHours.toString());
-    }
-
-    // Initialize subject goals
+    // Initialize subject goals first
     const initialSubjectGoals = subjects.map(subject => {
       const weeklySubject = activeGoals?.weekly?.subjects?.find(s => s.subjectId === subject.id);
       const monthlySubject = activeGoals?.monthly?.subjects?.find(s => s.subjectId === subject.id);
@@ -84,6 +73,38 @@ export default function GoalsScreen() {
     });
 
     setSubjectGoals(initialSubjectGoals);
+
+    // If active goals exist, use saved totals
+    // Otherwise, calculate totals from subject hours
+    if (activeGoals?.weekly) {
+      setWeeklyTotal(activeGoals.weekly.targetHours.toString());
+    } else {
+      const calculatedWeekly = initialSubjectGoals.reduce(
+        (sum, goal) => sum + (parseFloat(goal.weeklyHours) || 0),
+        0
+      );
+      setWeeklyTotal(calculatedWeekly.toFixed(0));
+    }
+
+    if (activeGoals?.monthly) {
+      setMonthlyTotal(activeGoals.monthly.targetHours.toString());
+    } else {
+      const calculatedMonthly = initialSubjectGoals.reduce(
+        (sum, goal) => sum + (parseFloat(goal.monthlyHours) || 0),
+        0
+      );
+      setMonthlyTotal(calculatedMonthly.toFixed(0));
+    }
+
+    if (activeGoals?.term) {
+      setTermTotal(activeGoals.term.targetHours.toString());
+    } else {
+      const calculatedTerm = initialSubjectGoals.reduce(
+        (sum, goal) => sum + (parseFloat(goal.termHours) || 0),
+        0
+      );
+      setTermTotal(calculatedTerm.toFixed(0));
+    }
   }
 
   function handleSmartFillEvenSplit() {
