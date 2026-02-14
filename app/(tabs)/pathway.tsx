@@ -14,11 +14,10 @@ import {
   CareerPath 
 } from '@/services/pathwayService';
 import { PathwayCourseCard } from '@/components/feature';
-import { updateUserProfile } from '@/services/authService';
 
 export default function PathwayScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { getPrediction } = useATAR();
   const [isSelectingCareer, setIsSelectingCareer] = useState(false);
   const [selectedCareer, setSelectedCareer] = useState(user?.targetCareer || '');
@@ -66,7 +65,7 @@ export default function PathwayScreen() {
   async function handleSaveCareer(careerId: string) {
     if (!user) return;
     setSelectedCareer(careerId);
-    await updateUserProfile(user.id, { targetCareer: careerId });
+    await updateProfile({ targetCareer: careerId });
     setIsSelectingCareer(false);
   }
 
