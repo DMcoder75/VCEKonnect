@@ -72,47 +72,33 @@ export async function loginUser(
   password: string
 ): Promise<AuthResponse> {
   try {
-    console.log('Login attempt for:', email);
     const { data, error } = await supabase
       .from('vk_users')
       .select('*')
       .eq('email', email.toLowerCase())
       .single();
 
-    console.log('Database query result:', { hasData: !!data, error: error?.message });
-
     if (error || !data) {
-      console.error('User not found:', error);
       return { user: null, error: 'Invalid email or password' };
     }
-
-    console.log('User found, verifying password...');
-    console.log('Hash from DB:', data.password_hash);
     
     // Use bcryptjs to verify password
     let isValid = false;
     if (bcryptjs) {
       try {
         isValid = await bcryptjs.compare(password, data.password_hash);
-        console.log('bcryptjs verification result:', isValid);
       } catch (err) {
-        console.error('bcrypt comparison error:', err);
         // Temporary fallback for debugging
         isValid = password === '123456' && email === 'test@example.com';
-        console.log('Using fallback comparison:', isValid);
       }
     } else {
       // Fallback: simple comparison (NOT SECURE - only for debugging)
-      console.warn('bcryptjs not available - using fallback');
       isValid = password === '123456' && email === 'test@example.com';
     }
     
     if (!isValid) {
-      console.error('Password verification failed');
       return { user: null, error: 'Invalid email or password' };
     }
-    
-    console.log('Login successful!');
 
     await saveSession(data.id);
 
@@ -177,8 +163,6 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>
 ): Promise<{ error: string | null }> {
   try {
-    console.log('🔧 updateUserProfile called with:', { userId, updates });
-    
     // Update subjects in junction table if provided
     if (updates.selectedSubjects !== undefined) {
       const { error: subjectsError } = await updateUserSubjects(userId, updates.selectedSubjects);
@@ -192,32 +176,18 @@ export async function updateUserProfile(
     if (updates.targetCareer !== undefined) updateData.target_career = updates.targetCareer;
     if (updates.targetUniversities !== undefined) updateData.target_universities = updates.targetUniversities;
 
-    console.log('🔧 Built updateData object:', updateData);
-    console.log('🔧 Updating user with ID:', userId);
-
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('vk_users')
         .update(updateData)
-        .eq('id', userId)
-        .select();
+        .eq('id', userId);
 
-      console.log('🔧 Database response:', { data, error: error?.message });
-
-      if (error) {
-        console.error('🔧 Database update failed:', error);
-        return { error: error.message };
-      }
-
-      console.log('🔧 Database update successful, returned data:', data);
-    } else {
-      console.log('🔧 No fields to update');
+      if (error) return { error: error.message };
     }
 
     return { error: null };
   } catch (err: any) {
-    console.error('🔧 Exception in updateUserProfile:', err);
     return { error: err.message || 'Update failed' };
   }
 }
