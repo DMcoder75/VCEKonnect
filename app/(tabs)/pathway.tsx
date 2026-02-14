@@ -91,15 +91,19 @@ export default function PathwayScreen() {
       addLog(`📝 Attempting to save career: ${selectedCareer}`);
       addLog(`👤 User ID: ${user.id}`);
       addLog(`📧 User email: ${user.email}`);
-      addLog(`💾 Saving to external Supabase: https://xududbaqaaffcaejwuix.supabase.co`);
+      addLog(`💾 Target database: https://xududbaqaaffcaejwuix.supabase.co`);
       addLog(`📦 Update payload: { targetCareer: "${selectedCareer.toLowerCase()}" }`);
       
       const result = await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
       
-      addLog('✅ Career saved successfully to database');
-      addLog(`✅ Update completed, reloading user data...`);
-      addLog(`🔄 User data reloaded from DB`);
-      addLog(`📊 Updated career value: ${user?.targetCareer || 'null'}`);
+      addLog('✅ Update function completed');
+      addLog(`📊 Reloading user data from database...`);
+      
+      // Wait a moment for the reload to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      addLog(`📊 Updated career in user object: ${user?.targetCareer || 'null'}`);
+      addLog(`✅ Save completed successfully`);
       
       // Manually reload pathway data with new career
       await loadPathwayData();

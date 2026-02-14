@@ -178,18 +178,30 @@ export async function updateUserProfile(
 
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
-      const { data, error, count } = await supabase
+      // First verify the user exists
+      const { data: existingUser, error: selectError } = await supabase
+        .from('vk_users')
+        .select('id, email, target_career')
+        .eq('id', userId)
+        .single();
+
+      if (selectError || !existingUser) {
+        return { error: `User verification failed: ${selectError?.message || 'User not found'}. User ID: ${userId}` };
+      }
+
+      // User exists, now perform update
+      const { data, error } = await supabase
         .from('vk_users')
         .update(updateData)
         .eq('id', userId)
         .select();
 
       if (error) {
-        return { error: `DB Error: ${error.message} (Code: ${error.code})` };
+        return { error: `Update query failed: ${error.message} (Code: ${error.code || 'unknown'})` };
       }
       
       if (!data || data.length === 0) {
-        return { error: `No user found with ID: ${userId}. Update matched 0 rows.` };
+        return { error: `Update executed but matched 0 rows. User ID: ${userId}, Update data: ${JSON.stringify(updateData)}` };
       }
     }
 
