@@ -193,6 +193,16 @@ export default function DashboardScreen() {
                 />
               )}
             </View>
+            
+            {/* View Details Button */}
+            <Pressable
+              style={styles.viewDetailsButton}
+              onPress={() => router.push('/goals-progress')}
+            >
+              <MaterialIcons name="visibility" size={18} color={colors.primary} />
+              <Text style={styles.viewDetailsText}>View Details</Text>
+              <MaterialIcons name="arrow-forward" size={16} color={colors.primary} />
+            </Pressable>
           </View>
         )}
 
@@ -624,5 +634,23 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
     textAlign: 'center',
+  },
+  viewDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  viewDetailsText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.primary,
   },
 });
