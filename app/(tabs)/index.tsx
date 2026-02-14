@@ -29,6 +29,7 @@ export default function DashboardScreen() {
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const [showDebug, setShowDebug] = useState(true);
 
   const prediction = getPrediction();
 
@@ -129,13 +130,35 @@ export default function DashboardScreen() {
             <Text style={styles.greeting}>G'day, {user.name}!</Text>
             <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
           </View>
-          <Pressable
-            onPress={() => router.push('/settings')}
-            style={styles.settingsButton}
-          >
-            <MaterialIcons name="settings" size={24} color={colors.textSecondary} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Pressable
+              onPress={() => setShowDebug(!showDebug)}
+              style={styles.settingsButton}
+            >
+              <MaterialIcons name="bug-report" size={24} color={showDebug ? colors.primary : colors.textSecondary} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/settings')}
+              style={styles.settingsButton}
+            >
+              <MaterialIcons name="settings" size={24} color={colors.textSecondary} />
+            </Pressable>
+          </View>
         </View>
+
+        {/* Debug Panel */}
+        {showDebug && (
+          <View style={styles.debugCard}>
+            <Text style={styles.debugTitle}>🐛 Study Goals Debug</Text>
+            <Text style={styles.debugText}>🔍 User ID: {user.id}</Text>
+            <Text style={styles.debugText}>📊 ActiveGoals exists: {activeGoals ? 'YES' : 'NO'}</Text>
+            <Text style={styles.debugText}>📅 Weekly: {activeGoals?.weekly ? `${activeGoals.weekly.progressPercent}%` : 'null'}</Text>
+            <Text style={styles.debugText}>📅 Monthly: {activeGoals?.monthly ? `${activeGoals.monthly.progressPercent}%` : 'null'}</Text>
+            <Text style={styles.debugText}>📅 Term: {activeGoals?.term ? `${activeGoals.term.progressPercent}%` : 'null'}</Text>
+            <Text style={styles.debugText}>🎯 Condition check: {(!activeGoals?.weekly && !activeGoals?.monthly && !activeGoals?.term) ? 'SHOW SET GOALS' : 'SHOW PROGRESS'}</Text>
+            <Text style={styles.debugText}>📝 Raw data: {JSON.stringify(activeGoals, null, 2).substring(0, 200)}...</Text>
+          </View>
+        )}
 
         {/* 1. Total Study Time */}
         <View style={styles.todayCard}>
@@ -559,6 +582,26 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
+  },
+  debugCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+  },
+  debugTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.warning,
+    marginBottom: spacing.sm,
+  },
+  debugText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    fontFamily: 'monospace',
+    marginVertical: 2,
   },
   assessmentsSection: {
     marginBottom: spacing.md,
