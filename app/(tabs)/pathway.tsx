@@ -88,13 +88,22 @@ export default function PathwayScreen() {
     }
     
     try {
+      // Extract unique university names from pathway courses
+      const universities = pathway?.courses
+        ? Array.from(new Set(pathway.courses.map((c: any) => c.universityName)))
+        : [];
+
       addLog(`📝 Attempting to save career: ${selectedCareer}`);
+      addLog(`🏛️ Extracting ${universities.length} universities from pathway courses`);
       addLog(`👤 User ID: ${user.id}`);
       addLog(`📧 User email: ${user.email}`);
       addLog(`💾 Target database: https://xududbaqaaffcaejwuix.supabase.co`);
-      addLog(`📦 Update payload: { targetCareer: "${selectedCareer.toLowerCase()}" }`);
+      addLog(`📦 Update payload: { targetCareer: "${selectedCareer.toLowerCase()}", targetUniversities: [${universities.join(', ')}] }`);
       
-      const result = await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
+      const result = await updateProfile({ 
+        targetCareer: selectedCareer.toLowerCase(),
+        targetUniversities: universities
+      });
       
       addLog('✅ Update function completed');
       addLog(`📊 Reloading user data from database...`);
@@ -102,13 +111,14 @@ export default function PathwayScreen() {
       // Wait a moment for the reload to complete
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      addLog(`📊 Updated career in user object: ${user?.targetCareer || 'null'}`);
+      addLog(`📊 Updated career: ${user?.targetCareer || 'null'}`);
+      addLog(`📊 Updated universities: ${user?.targetUniversities?.join(', ') || 'none'}`);
       addLog(`✅ Save completed successfully`);
       
       // Manually reload pathway data with new career
       await loadPathwayData();
       
-      showAlert('Success', 'Dream career saved successfully!');
+      showAlert('Success', 'Dream career and universities saved!');
       setIsSelectingCareer(false);
     } catch (error: any) {
       addLog(`❌ Save error: ${error.message || error}`);
@@ -303,6 +313,12 @@ export default function PathwayScreen() {
                   <View style={styles.debugInfo}>
                     <Text style={styles.debugLabel}>Selected Career:</Text>
                     <Text style={styles.debugValue}>{selectedCareer || 'null'}</Text>
+                  </View>
+                  <View style={styles.debugInfo}>
+                    <Text style={styles.debugLabel}>Target Universities:</Text>
+                    <Text style={styles.debugValue}>
+                      {user?.targetUniversities?.length ? user.targetUniversities.join(', ') : 'none'}
+                    </Text>
                   </View>
                   <View style={styles.debugDivider} />
                   <Text style={styles.debugLogsTitle}>Operation Logs:</Text>
