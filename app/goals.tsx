@@ -361,6 +361,7 @@ export default function GoalsScreen() {
           <View style={styles.periodTotalRow}>
             <Text style={styles.periodLabel}>Total Hours:</Text>
             <TextInput
+              key={`monthly-total-${monthlyTotal}`}
               style={styles.totalInput}
               value={monthlyTotal}
               onChangeText={setMonthlyTotal}
@@ -376,6 +377,7 @@ export default function GoalsScreen() {
               <View key={goal.subjectId} style={styles.subjectRow}>
                 <Text style={styles.subjectCode}>{subject.code}</Text>
                 <TextInput
+                  key={`${goal.subjectId}-monthly-${goal.monthlyHours}`}
                   style={styles.subjectInput}
                   value={goal.monthlyHours}
                   onChangeText={value => updateSubjectGoal(goal.subjectId, 'monthlyHours', value)}
