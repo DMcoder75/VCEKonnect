@@ -7,6 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
+import { useAlert } from '@/template';
 import { 
   getPathwaySuggestions, 
   getBackupCareerSuggestions, 
@@ -19,6 +20,7 @@ export default function PathwayScreen() {
   const insets = useSafeAreaInsets();
   const { user, updateProfile, isLoading: authLoading } = useAuth();
   const { getPrediction } = useATAR();
+  const { showAlert } = useAlert();
   const [isSelectingCareer, setIsSelectingCareer] = useState(false);
   const [selectedCareer, setSelectedCareer] = useState(user?.targetCareer || '');
   const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
@@ -68,8 +70,20 @@ export default function PathwayScreen() {
 
   async function handleSaveCareer() {
     if (!user || !selectedCareer) return;
-    await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
-    setIsSelectingCareer(false);
+    
+    try {
+      console.log('Saving career:', selectedCareer);
+      console.log('User ID:', user.id);
+      
+      await updateProfile({ targetCareer: selectedCareer.toLowerCase() });
+      
+      console.log('Career saved successfully');
+      showAlert('Success', 'Dream career saved successfully!');
+      setIsSelectingCareer(false);
+    } catch (error: any) {
+      console.error('Failed to save career:', error);
+      showAlert('Error', error.message || 'Failed to save career. Please try again.');
+    }
   }
 
   return (
