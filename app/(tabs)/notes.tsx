@@ -106,31 +106,33 @@ export default function NotesScreen() {
       </View>
 
       {/* Subject Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterContainer}
-      >
-        <Pressable
-          style={[styles.filterChip, selectedSubject === 'all' && styles.filterChipActive]}
-          onPress={() => setSelectedSubject('all')}
+      <View style={styles.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
         >
-          <Text style={[styles.filterText, selectedSubject === 'all' && styles.filterTextActive]}>
-            All
-          </Text>
-        </Pressable>
-        {userSubjects.map(subject => (
           <Pressable
-            key={subject.id}
-            style={[styles.filterChip, selectedSubject === subject.id && styles.filterChipActive]}
-            onPress={() => setSelectedSubject(subject.id)}
+            style={[styles.filterChip, selectedSubject === 'all' && styles.filterChipActive]}
+            onPress={() => setSelectedSubject('all')}
           >
-            <Text style={[styles.filterText, selectedSubject === subject.id && styles.filterTextActive]}>
-              {subject.code}
+            <Text style={[styles.filterText, selectedSubject === 'all' && styles.filterTextActive]}>
+              All
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+          {userSubjects.map(subject => (
+            <Pressable
+              key={subject.id}
+              style={[styles.filterChip, selectedSubject === subject.id && styles.filterChipActive]}
+              onPress={() => setSelectedSubject(subject.id)}
+            >
+              <Text style={[styles.filterText, selectedSubject === subject.id && styles.filterTextActive]}>
+                {subject.code}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       {isCreating ? (
         <View style={styles.editorContainer}>
@@ -271,10 +273,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  filterWrapper: {
+    height: 44,
+    marginBottom: spacing.xs,
+  },
   filterContainer: {
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     gap: spacing.sm,
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: spacing.md,
