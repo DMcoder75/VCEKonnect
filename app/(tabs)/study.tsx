@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,18 +18,20 @@ export default function StudyScreen() {
   const [allTime, setAllTime] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const [isLoadingStudyTime, setIsLoadingStudyTime] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadSubjects();
+      loadAllTime();
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isLoadingSubjects) {
       loadAllTime();
     }
-  }, [user, activeSubject]);
+  }, [user, activeSubject, isLoadingSubjects]);
 
   async function loadSubjects() {
     if (!user) return;
@@ -40,9 +43,11 @@ export default function StudyScreen() {
 
   async function loadAllTime() {
     if (!user) return;
+    setIsLoadingStudyTime(true);
     const { getStudyTimeBySubject } = await import('@/services/studyService');
     const time = await getStudyTimeBySubject(user.id, undefined, undefined);
     setAllTime(time);
+    setIsLoadingStudyTime(false);
   }
 
   async function handleStopTimer() {
@@ -51,6 +56,7 @@ export default function StudyScreen() {
   }
 
   const totalMinutes = Object.values(allTime).reduce((sum, time) => sum + time, 0);
+  const isLoading = isLoadingSubjects || isLoadingStudyTime;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -65,55 +71,59 @@ export default function StudyScreen() {
           <MaterialIcons name="timer" size={32} color={colors.primary} />
         </View>
 
-        {/* All Time Summary */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Total Study Time (All Time)</Text>
-          <Text style={styles.summaryTime}>
-            {Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m
-          </Text>
-          <View style={styles.summaryStats}>
-            <View style={styles.statItem}>
-              <MaterialIcons name="local-fire-department" size={20} color={colors.warning} />
-              <Text style={styles.statText}>
-                {userSubjects.length} subjects tracked
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Subject Timers */}
-        <Text style={styles.sectionTitle}>Your Subjects</Text>
-        {isLoadingSubjects ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading subjects...</Text>
-          </View>
-        ) : userSubjects.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialIcons name="subject" size={64} color={colors.textTertiary} />
-            <Text style={styles.emptyText}>No subjects selected</Text>
-            <Text style={styles.emptyDesc}>Add subjects in settings</Text>
+            <Text style={styles.loadingText}>Loading study tracker...</Text>
           </View>
         ) : (
-          <>
-            {userSubjects.map(subject => {
-              const subjectMins = allTime[subject.id] || 0;
-              return (
-                <StudyTimerCard
-                  key={subject.id}
-                  subjectId={subject.id}
-                  subjectCode={subject.code}
-                  subjectName={subject.name}
-                  elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
-                  isActive={activeSubject === subject.id}
-                  totalMinutes={subjectMins}
-                  onStart={() => startTimer(subject.id)}
-                  onStop={handleStopTimer}
-                />
-              );
-            })}
+          <> {/* Added a Fragment here to wrap the conditional content */}
+            {/* All Time Summary */}
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Total Study Time (All Time)</Text>
+              <Text style={styles.summaryTime}>
+                {Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m
+              </Text>
+              <View style={styles.summaryStats}>
+                <View style={styles.statItem}>
+                  <MaterialIcons name="local-fire-department" size={20} color={colors.warning} />
+                  <Text style={styles.statText}>
+                    {userSubjects.length} subjects tracked
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Subject Timers */}
+            <Text style={styles.sectionTitle}>Your Subjects</Text>
+            {userSubjects.length === 0 ? (
+              <View style={styles.emptyState}>
+                <MaterialIcons name="subject" size={64} color={colors.textTertiary} />
+                <Text style={styles.emptyText}>No subjects selected</Text>
+                <Text style={styles.emptyDesc}>Add subjects in settings</Text>
+              </View>
+            ) : (
+              <>
+                {userSubjects.map(subject => {
+                  const subjectMins = allTime[subject.id] || 0;
+                  return (
+                    <StudyTimerCard
+                      key={subject.id}
+                      subjectId={subject.id}
+                      subjectCode={subject.code}
+                      subjectName={subject.name}
+                      elapsedSeconds={activeSubject === subject.id ? elapsedSeconds : 0}
+                      isActive={activeSubject === subject.id}
+                      totalMinutes={subjectMins}
+                      onStart={() => startTimer(subject.id)}
+                      onStop={handleStopTimer}
+                    />
+                  );
+                })}
+              </>
+            )}
           </>
-        )}
+        )} {/* Closing bracket for the ternary operator */}
       </ScrollView>
     </View>
   );

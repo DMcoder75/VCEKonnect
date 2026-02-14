@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -22,6 +22,7 @@ export default function NotesScreen() {
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const [isLoadingNotes, setIsLoadingNotes] = useState(true);
 
   const filteredNotes = selectedSubject === 'all'
     ? notes
@@ -30,6 +31,12 @@ export default function NotesScreen() {
   useEffect(() => {
     loadSubjects();
   }, [user]);
+
+  useEffect(() => {
+    if (notes !== undefined) {
+      setIsLoadingNotes(false);
+    }
+  }, [notes]);
 
   async function loadSubjects() {
     if (!user) return;
@@ -134,7 +141,12 @@ export default function NotesScreen() {
         </ScrollView>
       </View>
 
-      {isCreating ? (
+      {(isLoadingSubjects || isLoadingNotes) && !isCreating ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading notes...</Text>
+        </View>
+      ) : isCreating ? (
         <View style={styles.editorContainer}>
           <View style={styles.editorHeader}>
             <Text style={styles.editorTitle}>
@@ -446,5 +458,16 @@ const styles = StyleSheet.create({
   },
   subjectChipTextActive: {
     color: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
   },
 });

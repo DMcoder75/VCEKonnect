@@ -24,14 +24,20 @@ export default function CalendarScreen() {
   });
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>([]);
   const [loadingMonth, setLoadingMonth] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Refresh events when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      loadUpcomingEvents();
-      if (view === 'week') {
-        loadWeekEvents();
+      async function loadInitialData() {
+        setInitialLoading(true);
+        await loadUpcomingEvents();
+        if (view === 'week') {
+          await loadWeekEvents();
+        }
+        setInitialLoading(false);
       }
+      loadInitialData();
     }, [loadUpcomingEvents, view])
   );
 
@@ -340,7 +346,12 @@ export default function CalendarScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {view === 'list' && (
+        {(initialLoading && view === 'list') ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading calendar...</Text>
+          </View>
+        ) : view === 'list' && (
           <>
             {/* Pending Events */}
             {pendingEvents.length > 0 && (

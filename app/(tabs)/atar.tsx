@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -24,12 +25,19 @@ export default function ATARScreen() {
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const [isLoadingScores, setIsLoadingScores] = useState(true);
   const prediction = getPrediction();
   const scenarios = getScenarios();
 
   useEffect(() => {
     loadSubjects();
   }, [user]);
+
+  useEffect(() => {
+    if (subjectScores) {
+      setIsLoadingScores(false);
+    }
+  }, [subjectScores]);
 
   // Reload scores when screen comes into focus
   useFocusEffect(
@@ -70,6 +78,8 @@ export default function ATARScreen() {
     setRankInput('');
   }
 
+  const isLoading = isLoadingSubjects || isLoadingScores;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
@@ -82,134 +92,143 @@ export default function ATARScreen() {
           <Text style={styles.title}>ATAR Predictor</Text>
         </View>
 
-        {/* Main ATAR Display */}
-        <View style={styles.atarCard}>
-          <ATARDisplay atar={prediction.atar} size="large" />
-          <Text style={styles.aggregateText}>
-            Aggregate: {prediction.aggregate.toFixed(1)}
-          </Text>
-        </View>
-
-        {/* Scenarios */}
-        <View style={styles.scenariosCard}>
-          <Text style={styles.sectionTitle}>ATAR Scenarios</Text>
-          <View style={styles.scenarioRow}>
-            <View style={styles.scenarioItem}>
-              <Text style={[styles.scenarioValue, { color: colors.success }]}>
-                {scenarios.bestCase.toFixed(2)}
-              </Text>
-              <Text style={styles.scenarioLabel}>Best Case</Text>
-              <Text style={styles.scenarioDesc}>+10% all exams</Text>
-            </View>
-            <View style={styles.scenarioDivider} />
-            <View style={styles.scenarioItem}>
-              <Text style={[styles.scenarioValue, { color: colors.atarMid }]}>
-                {scenarios.current.toFixed(2)}
-              </Text>
-              <Text style={styles.scenarioLabel}>Current</Text>
-              <Text style={styles.scenarioDesc}>Based on inputs</Text>
-            </View>
-            <View style={styles.scenarioDivider} />
-            <View style={styles.scenarioItem}>
-              <Text style={[styles.scenarioValue, { color: colors.warning }]}>
-                {scenarios.worstCase.toFixed(2)}
-              </Text>
-              <Text style={styles.scenarioLabel}>Worst Case</Text>
-              <Text style={styles.scenarioDesc}>-10% all exams</Text>
-            </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading your ATAR data...</Text>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Main ATAR Display */}
+            <View style={styles.atarCard}>
+              <ATARDisplay atar={prediction.atar} size="large" />
+              <Text style={styles.aggregateText}>
+                Aggregate: {prediction.aggregate.toFixed(1)}
+              </Text>
+            </View>
 
-        {/* Subject Scores */}
-        <Text style={styles.sectionTitle}>Subject Scores</Text>
-        <Text style={styles.sectionDesc}>
-          Enter your SAC averages and predicted exam scores
-        </Text>
-
-        {userSubjects.map(subject => {
-          const score = subjectScores.find(s => s.subjectId === subject.id);
-          const isEditing = editingSubject === subject.id;
-
-          return (
-            <View key={subject.id} style={styles.subjectContainer}>
-              {!isEditing && score ? (
-                <Pressable onPress={() => handleEditSubject(subject.id)}>
-                  <SubjectScoreCard
-                    subjectId={subject.id}
-                    subjectName={subject.name}
-                    subjectCode={subject.code}
-                    sacAverage={score.sacAverage}
-                    examPrediction={score.examPrediction}
-                    predictedStudyScore={score.predictedStudyScore}
-                  />
-                </Pressable>
-              ) : isEditing ? (
-                <View style={styles.editCard}>
-                  <View style={styles.editHeader}>
-                    <Text style={styles.editTitle}>{subject.name}</Text>
-                    <Pressable onPress={() => setEditingSubject(null)}>
-                      <MaterialIcons name="close" size={20} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                  
-                  <Input
-                    label="SAC Average (%)"
-                    value={sacInput}
-                    onChangeText={setSacInput}
-                    keyboardType="numeric"
-                    placeholder="e.g., 85"
-                  />
-                  
-                  <Input
-                    label="Predicted Exam Score (%)"
-                    value={examInput}
-                    onChangeText={setExamInput}
-                    keyboardType="numeric"
-                    placeholder="e.g., 80"
-                  />
-                  
-                  <Input
-                    label="Study Rank (percentile, 1-100)"
-                    value={rankInput}
-                    onChangeText={setRankInput}
-                    keyboardType="numeric"
-                    placeholder="e.g., 50 (average)"
-                  />
-                  
-                  <Button title="Save Score" onPress={handleSaveScore} fullWidth />
+            {/* Scenarios */}
+            <View style={styles.scenariosCard}>
+              <Text style={styles.sectionTitle}>ATAR Scenarios</Text>
+              <View style={styles.scenarioRow}>
+                <View style={styles.scenarioItem}>
+                  <Text style={[styles.scenarioValue, { color: colors.success }]}>
+                    {scenarios.bestCase.toFixed(2)}
+                  </Text>
+                  <Text style={styles.scenarioLabel}>Best Case</Text>
+                  <Text style={styles.scenarioDesc}>+10% all exams</Text>
                 </View>
-              ) : (
-                <Pressable
-                  style={styles.addScoreCard}
-                  onPress={() => handleEditSubject(subject.id)}
-                >
-                  <MaterialIcons name="add-circle-outline" size={32} color={colors.primary} />
-                  <Text style={styles.addScoreText}>{subject.name}</Text>
-                  <Text style={styles.addScoreDesc}>Tap to add scores</Text>
-                </Pressable>
-              )}
+                <View style={styles.scenarioDivider} />
+                <View style={styles.scenarioItem}>
+                  <Text style={[styles.scenarioValue, { color: colors.atarMid }]}>
+                    {scenarios.current.toFixed(2)}
+                  </Text>
+                  <Text style={styles.scenarioLabel}>Current</Text>
+                  <Text style={styles.scenarioDesc}>Based on inputs</Text>
+                </View>
+                <View style={styles.scenarioDivider} />
+                <View style={styles.scenarioItem}>
+                  <Text style={[styles.scenarioValue, { color: colors.warning }]}>
+                    {scenarios.worstCase.toFixed(2)}
+                  </Text>
+                  <Text style={styles.scenarioLabel}>Worst Case</Text>
+                  <Text style={styles.scenarioDesc}>-10% all exams</Text>
+                </View>
+              </View>
             </View>
-          );
-        })}
 
-        {userSubjects.length === 0 && (
-          <View style={styles.emptyState}>
-            <MaterialIcons name="assessment" size={64} color={colors.textTertiary} />
-            <Text style={styles.emptyText}>No subjects selected</Text>
-            <Text style={styles.emptyDesc}>
-              Add subjects in onboarding to start tracking
+            {/* Subject Scores */}
+            <Text style={styles.sectionTitle}>Subject Scores</Text>
+            <Text style={styles.sectionDesc}>
+              Enter your SAC averages and predicted exam scores
             </Text>
-          </View>
-        )}
 
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <MaterialIcons name="info-outline" size={20} color={colors.primary} />
-          <Text style={styles.infoText}>
-            This ATAR prediction uses simplified VTAC scaling formulas. 
-            Actual ATAR may vary based on cohort performance and official scaling.
-          </Text>
-        </View>
+            {userSubjects.map(subject => {
+              const score = subjectScores.find(s => s.subjectId === subject.id);
+              const isEditing = editingSubject === subject.id;
+
+              return (
+                <View key={subject.id} style={styles.subjectContainer}>
+                  {!isEditing && score ? (
+                    <Pressable onPress={() => handleEditSubject(subject.id)}>
+                      <SubjectScoreCard
+                        subjectId={subject.id}
+                        subjectName={subject.name}
+                        subjectCode={subject.code}
+                        sacAverage={score.sacAverage}
+                        examPrediction={score.examPrediction}
+                        predictedStudyScore={score.predictedStudyScore}
+                      />
+                    </Pressable>
+                  ) : isEditing ? (
+                    <View style={styles.editCard}>
+                      <View style={styles.editHeader}>
+                        <Text style={styles.editTitle}>{subject.name}</Text>
+                        <Pressable onPress={() => setEditingSubject(null)}>
+                          <MaterialIcons name="close" size={20} color={colors.textSecondary} />
+                        </Pressable>
+                      </View>
+                      
+                      <Input
+                        label="SAC Average (%)"
+                        value={sacInput}
+                        onChangeText={setSacInput}
+                        keyboardType="numeric"
+                        placeholder="e.g., 85"
+                      />
+                      
+                      <Input
+                        label="Predicted Exam Score (%)"
+                        value={examInput}
+                        onChangeText={setExamInput}
+                        keyboardType="numeric"
+                        placeholder="e.g., 80"
+                      />
+                      
+                      <Input
+                        label="Study Rank (percentile, 1-100)"
+                        value={rankInput}
+                        onChangeText={setRankInput}
+                        keyboardType="numeric"
+                        placeholder="e.g., 50 (average)"
+                      />
+                      
+                      <Button title="Save Score" onPress={handleSaveScore} fullWidth />
+                    </View>
+                  ) : (
+                    <Pressable
+                      style={styles.addScoreCard}
+                      onPress={() => handleEditSubject(subject.id)}
+                    >
+                      <MaterialIcons name="add-circle-outline" size={32} color={colors.primary} />
+                      <Text style={styles.addScoreText}>{subject.name}</Text>
+                      <Text style={styles.addScoreDesc}>Tap to add scores</Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+
+            {userSubjects.length === 0 && (
+              <View style={styles.emptyState}>
+                <MaterialIcons name="assessment" size={64} color={colors.textTertiary} />
+                <Text style={styles.emptyText}>No subjects selected</Text>
+                <Text style={styles.emptyDesc}>
+                  Add subjects in onboarding to start tracking
+                </Text>
+              </View>
+            )}
+
+            {/* Info Card */}
+            <View style={styles.infoCard}>
+              <MaterialIcons name="info-outline" size={20} color={colors.primary} />
+              <Text style={styles.infoText}>
+                This ATAR prediction uses simplified VTAC scaling formulas. 
+                Actual ATAR may vary based on cohort performance and official scaling.
+              </Text>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -363,5 +382,15 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
   },
 });
