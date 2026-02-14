@@ -18,6 +18,7 @@ export default function NotesScreen() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [noteSubject, setNoteSubject] = useState<string>('');
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
@@ -39,14 +40,18 @@ export default function NotesScreen() {
   }
 
   async function handleSaveNote() {
+    if (!noteSubject) {
+      alert('Please select a subject for this note');
+      return;
+    }
+
     const note: any = {
-      subjectId: selectedSubject === 'all' ? userSubjects[0]?.id || 'general' : selectedSubject,
+      subjectId: noteSubject,
       title: title.trim() || 'Untitled Note',
       content: content.trim(),
       tags: [],
     };
 
-    // Only include ID if editing existing note
     if (editingNote?.id) {
       note.id = editingNote.id;
       note.createdAt = editingNote.createdAt;
@@ -55,10 +60,7 @@ export default function NotesScreen() {
     note.updatedAt = new Date().toISOString();
 
     await saveNoteHook(note);
-    setIsCreating(false);
-    setEditingNote(null);
-    setTitle('');
-    setContent('');
+    closeNoteEditor();
   }
 
   async function handleDeleteNote(noteId: string) {
@@ -69,16 +71,35 @@ export default function NotesScreen() {
     setEditingNote(note);
     setTitle(note.title);
     setContent(note.content);
+    setNoteSubject(note.subjectId);
     setIsCreating(true);
+  }
+
+  function openNoteEditor() {
+    setIsCreating(true);
+    if (selectedSubject !== 'all') {
+      setNoteSubject(selectedSubject);
+    } else if (userSubjects.length > 0) {
+      setNoteSubject(userSubjects[0].id);
+    }
+  }
+
+  function closeNoteEditor() {
+    setIsCreating(false);
+    setEditingNote(null);
+    setTitle('');
+    setContent('');
+    setNoteSubject('');
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
+        <View style={styles.headerPlaceholder} />
         <Text style={styles.title}>Notes & Progress</Text>
         <Pressable
           style={styles.addButton}
-          onPress={() => setIsCreating(true)}
+          onPress={openNoteEditor}
         >
           <MaterialIcons name="add" size={24} color={colors.textPrimary} />
         </Pressable>
@@ -117,14 +138,38 @@ export default function NotesScreen() {
             <Text style={styles.editorTitle}>
               {editingNote ? 'Edit Note' : 'New Note'}
             </Text>
-            <Pressable onPress={() => {
-              setIsCreating(false);
-              setEditingNote(null);
-              setTitle('');
-              setContent('');
-            }}>
+            <Pressable onPress={closeNoteEditor}>
               <MaterialIcons name="close" size={24} color={colors.textSecondary} />
             </Pressable>
+          </View>
+
+          <View style={styles.subjectSelectorContainer}>
+            <Text style={styles.subjectLabel}>Subject</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.subjectSelector}
+            >
+              {userSubjects.map(subject => (
+                <Pressable
+                  key={subject.id}
+                  style={[
+                    styles.subjectChip,
+                    noteSubject === subject.id && styles.subjectChipActive,
+                  ]}
+                  onPress={() => setNoteSubject(subject.id)}
+                >
+                  <Text
+                    style={[
+                      styles.subjectChipText,
+                      noteSubject === subject.id && styles.subjectChipTextActive,
+                    ]}
+                  >
+                    {subject.code}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
           
           <TextInput
@@ -208,10 +253,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xs,
   },
+  headerPlaceholder: {
+    width: 40,
+  },
   title: {
     fontSize: typography.h1,
     fontWeight: typography.bold,
     color: colors.textPrimary,
+    flex: 1,
+    textAlign: 'center',
   },
   addButton: {
     width: 40,
@@ -254,7 +304,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+    paddingTop: 0,
     paddingBottom: spacing.xxl,
   },
   emptyState: {
@@ -357,5 +407,37 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
+  },
+  subjectSelectorContainer: {
+    marginBottom: spacing.md,
+  },
+  subjectLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  subjectSelector: {
+    gap: spacing.sm,
+  },
+  subjectChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  subjectChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  subjectChipText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  subjectChipTextActive: {
+    color: colors.background,
   },
 });
