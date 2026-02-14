@@ -27,7 +27,7 @@ export default function PathwayScreen() {
   const [isLoading, setIsLoading] = useState(true);
   
   const prediction = getPrediction();
-  const targetCareer = selectedCareer || user?.targetCareer || 'medicine';
+  const targetCareer = (selectedCareer || user?.targetCareer || 'medicine').toLowerCase();
   const career = careerPaths.find(c => c.id === targetCareer);
 
   // Sync selectedCareer with user's saved targetCareer when user data loads
@@ -65,7 +65,7 @@ export default function PathwayScreen() {
   async function handleSaveCareer(careerId: string) {
     if (!user) return;
     setSelectedCareer(careerId);
-    await updateProfile({ targetCareer: careerId });
+    await updateProfile({ targetCareer: careerId.toLowerCase() });
     setIsSelectingCareer(false);
   }
 
