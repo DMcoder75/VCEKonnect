@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
-import { getPathwaySuggestions, getBackupCareerSuggestions } from '@/services/pathwayService';
+import { 
+  getPathwaySuggestions, 
+  getBackupCareerSuggestions, 
+  getAllCareerPaths,
+  CareerPath 
+} from '@/services/pathwayService';
 import { PathwayCourseCard } from '@/components/feature';
-import { CAREER_PATHS } from '@/constants/vceData';
 import { updateUserProfile } from '@/services/authService';
 
 export default function PathwayScreen() {
@@ -16,13 +22,39 @@ export default function PathwayScreen() {
   const { getPrediction } = useATAR();
   const [isSelectingCareer, setIsSelectingCareer] = useState(false);
   const [selectedCareer, setSelectedCareer] = useState(user?.targetCareer || '');
+  const [careerPaths, setCareerPaths] = useState<CareerPath[]>([]);
+  const [pathway, setPathway] = useState<any>(null);
+  const [backups, setBackups] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const prediction = getPrediction();
   const targetCareer = selectedCareer || user?.targetCareer || 'medicine';
-  const pathway = getPathwaySuggestions(targetCareer, prediction.atar);
-  const backups = getBackupCareerSuggestions(prediction.atar, [targetCareer]);
+  const career = careerPaths.find(c => c.id === targetCareer);
 
-  const career = CAREER_PATHS.find(c => c.id === targetCareer);
+  // Load data from external Supabase on mount and focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadPathwayData();
+    }, [targetCareer, prediction.atar])
+  );
+
+  async function loadPathwayData() {
+    setIsLoading(true);
+    
+    // Fetch all career paths from external Supabase
+    const careers = await getAllCareerPaths();
+    setCareerPaths(careers);
+
+    // Fetch pathway suggestions from external Supabase
+    const pathwayData = await getPathwaySuggestions(targetCareer, prediction.atar);
+    setPathway(pathwayData);
+
+    // Fetch backup career suggestions from external Supabase
+    const backupData = await getBackupCareerSuggestions(prediction.atar, [targetCareer]);
+    setBackups(backupData);
+
+    setIsLoading(false);
+  }
 
   async function handleSaveCareer(careerId: string) {
     if (!user) return;
@@ -59,7 +91,10 @@ export default function PathwayScreen() {
                 <MaterialIcons name="close" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
-            {CAREER_PATHS.map(careerOption => (
+            {isLoading ? (
+              <ActivityIndicator size="large" color={colors.primary} />
+            ) : (
+              careerPaths.map(careerOption => (
               <Pressable
                 key={careerOption.id}
                 style={[
@@ -77,14 +112,15 @@ export default function PathwayScreen() {
                   </Text>
                   <Text style={styles.careerOptionDesc}>{careerOption.description}</Text>
                   <Text style={styles.careerOptionAtar}>
-                    Typical ATAR: {careerOption.typicalATAR}
+                    Typical ATAR: {careerOption.typical_atar}
                   </Text>
                 </View>
                 {selectedCareer === careerOption.id && (
                   <MaterialIcons name="check-circle" size={24} color={colors.primary} />
                 )}
               </Pressable>
-            ))}
+              ))
+            )}
           </View>
         ) : (
           <>
@@ -97,15 +133,23 @@ export default function PathwayScreen() {
                 <Text style={styles.atarLabel}>Typical ATAR Required:</Text>
                 <Text style={[
                   styles.atarValue,
-                  prediction.atar >= (career?.typicalATAR || 0) ? { color: colors.success } : { color: colors.warning }
+                  prediction.atar >= (career?.typical_atar || 0) ? { color: colors.success } : { color: colors.warning }
                 ]}>
-                  {career?.typicalATAR.toFixed(0) || '--'}
+                  {career?.typical_atar?.toFixed(0) || '--'}
                 </Text>
               </View>
             </View>
 
-        {/* Pathway Courses */}
-        {pathway && (
+        {/* Loading State */}
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading pathway data from Supabase...</Text>
+          </View>
+        ) : (
+          <>
+            {/* Pathway Courses */}
+            {pathway && (
           <>
             <Text style={styles.sectionTitle}>Available Pathways</Text>
             <Text style={styles.sectionDesc}>
@@ -126,8 +170,8 @@ export default function PathwayScreen() {
           </>
         )}
 
-        {/* Backup Careers */}
-        {backups.length > 0 && prediction.atar < (career?.typicalATAR || 0) && (
+            {/* Backup Careers */}
+            {backups.length > 0 && prediction.atar < (career?.typical_atar || 0) && (
           <>
             <Text style={styles.sectionTitle}>Alternative Careers</Text>
             <Text style={styles.sectionDesc}>
@@ -154,6 +198,8 @@ export default function PathwayScreen() {
                 Check VTAC for the latest official requirements.
               </Text>
             </View>
+          </>
+        )}
           </>
         )}
       </ScrollView>
@@ -338,5 +384,16 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  loadingText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
   },
 });
