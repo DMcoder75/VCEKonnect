@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform, View } from 'react-native';
 import { colors } from '@/constants/theme';
-import { QuickAccessDrawer } from '@/components/ui';
+import { QuickAccessDrawer, FloatingMenuButton } from '@/components/ui';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -30,7 +30,8 @@ export default function TabLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <QuickAccessDrawer isOpen={isDrawerOpen} onOpen={() => setIsDrawerOpen(true)} onClose={() => setIsDrawerOpen(false)} />
+      <FloatingMenuButton onPress={() => setIsDrawerOpen(true)} />
+      <QuickAccessDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
       <Tabs
       screenOptions={{
         headerShown: false,
