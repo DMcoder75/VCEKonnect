@@ -178,23 +178,12 @@ export async function updateUserProfile(
 
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
-      const { data, error, status, statusText } = await supabase
+      const { error } = await supabase
         .from('vk_users')
         .update(updateData)
-        .eq('id', userId)
-        .select();
+        .eq('id', userId);
 
-      if (error) {
-        return { 
-          error: `Update failed: ${error.message} (Status: ${status}, Code: ${error.code}, Details: ${error.details})` 
-        };
-      }
-
-      if (!data || data.length === 0) {
-        return { 
-          error: `Update returned no data (Status: ${status} ${statusText}). This might mean no rows matched the query or RLS blocked the update.` 
-        };
-      }
+      if (error) return { error: error.message };
     }
 
     return { error: null };
