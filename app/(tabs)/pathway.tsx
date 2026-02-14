@@ -33,7 +33,7 @@ export default function PathwayScreen() {
 
   // Sync selectedCareer with user's saved targetCareer when user data loads
   useEffect(() => {
-    if (user?.targetCareer && !selectedCareer) {
+    if (user?.targetCareer) {
       setSelectedCareer(user.targetCareer);
     }
   }, [user?.targetCareer]);
