@@ -79,6 +79,9 @@ export default function PathwayScreen() {
 
   function handleSelectCareer(careerId: string) {
     setSelectedCareer(careerId);
+    setIsSelectingCareer(false); // Close modal after selection
+    // Reload pathway data for the newly selected career
+    loadPathwayData();
   }
 
   async function handleSaveCareer() {
@@ -188,22 +191,9 @@ export default function PathwayScreen() {
                 <View style={styles.infoCard}>
                   <MaterialIcons name="info-outline" size={20} color={colors.primary} />
                   <Text style={styles.infoText}>
-                    ATAR cutoffs change yearly based on demand. 
-                    Check VTAC for the latest official requirements.
+                    Select a career to preview available pathways. Click Save on the main page to confirm your choice.
                   </Text>
                 </View>
-
-                {/* Save Button */}
-                <Pressable
-                  style={[
-                    styles.saveButton,
-                    !selectedCareer && styles.saveButtonDisabled,
-                  ]}
-                  onPress={handleSaveCareer}
-                  disabled={!selectedCareer}
-                >
-                  <Text style={styles.saveButtonText}>Save Dream Career</Text>
-                </Pressable>
               </>
             )}
           </View>
@@ -282,6 +272,17 @@ export default function PathwayScreen() {
                 Check VTAC for the latest official requirements.
               </Text>
             </View>
+
+            {/* Save Button - Show when career has changed */}
+            {selectedCareer && selectedCareer !== user?.targetCareer && (
+              <Pressable
+                style={styles.mainSaveButton}
+                onPress={handleSaveCareer}
+              >
+                <MaterialIcons name="save" size={20} color={colors.textPrimary} />
+                <Text style={styles.mainSaveButtonText}>Save Career & Pathways</Text>
+              </Pressable>
+            )}
 
             {/* Debug Logs */}
             <View style={styles.debugSection}>
@@ -589,20 +590,21 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontStyle: 'italic',
   },
-  saveButton: {
+  mainSaveButton: {
+    flexDirection: 'row',
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
     alignItems: 'center',
-    marginTop: spacing.md,
+    justifyContent: 'center',
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.success,
   },
-  saveButtonDisabled: {
-    backgroundColor: colors.border,
-    opacity: 0.5,
-  },
-  saveButtonText: {
+  mainSaveButtonText: {
     fontSize: typography.body,
-    fontWeight: typography.semibold,
+    fontWeight: typography.bold,
     color: colors.textPrimary,
   },
 });
