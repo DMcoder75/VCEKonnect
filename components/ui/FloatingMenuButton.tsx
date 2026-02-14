@@ -18,15 +18,15 @@ export default function FloatingMenuButton({ onPress }: FloatingMenuButtonProps)
       onPress={onPress}
     >
       <LinearGradient
-        colors={['#9b6fff', '#7b4fff', '#6b3fff']}
+        colors={['rgba(155, 111, 255, 0.5)', 'rgba(123, 79, 255, 0.5)', 'rgba(107, 63, 255, 0.5)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.iconContainer}>
-          <View style={styles.line} />
-          <View style={styles.line} />
-          <View style={styles.line} />
+          <View style={styles.lineTop} />
+          <View style={styles.lineMiddle} />
+          <View style={styles.lineBottom} />
         </View>
       </LinearGradient>
     </Pressable>
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   button: {
     position: 'absolute',
     left: spacing.md,
-    zIndex: 998,
+    zIndex: 10,
     width: 56,
     height: 56,
     borderRadius: borderRadius.lg,
@@ -56,8 +56,21 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     gap: 5,
+    alignItems: 'flex-start',
   },
-  line: {
+  lineTop: {
+    width: 16,
+    height: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 2,
+  },
+  lineMiddle: {
+    width: 20,
+    height: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 2,
+  },
+  lineBottom: {
     width: 24,
     height: 3,
     backgroundColor: '#ffffff',
