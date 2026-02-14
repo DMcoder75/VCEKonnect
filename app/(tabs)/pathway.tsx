@@ -26,7 +26,6 @@ export default function PathwayScreen() {
   const [pathway, setPathway] = useState<any>(null);
   const [backups, setBackups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
   const prediction = getPrediction();
   const targetCareer = selectedCareer || user?.targetCareer || 'medicine';
@@ -40,33 +39,21 @@ export default function PathwayScreen() {
   );
 
   async function loadPathwayData() {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('[Pathway] Loading data from external Supabase...');
-      
-      // Fetch all career paths from external Supabase
-      const careers = await getAllCareerPaths();
-      console.log('[Pathway] Loaded careers:', careers.length);
-      setCareerPaths(careers);
+    setIsLoading(true);
+    
+    // Fetch all career paths from external Supabase
+    const careers = await getAllCareerPaths();
+    setCareerPaths(careers);
 
-      // Fetch pathway suggestions from external Supabase
-      const pathwayData = await getPathwaySuggestions(targetCareer, prediction.atar);
-      console.log('[Pathway] Loaded pathway data:', pathwayData);
-      setPathway(pathwayData);
+    // Fetch pathway suggestions from external Supabase
+    const pathwayData = await getPathwaySuggestions(targetCareer, prediction.atar);
+    setPathway(pathwayData);
 
-      // Fetch backup career suggestions from external Supabase
-      const backupData = await getBackupCareerSuggestions(prediction.atar, [targetCareer]);
-      console.log('[Pathway] Loaded backups:', backupData.length);
-      setBackups(backupData);
+    // Fetch backup career suggestions from external Supabase
+    const backupData = await getBackupCareerSuggestions(prediction.atar, [targetCareer]);
+    setBackups(backupData);
 
-      setIsLoading(false);
-    } catch (err) {
-      console.error('[Pathway] Error loading data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load pathway data');
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }
 
   async function handleSaveCareer(careerId: string) {
@@ -153,17 +140,8 @@ export default function PathwayScreen() {
               </View>
             </View>
 
-        {/* Error State */}
-        {error ? (
-          <View style={styles.errorContainer}>
-            <MaterialIcons name="error-outline" size={64} color={colors.error} />
-            <Text style={styles.errorTitle}>Failed to Load Data</Text>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={loadPathwayData}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : isLoading ? (
+        {/* Loading State */}
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Loading pathway data from Supabase...</Text>
@@ -417,36 +395,5 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     marginTop: spacing.md,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.lg,
-  },
-  errorTitle: {
-    fontSize: typography.h3,
-    fontWeight: typography.bold,
-    color: colors.error,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  errorText: {
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  retryButtonText: {
-    fontSize: typography.body,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
   },
 });
