@@ -29,7 +29,6 @@ export default function DashboardScreen() {
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
-  const [showDebug, setShowDebug] = useState(true);
 
   const prediction = getPrediction();
 
@@ -130,40 +129,13 @@ export default function DashboardScreen() {
             <Text style={styles.greeting}>G'day, {user.name}!</Text>
             <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
           </View>
-          <View style={styles.headerButtons}>
-            <Pressable
-              onPress={() => setShowDebug(!showDebug)}
-              style={styles.debugToggle}
-            >
-              <MaterialIcons name="bug-report" size={20} color={showDebug ? colors.warning : colors.textTertiary} />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push('/settings')}
-              style={styles.settingsButton}
-            >
-              <MaterialIcons name="settings" size={24} color={colors.textSecondary} />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            style={styles.settingsButton}
+          >
+            <MaterialIcons name="settings" size={24} color={colors.textSecondary} />
+          </Pressable>
         </View>
-
-        {/* Debug Panel */}
-        {showDebug && (
-          <View style={styles.debugCard}>
-            <View style={styles.debugHeader}>
-              <MaterialIcons name="bug-report" size={18} color={colors.warning} />
-              <Text style={styles.debugTitle}>Study Goals Debug</Text>
-            </View>
-            <View style={styles.debugContent}>
-              <Text style={styles.debugText}>🔍 User ID: {user?.id || 'null'}</Text>
-              <Text style={styles.debugText}>📊 ActiveGoals exists: {activeGoals ? 'YES' : 'NO'}</Text>
-              <Text style={styles.debugText}>📅 Weekly: {activeGoals?.weekly ? `${activeGoals.weekly.achievedHours}/${activeGoals.weekly.targetHours}h` : 'null'}</Text>
-              <Text style={styles.debugText}>📅 Monthly: {activeGoals?.monthly ? `${activeGoals.monthly.achievedHours}/${activeGoals.monthly.targetHours}h` : 'null'}</Text>
-              <Text style={styles.debugText}>📅 Term: {activeGoals?.term ? `${activeGoals.term.achievedHours}/${activeGoals.term.targetHours}h` : 'null'}</Text>
-              <Text style={styles.debugText}>🎯 Condition check: {(activeGoals && (activeGoals.weekly || activeGoals.monthly || activeGoals.term)) ? 'SHOW GOALS' : 'HIDE GOALS'}</Text>
-              <Text style={styles.debugText}>📝 Raw data: {JSON.stringify(activeGoals, null, 2).substring(0, 200)}...</Text>
-            </View>
-          </View>
-        )}
 
         {/* 1. Total Study Time */}
         <View style={styles.todayCard}>
@@ -400,14 +372,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: spacing.lg,
   },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  debugToggle: {
-    padding: spacing.sm,
-  },
+
   greeting: {
     fontSize: typography.h1,
     fontWeight: typography.bold,
@@ -688,33 +653,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'center',
   },
-  debugCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.warning,
-  },
-  debugHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  debugTitle: {
-    flex: 1,
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: colors.warning,
-  },
-  debugContent: {
-    gap: 4,
-  },
-  debugText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontFamily: 'monospace',
-  },
-
 });
