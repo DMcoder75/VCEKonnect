@@ -125,7 +125,7 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerContent}>
             <Text style={styles.greeting}>G'day, {user.name}!</Text>
             <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
           </View>
@@ -367,24 +367,32 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    position: 'relative',
     marginBottom: spacing.lg,
+    paddingTop: spacing.sm,
   },
-
+  headerContent: {
+    alignItems: 'center',
+    paddingHorizontal: 60,
+  },
   greeting: {
     fontSize: typography.h1,
     fontWeight: typography.bold,
     color: colors.textPrimary,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+    textAlign: 'center',
   },
   settingsButton: {
+    position: 'absolute',
+    right: 0,
+    top: spacing.sm,
     padding: spacing.sm,
+    zIndex: 5,
   },
   atarCard: {
     backgroundColor: colors.surfaceElevated,
