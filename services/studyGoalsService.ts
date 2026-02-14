@@ -58,16 +58,22 @@ export interface SaveGoalsPayload {
  */
 export async function getActiveGoals(userId: string): Promise<ActiveGoalsResponse | null> {
   try {
+    console.log('🔍 Fetching active goals for user:', userId);
     const { data, error } = await supabase.rpc('get_active_goals', {
       p_user_id: userId,
     });
 
     if (error) {
-      console.error('Failed to fetch active goals:', error);
+      console.error('❌ Failed to fetch active goals:', error);
       return null;
     }
 
-    if (!data) return null;
+    console.log('📦 Raw data from database:', JSON.stringify(data, null, 2));
+
+    if (!data) {
+      console.log('⚠️ No data returned from database');
+      return null;
+    }
 
     // Map database snake_case to TypeScript camelCase
     const mapPeriod = (period: any): GoalPeriod | null => {
@@ -92,11 +98,15 @@ export async function getActiveGoals(userId: string): Promise<ActiveGoalsRespons
       };
     };
 
-    return {
+    const result = {
       weekly: mapPeriod(data.weekly),
       monthly: mapPeriod(data.monthly),
       term: mapPeriod(data.term),
     };
+
+    console.log('✅ Mapped result:', JSON.stringify(result, null, 2));
+
+    return result;
   } catch (err) {
     console.error('Error fetching active goals:', err);
     return null;
