@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
-import { ATARDisplay } from '@/components/ui';
+import { ATARDisplay, LoadingSpinner } from '@/components/ui';
 import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing } from '@/components/feature';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
@@ -260,10 +260,7 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
           {isLoadingSubjects ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.loadingText}>Loading subjects...</Text>
-            </View>
+            <LoadingSpinner message="Loading subjects..." size="small" />
           ) : userSubjects.length === 0 ? (
             <View style={styles.emptyState}>
               <MaterialIcons name="subject" size={48} color={colors.textTertiary} />

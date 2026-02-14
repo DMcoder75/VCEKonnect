@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
-import { ATARDisplay, Input, Button } from '@/components';
+import { ATARDisplay, Input, Button, LoadingSpinner } from '@/components';
 import { SubjectScoreCard } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -93,10 +93,7 @@ export default function ATARScreen() {
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading your ATAR data...</Text>
-          </View>
+          <LoadingSpinner message="Loading your ATAR data..." />
         ) : (
           <>
             {/* Main ATAR Display */}

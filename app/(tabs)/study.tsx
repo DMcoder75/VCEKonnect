@@ -6,6 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
+import { LoadingSpinner } from '@/components/ui';
 import { StudyTimerCard } from '@/components/feature';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -72,10 +73,7 @@ export default function StudyScreen() {
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading study tracker...</Text>
-          </View>
+          <LoadingSpinner message="Loading study tracker..." />
         ) : (
           <> {/* Added a Fragment here to wrap the conditional content */}
             {/* All Time Summary */}

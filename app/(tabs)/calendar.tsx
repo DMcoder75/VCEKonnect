@@ -7,6 +7,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
 import { UpcomingAssessmentCard } from '@/components/feature';
+import { LoadingSpinner } from '@/components/ui';
 import { CalendarEvent } from '@/services/calendarService';
 
 export default function CalendarScreen() {
@@ -347,10 +348,7 @@ export default function CalendarScreen() {
         showsVerticalScrollIndicator={false}
       >
         {(initialLoading && view === 'list') ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading calendar...</Text>
-          </View>
+          <LoadingSpinner message="Loading calendar..." />
         ) : view === 'list' && (
           <>
             {/* Pending Events */}
@@ -429,10 +427,7 @@ export default function CalendarScreen() {
             </View>
 
             {loadingWeek ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Loading week...</Text>
-              </View>
+              <LoadingSpinner message="Loading week..." />
             ) : (
               <View style={styles.weekGrid}>
                 {getWeekDays().map((day) => {
@@ -566,10 +561,7 @@ export default function CalendarScreen() {
             </View>
 
             {loadingMonth ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Loading month...</Text>
-              </View>
+              <LoadingSpinner message="Loading month..." />
             ) : (
               <>
                 {/* Weekday Headers */}

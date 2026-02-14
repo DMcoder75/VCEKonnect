@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotes } from '@/hooks/useNotes';
+import { LoadingSpinner } from '@/components/ui';
 import { Note } from '@/types';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -142,10 +143,7 @@ export default function NotesScreen() {
       </View>
 
       {(isLoadingSubjects || isLoadingNotes) && !isCreating ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading notes...</Text>
-        </View>
+        <LoadingSpinner message="Loading notes..." />
       ) : isCreating ? (
         <View style={styles.editorContainer}>
           <View style={styles.editorHeader}>
