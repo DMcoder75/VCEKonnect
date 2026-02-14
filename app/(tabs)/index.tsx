@@ -152,14 +152,24 @@ export default function DashboardScreen() {
         {activeGoals && (activeGoals.weekly || activeGoals.monthly || activeGoals.term) && (
           <View style={styles.goalsCard}>
             <View style={styles.goalsHeader}>
-              <MaterialIcons name="flag" size={20} color={colors.primary} />
-              <Text style={styles.goalsTitle}>Study Goals Progress</Text>
-              <Pressable
-                style={styles.editGoalsButton}
-                onPress={() => router.push('/goals')}
-              >
-                <MaterialIcons name="edit" size={16} color={colors.primary} />
-              </Pressable>
+              <View style={styles.goalsHeaderLeft}>
+                <MaterialIcons name="flag" size={20} color={colors.primary} />
+                <Text style={styles.goalsTitle}>Goal Progress Summary</Text>
+              </View>
+              <View style={styles.goalsHeaderButtons}>
+                <Pressable
+                  style={styles.smallButton}
+                  onPress={() => router.push('/goals')}
+                >
+                  <MaterialIcons name="edit" size={16} color={colors.primary} />
+                </Pressable>
+                <Pressable
+                  style={styles.smallButton}
+                  onPress={() => router.push('/goals-progress')}
+                >
+                  <MaterialIcons name="visibility" size={16} color={colors.primary} />
+                </Pressable>
+              </View>
             </View>
             <View style={styles.goalsRings}>
               {activeGoals.weekly && (
@@ -193,16 +203,6 @@ export default function DashboardScreen() {
                 />
               )}
             </View>
-            
-            {/* View Details Button */}
-            <Pressable
-              style={styles.viewDetailsButton}
-              onPress={() => router.push('/goals-progress')}
-            >
-              <MaterialIcons name="visibility" size={18} color={colors.primary} />
-              <Text style={styles.viewDetailsText}>View Details</Text>
-              <MaterialIcons name="arrow-forward" size={16} color={colors.primary} />
-            </Pressable>
           </View>
         )}
 
@@ -595,12 +595,29 @@ const styles = StyleSheet.create({
   goalsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  editGoalsButton: {
-    marginLeft: 'auto',
-    padding: spacing.xs,
+  goalsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  goalsHeaderButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  smallButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   goalsTitle: {
     fontSize: typography.body,
@@ -635,22 +652,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'center',
   },
-  viewDetailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  viewDetailsText: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: colors.primary,
-  },
+
 });
