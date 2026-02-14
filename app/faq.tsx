@@ -15,8 +15,8 @@ const FAQ_DATA: FAQItem[] = [
   // General
   {
     category: 'General',
-    question: 'What is VCE Konnect?',
-    answer: 'VCE Konnect is a comprehensive study companion app designed specifically for Victorian Certificate of Education (VCE) students in Years 11-12. It helps you track academic progress, predict ATAR scores, manage study time, take notes, and plan your university pathway—all in one place.',
+    question: 'What is FairPrep?',
+    answer: 'FairPrep is a comprehensive study companion app designed specifically for Victorian Certificate of Education (VCE) students in Years 11-12. It helps you track academic progress, predict ATAR scores, manage study time, take notes, and plan your university pathway—all in one place.',
   },
   {
     category: 'General',
@@ -204,7 +204,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Troubleshooting',
     question: 'The app is slow or freezing. Help!',
-    answer: 'Try closing and reopening the app. Clear any running timers that aren\'t needed. If problems continue, check for app updates in your app store. Contact support at contact@vcekonnect.com.au if issues persist.',
+    answer: 'Try closing and reopening the app. Clear any running timers that aren\'t needed. If problems continue, check for app updates in your app store. Contact support at support@fairprep.com.au if issues persist.',
   },
 ];
 
@@ -347,7 +347,7 @@ export default function FAQScreen() {
           <Text style={styles.supportTitle}>Still need help?</Text>
           <Text style={styles.supportText}>
             Contact our support team at{' '}
-            <Text style={styles.supportEmail}>support@vcekonnect.com.au</Text>
+            <Text style={styles.supportEmail}>support@fairprep.com.au</Text>
           </Text>
         </View>
       </ScrollView>

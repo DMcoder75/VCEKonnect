@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "onspace-app",
-    "slug": "onspace-app",
+    "name": "FairPrep",
+    "slug": "fairprep",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",

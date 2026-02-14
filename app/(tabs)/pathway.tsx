@@ -95,7 +95,6 @@ export default function PathwayScreen() {
       // Manually reload pathway data with new career
       await loadPathwayData();
       
-      showAlert('Success', 'Dream career and universities saved!');
       setIsSelectingCareer(false);
     } catch (error: any) {
       showAlert('Error', error.message || 'Failed to save career. Please try again.');

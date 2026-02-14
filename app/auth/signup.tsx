@@ -51,7 +51,8 @@ export default function SignupScreen() {
           <View style={styles.logoCircle}>
             <MaterialIcons name="school" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.appName}>VCE Konnect</Text>
+          <Text style={styles.appName}>FairPrep</Text>
+          <Text style={styles.byline}>Dalsi Academy</Text>
           <Text style={styles.tagline}>Create Your Account</Text>
         </View>
 
@@ -140,6 +141,11 @@ const styles = StyleSheet.create({
     fontSize: typography.h1,
     fontWeight: typography.bold,
     color: colors.textPrimary,
+  },
+  byline: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
   tagline: {
     fontSize: typography.bodySmall,
