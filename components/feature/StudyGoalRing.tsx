@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { colors, spacing, typography } from '@/constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 
 interface StudyGoalRingProps {
   label: string;
@@ -94,8 +95,8 @@ export function StudyGoalRing({
       {/* Progress Ring */}
       <View style={[styles.ringContainer, { width: config.ring, height: config.ring }]}>
         {/* Background circle */}
-        <svg width={config.ring} height={config.ring} style={styles.svg}>
-          <circle
+        <Svg width={config.ring} height={config.ring} style={styles.svg}>
+          <Circle
             cx={config.ring / 2}
             cy={config.ring / 2}
             r={radius}
@@ -103,7 +104,7 @@ export function StudyGoalRing({
             strokeWidth={config.stroke}
             fill="none"
           />
-          {/* Progress circle - will be replaced with Animated version in React Native Web */}
+          {/* Progress circle */}
           <AnimatedCircle
             cx={config.ring / 2}
             cy={config.ring / 2}
@@ -114,9 +115,10 @@ export function StudyGoalRing({
             strokeDasharray={circumference}
             strokeDashoffset={animatedStrokeDashoffset}
             strokeLinecap="round"
-            transform={`rotate(-90 ${config.ring / 2} ${config.ring / 2})`}
+            rotation="-90"
+            origin={`${config.ring / 2}, ${config.ring / 2}`}
           />
-        </svg>
+        </Svg>
         
         {/* Center content */}
         <View style={styles.centerContent}>
@@ -141,9 +143,7 @@ export function StudyGoalRing({
 }
 
 // Animated SVG Circle component
-const AnimatedCircle = Animated.createAnimatedComponent(
-  (props: any) => <circle {...props} />
-);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const styles = StyleSheet.create({
   container: {

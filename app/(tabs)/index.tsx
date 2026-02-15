@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
+import { ActiveGoalsResponse } from '@/services/studyGoalsService';
 import { ATARDisplay, LoadingSpinner } from '@/components/ui';
 import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay } from '@/components/feature';
 import { useCalendar } from '@/hooks/useCalendar';
@@ -31,7 +32,7 @@ export default function DashboardScreen() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
   
-  const previousGoalsRef = React.useRef<any>(null);
+  const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
   const prediction = getPrediction();
 
