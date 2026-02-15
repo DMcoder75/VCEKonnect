@@ -77,9 +77,14 @@ export default function GoalsProgressScreen() {
           <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Goals Progress</Text>
-        <Pressable onPress={() => router.push('/goals')} style={styles.editButton}>
-          <MaterialIcons name="edit" size={20} color={colors.primary} />
-        </Pressable>
+        <View style={styles.headerButtons}>
+          <Pressable onPress={() => router.push('/goals-history')} style={styles.iconButton}>
+            <MaterialIcons name="history" size={20} color={colors.primary} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/goals')} style={styles.iconButton}>
+            <MaterialIcons name="edit" size={20} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
 
       {isLoading ? (
@@ -352,6 +357,13 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   editButton: {
+    padding: spacing.xs,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  iconButton: {
     padding: spacing.xs,
   },
   scrollView: {
