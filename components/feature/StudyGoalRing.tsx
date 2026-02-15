@@ -22,7 +22,6 @@ export function StudyGoalRing({
 }: StudyGoalRingProps) {
   const progress = Math.min(100, Math.max(0, progressPercent));
   
-  // Color based on progress
   const getColor = () => {
     if (progress >= 100) return colors.success;
     if (progress >= 75) return colors.primary;
@@ -31,33 +30,17 @@ export function StudyGoalRing({
   };
   
   const ringColor = getColor();
-  const ringSize = size === 'large' ? 100 : size === 'medium' ? 80 : 60;
 
   return (
     <View style={styles.container}>
-      {/* Simple circular progress indicator */}
-      <View style={[styles.ringContainer, { width: ringSize, height: ringSize }]}>
-        <View
-          style={[
-            styles.ring,
-            {
-              width: ringSize,
-              height: ringSize,
-              borderRadius: ringSize / 2,
-              borderWidth: 8,
-              borderColor: colors.border,
-            },
-          ]}
-        />
-        <View style={styles.centerContent}>
-          {icon && <MaterialIcons name={icon} size={20} color={ringColor} />}
+      <View style={styles.ringWrapper}>
+        <View style={[styles.progressCircle, { borderColor: ringColor }]}>
           <Text style={[styles.percentage, { color: ringColor }]}>
             {Math.round(progress)}%
           </Text>
         </View>
       </View>
       
-      {/* Label and stats */}
       <View style={styles.stats}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.hours}>
@@ -72,23 +55,23 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
   },
-  ringContainer: {
+  ringWrapper: {
+    marginBottom: spacing.sm,
+  },
+  progressCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 6,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  ring: {
-    position: 'absolute',
-  },
-  centerContent: {
-    alignItems: 'center',
-    gap: 4,
+    backgroundColor: colors.surface,
   },
   percentage: {
-    fontSize: typography.body,
+    fontSize: typography.h3,
     fontWeight: typography.bold,
   },
   stats: {
-    marginTop: spacing.sm,
     alignItems: 'center',
   },
   label: {
