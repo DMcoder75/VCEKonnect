@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { LoadingSpinner } from '@/components/ui';
-import { GoalPeriod } from '@/services/studyGoalsService';
+import { GoalPeriod, GoalSubject } from '@/services/studyGoalsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 
@@ -17,7 +17,7 @@ export default function AchievementsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { achievements, streaks, isLoading: achievementsLoading } = useAchievements();
-  const { loadHistory } = useStudyGoals();
+  const { activeGoals, loadHistory, isLoading: goalsLoading } = useStudyGoals();
   
   const [weeklyHistory, setWeeklyHistory] = useState<GoalPeriod[]>([]);
   const [monthlyHistory, setMonthlyHistory] = useState<GoalPeriod[]>([]);
@@ -96,10 +96,69 @@ export default function AchievementsScreen() {
     return colors.primary;
   }
 
+  // Helper to render subject breakdown
+  function renderSubjectBreakdown(subjects: GoalSubject[] | undefined, showEmptyState = false) {
+    if (!subjects || subjects.length === 0) {
+      if (showEmptyState) {
+        return (
+          <Text style={styles.noSubjectsText}>No subjects set for this goal</Text>
+        );
+      }
+      return null;
+    }
+
+    return (
+      <View style={styles.subjectBreakdown}>
+        {subjects.map(subject => {
+          const subjectProgress = subject.hoursTarget > 0
+            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
+            : 0;
+          const isCompleted = subjectProgress >= 100;
+          
+          return (
+            <View key={subject.subjectId} style={styles.subjectRow}>
+              <View style={styles.subjectInfo}>
+                <View style={styles.subjectNameRow}>
+                  <Text style={styles.subjectName}>
+                    {getSubjectName(subject.subjectId)}
+                  </Text>
+                  {isCompleted && (
+                    <MaterialIcons 
+                      name="verified" 
+                      size={16} 
+                      color={colors.success} 
+                    />
+                  )}
+                </View>
+                <View style={styles.subjectProgressBar}>
+                  <View 
+                    style={[
+                      styles.subjectProgressFill,
+                      { 
+                        width: `${Math.min(subjectProgress, 100)}%`,
+                        backgroundColor: isCompleted ? colors.success : colors.primary,
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+              <Text style={[
+                styles.subjectProgressText,
+                isCompleted && { color: colors.success, fontWeight: '700' }
+              ]}>
+                {Math.round(subjectProgress)}%
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
+
   const weeklyStreak = streaks.find(s => s.streakType === 'weekly');
   const monthlyStreak = streaks.find(s => s.streakType === 'monthly');
 
-  const isLoading = achievementsLoading || isLoadingHistory;
+  const isLoading = achievementsLoading || isLoadingHistory || goalsLoading;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -120,6 +179,79 @@ export default function AchievementsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Current Active Goals */}
+          {activeGoals?.weekly && (
+            <View style={styles.activeGoalsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="trending-up" size={24} color={colors.primary} />
+                <Text style={styles.sectionTitle}>Current Week Progress</Text>
+              </View>
+              
+              <View style={styles.activeGoalCard}>
+                <View style={styles.activeGoalHeader}>
+                  <Text style={styles.activeGoalName}>{activeGoals.weekly.periodName}</Text>
+                  <View style={styles.activeGoalProgress}>
+                    <Text style={styles.activeGoalPercent}>
+                      {Math.round(activeGoals.weekly.progressPercent)}%
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.activeGoalStats}>
+                  {activeGoals.weekly.achievedHours.toFixed(1)}/{activeGoals.weekly.targetHours}h completed
+                </Text>
+                {renderSubjectBreakdown(activeGoals.weekly.subjects, true)}
+              </View>
+            </View>
+          )}
+
+          {activeGoals?.monthly && (
+            <View style={styles.activeGoalsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="calendar-month" size={24} color={colors.success} />
+                <Text style={styles.sectionTitle}>Current Month Progress</Text>
+              </View>
+              
+              <View style={styles.activeGoalCard}>
+                <View style={styles.activeGoalHeader}>
+                  <Text style={styles.activeGoalName}>{activeGoals.monthly.periodName}</Text>
+                  <View style={styles.activeGoalProgress}>
+                    <Text style={styles.activeGoalPercent}>
+                      {Math.round(activeGoals.monthly.progressPercent)}%
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.activeGoalStats}>
+                  {activeGoals.monthly.achievedHours.toFixed(1)}/{activeGoals.monthly.targetHours}h completed
+                </Text>
+                {renderSubjectBreakdown(activeGoals.monthly.subjects, true)}
+              </View>
+            </View>
+          )}
+
+          {activeGoals?.term && (
+            <View style={styles.activeGoalsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="school" size={24} color={colors.warning} />
+                <Text style={styles.sectionTitle}>Current Term Progress</Text>
+              </View>
+              
+              <View style={styles.activeGoalCard}>
+                <View style={styles.activeGoalHeader}>
+                  <Text style={styles.activeGoalName}>{activeGoals.term.periodName}</Text>
+                  <View style={styles.activeGoalProgress}>
+                    <Text style={styles.activeGoalPercent}>
+                      {Math.round(activeGoals.term.progressPercent)}%
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.activeGoalStats}>
+                  {activeGoals.term.achievedHours.toFixed(1)}/{activeGoals.term.targetHours}h completed
+                </Text>
+                {renderSubjectBreakdown(activeGoals.term.subjects, true)}
+              </View>
+            </View>
+          )}
+
           {/* Streaks Card */}
           <View style={styles.streaksCard}>
             <View style={styles.sectionHeader}>
@@ -213,52 +345,7 @@ export default function AchievementsScreen() {
                     </View>
                     
                     {/* Per-Subject Breakdown */}
-                    {period.subjects && period.subjects.length > 0 && (
-                      <View style={styles.subjectBreakdown}>
-                        {period.subjects.map(subject => {
-                          const subjectProgress = subject.hoursTarget > 0
-                            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
-                            : 0;
-                          const isCompleted = subjectProgress >= 100;
-                          
-                          return (
-                            <View key={subject.subjectId} style={styles.subjectRow}>
-                              <View style={styles.subjectInfo}>
-                                <View style={styles.subjectNameRow}>
-                                  <Text style={styles.subjectName}>
-                                    {getSubjectName(subject.subjectId)}
-                                  </Text>
-                                  {isCompleted && (
-                                    <MaterialIcons 
-                                      name="verified" 
-                                      size={16} 
-                                      color={colors.success} 
-                                    />
-                                  )}
-                                </View>
-                                <View style={styles.subjectProgressBar}>
-                                  <View 
-                                    style={[
-                                      styles.subjectProgressFill,
-                                      { 
-                                        width: `${Math.min(subjectProgress, 100)}%`,
-                                        backgroundColor: isCompleted ? colors.success : colors.primary,
-                                      }
-                                    ]} 
-                                  />
-                                </View>
-                              </View>
-                              <Text style={[
-                                styles.subjectProgressText,
-                                isCompleted && { color: colors.success, fontWeight: '700' }
-                              ]}>
-                                {Math.round(subjectProgress)}%
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
+                    {renderSubjectBreakdown(period.subjects)}
                   </View>
                 );
               })}
@@ -297,52 +384,7 @@ export default function AchievementsScreen() {
                     </View>
                     
                     {/* Per-Subject Breakdown */}
-                    {period.subjects && period.subjects.length > 0 && (
-                      <View style={styles.subjectBreakdown}>
-                        {period.subjects.map(subject => {
-                          const subjectProgress = subject.hoursTarget > 0
-                            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
-                            : 0;
-                          const isCompleted = subjectProgress >= 100;
-                          
-                          return (
-                            <View key={subject.subjectId} style={styles.subjectRow}>
-                              <View style={styles.subjectInfo}>
-                                <View style={styles.subjectNameRow}>
-                                  <Text style={styles.subjectName}>
-                                    {getSubjectName(subject.subjectId)}
-                                  </Text>
-                                  {isCompleted && (
-                                    <MaterialIcons 
-                                      name="verified" 
-                                      size={16} 
-                                      color={colors.success} 
-                                    />
-                                  )}
-                                </View>
-                                <View style={styles.subjectProgressBar}>
-                                  <View 
-                                    style={[
-                                      styles.subjectProgressFill,
-                                      { 
-                                        width: `${Math.min(subjectProgress, 100)}%`,
-                                        backgroundColor: isCompleted ? colors.success : colors.primary,
-                                      }
-                                    ]} 
-                                  />
-                                </View>
-                              </View>
-                              <Text style={[
-                                styles.subjectProgressText,
-                                isCompleted && { color: colors.success, fontWeight: '700' }
-                              ]}>
-                                {Math.round(subjectProgress)}%
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
+                    {renderSubjectBreakdown(period.subjects)}
                   </View>
                 );
               })}
@@ -381,52 +423,7 @@ export default function AchievementsScreen() {
                     </View>
                     
                     {/* Per-Subject Breakdown */}
-                    {period.subjects && period.subjects.length > 0 && (
-                      <View style={styles.subjectBreakdown}>
-                        {period.subjects.map(subject => {
-                          const subjectProgress = subject.hoursTarget > 0
-                            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
-                            : 0;
-                          const isCompleted = subjectProgress >= 100;
-                          
-                          return (
-                            <View key={subject.subjectId} style={styles.subjectRow}>
-                              <View style={styles.subjectInfo}>
-                                <View style={styles.subjectNameRow}>
-                                  <Text style={styles.subjectName}>
-                                    {getSubjectName(subject.subjectId)}
-                                  </Text>
-                                  {isCompleted && (
-                                    <MaterialIcons 
-                                      name="verified" 
-                                      size={16} 
-                                      color={colors.success} 
-                                    />
-                                  )}
-                                </View>
-                                <View style={styles.subjectProgressBar}>
-                                  <View 
-                                    style={[
-                                      styles.subjectProgressFill,
-                                      { 
-                                        width: `${Math.min(subjectProgress, 100)}%`,
-                                        backgroundColor: isCompleted ? colors.success : colors.primary,
-                                      }
-                                    ]} 
-                                  />
-                                </View>
-                              </View>
-                              <Text style={[
-                                styles.subjectProgressText,
-                                isCompleted && { color: colors.success, fontWeight: '700' }
-                              ]}>
-                                {Math.round(subjectProgress)}%
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
+                    {renderSubjectBreakdown(period.subjects)}
                   </View>
                 );
               })}
@@ -434,11 +431,12 @@ export default function AchievementsScreen() {
           )}
 
           {/* Empty State */}
-          {weeklyHistory.length === 0 && monthlyHistory.length === 0 && termHistory.length === 0 && (
+          {!activeGoals?.weekly && !activeGoals?.monthly && !activeGoals?.term && 
+           weeklyHistory.length === 0 && monthlyHistory.length === 0 && termHistory.length === 0 && (
             <View style={styles.emptyState}>
               <MaterialIcons name="history" size={64} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>No goal history yet</Text>
-              <Text style={styles.emptyDesc}>Complete your first goal to see it here!</Text>
+              <Text style={styles.emptyText}>No goals yet</Text>
+              <Text style={styles.emptyDesc}>Create your first goal to start tracking!</Text>
             </View>
           )}
         </ScrollView>
@@ -475,6 +473,51 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
     paddingBottom: spacing.xxl,
+  },
+  activeGoalsSection: {
+    marginBottom: spacing.md,
+  },
+  activeGoalCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  activeGoalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  activeGoalName: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  activeGoalProgress: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  activeGoalPercent: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  activeGoalStats: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  noSubjectsText: {
+    fontSize: typography.bodySmall,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
   streaksCard: {
     backgroundColor: colors.surfaceElevated,
