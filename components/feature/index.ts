@@ -6,3 +6,6 @@ export { StudyGoalRing } from './StudyGoalRing';
 export { CelebrationOverlay } from './CelebrationOverlay';
 export { GoalAlertBanner } from './GoalAlertBanner';
 export { SubjectAchievementCard } from './SubjectAchievementCard';
+export { LatestAchievementBanner } from './LatestAchievementBanner';
+export { AchievementLaunchToast } from './AchievementLaunchToast';
+export { AchievementLaunchManager } from './AchievementLaunchManager';

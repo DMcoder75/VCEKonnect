@@ -14,7 +14,7 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { checkNeedsWeeklyReset, copyPreviousWeekGoals } from '@/services/achievementsService';
 import { ActiveGoalsResponse } from '@/services/studyGoalsService';
 import { ATARDisplay, LoadingSpinner } from '@/components/ui';
-import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay } from '@/components/feature';
+import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay, LatestAchievementBanner, AchievementLaunchManager } from '@/components/feature';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -27,7 +27,7 @@ export default function DashboardScreen() {
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
   const { activeGoals, loadActiveGoals } = useStudyGoals();
-  const { streaks, loadAchievements } = useAchievements();
+  const { streaks, achievements, loadAchievements } = useAchievements();
   
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
@@ -196,12 +196,16 @@ export default function DashboardScreen() {
     );
   }
 
+  // Get latest achievement (most recent)
+  const latestAchievement = achievements.length > 0 ? achievements[0] : null;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <CelebrationOverlay
         show={showCelebration}
         onComplete={() => setShowCelebration(false)}
       />
+      <AchievementLaunchManager achievements={achievements} />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -285,6 +289,14 @@ export default function DashboardScreen() {
               )}
             </View>
           </Pressable>
+        )}
+
+        {/* Latest Achievement */}
+        {latestAchievement && (
+          <LatestAchievementBanner
+            achievement={latestAchievement}
+            onPress={() => router.push('/achievements')}
+          />
         )}
 
         {/* Multi-Period Goals */}
