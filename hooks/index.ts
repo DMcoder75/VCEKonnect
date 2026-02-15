@@ -4,3 +4,4 @@ export { useStudyTimer } from './useStudyTimer';
 export { useNotes } from './useNotes';
 export { useCalendar } from './useCalendar';
 export { useStudyGoals } from './useStudyGoals';
+export { useAchievements } from './useAchievements';

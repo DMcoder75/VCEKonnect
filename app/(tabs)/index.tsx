@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
+import { useAchievements } from '@/hooks/useAchievements';
+import { checkNeedsWeeklyReset, copyPreviousWeekGoals } from '@/services/achievementsService';
 import { ActiveGoalsResponse } from '@/services/studyGoalsService';
 import { ATARDisplay, LoadingSpinner } from '@/components/ui';
 import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay } from '@/components/feature';
@@ -25,12 +27,15 @@ export default function DashboardScreen() {
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
   const { activeGoals, loadActiveGoals } = useStudyGoals();
+  const { streaks, loadAchievements } = useAchievements();
   
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showWeeklyResetPrompt, setShowWeeklyResetPrompt] = useState(false);
+  const [resetInfo, setResetInfo] = useState<{ currentWeekStart: Date } | null>(null);
   
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
@@ -40,6 +45,40 @@ export default function DashboardScreen() {
   const loadSubjectsMemoized = useCallback(loadSubjects, [user]);
   const loadAllTimeMemoized = useCallback(loadAllTime, [user]);
 
+  // Check for weekly reset on mount
+  useEffect(() => {
+    if (user) {
+      checkWeeklyReset();
+    }
+  }, [user]);
+
+  async function checkWeeklyReset() {
+    if (!user) return;
+    
+    const result = await checkNeedsWeeklyReset(user.id);
+    if (result.needsReset) {
+      setResetInfo({ currentWeekStart: result.currentWeekStart });
+      setShowWeeklyResetPrompt(true);
+    }
+  }
+
+  async function handleCopyPreviousGoals() {
+    if (!user || !resetInfo) return;
+    
+    const result = await copyPreviousWeekGoals(user.id, resetInfo.currentWeekStart);
+    if (result.success) {
+      setShowWeeklyResetPrompt(false);
+      await loadActiveGoals();
+      Alert.alert('Goals Copied!', `${result.copiedCount} subject goals copied to ${result.periodName}`);
+    } else {
+      Alert.alert('Info', result.message);
+    }
+  }
+
+  function handleSkipWeeklyReset() {
+    setShowWeeklyResetPrompt(false);
+  }
+
   // Refresh data when dashboard comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -48,8 +87,9 @@ export default function DashboardScreen() {
         loadAllTimeMemoized();
         reloadScores(); // Reload ATAR scores when returning to dashboard
         loadActiveGoals(); // Reload study goals when returning to dashboard
+        loadAchievements(); // Reload achievements and streaks
       }
-    }, [user, loadSubjectsMemoized, loadAllTimeMemoized, reloadScores, loadActiveGoals])
+    }, [user, loadSubjectsMemoized, loadAllTimeMemoized, reloadScores, loadActiveGoals, loadAchievements])
   );
 
   async function loadSubjects() {
@@ -167,6 +207,33 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Weekly Reset Prompt */}
+        {showWeeklyResetPrompt && (
+          <View style={styles.resetPrompt}>
+            <View style={styles.resetHeader}>
+              <MaterialIcons name="refresh" size={24} color={colors.primary} />
+              <Text style={styles.resetTitle}>New Week Started!</Text>
+            </View>
+            <Text style={styles.resetMessage}>
+              Would you like to copy your previous week's goals to this week?
+            </Text>
+            <View style={styles.resetButtons}>
+              <Pressable
+                style={[styles.resetButton, styles.resetButtonOutline]}
+                onPress={handleSkipWeeklyReset}
+              >
+                <Text style={styles.resetButtonTextOutline}>Skip</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.resetButton, styles.resetButtonPrimary]}
+                onPress={handleCopyPreviousGoals}
+              >
+                <Text style={styles.resetButtonTextPrimary}>Copy Goals</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -191,6 +258,34 @@ export default function DashboardScreen() {
             {Math.floor(allTime / 60)}h {allTime % 60}m
           </Text>
         </View>
+
+        {/* Streaks Card */}
+        {streaks.length > 0 && streaks.some(s => s.currentStreak > 0) && (
+          <Pressable
+            style={styles.streaksCard}
+            onPress={() => router.push('/achievements')}
+          >
+            <View style={styles.streaksHeader}>
+              <MaterialIcons name="local-fire-department" size={20} color={colors.warning} />
+              <Text style={styles.streaksTitle}>Current Streaks</Text>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textSecondary} />
+            </View>
+            <View style={styles.streaksContent}>
+              {streaks.find(s => s.streakType === 'weekly' && s.currentStreak > 0) && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakNumber}>{streaks.find(s => s.streakType === 'weekly')?.currentStreak}</Text>
+                  <Text style={styles.streakLabel}>Week Streak</Text>
+                </View>
+              )}
+              {streaks.find(s => s.streakType === 'monthly' && s.currentStreak > 0) && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakNumber}>{streaks.find(s => s.streakType === 'monthly')?.currentStreak}</Text>
+                  <Text style={styles.streakLabel}>Month Streak</Text>
+                </View>
+              )}
+            </View>
+          </Pressable>
+        )}
 
         {/* Multi-Period Goals */}
         {activeGoals && (activeGoals.weekly || activeGoals.monthly || activeGoals.term) && (
@@ -218,6 +313,12 @@ export default function DashboardScreen() {
                   onPress={() => router.push('/goals-progress')}
                 >
                   <MaterialIcons name="visibility" size={16} color={colors.primary} />
+                </Pressable>
+                <Pressable
+                  style={styles.smallButton}
+                  onPress={() => router.push('/achievements')}
+                >
+                  <MaterialIcons name="emoji-events" size={16} color={colors.premium} />
                 </Pressable>
               </View>
             </View>
@@ -422,6 +523,58 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingBottom: spacing.xxl,
   },
+  resetPrompt: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  resetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  resetTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  resetMessage: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  resetButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  resetButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  resetButtonOutline: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  resetButtonPrimary: {
+    backgroundColor: colors.primary,
+  },
+  resetButtonTextOutline: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  resetButtonTextPrimary: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.background,
+  },
   header: {
     position: 'relative',
     marginBottom: spacing.lg,
@@ -449,6 +602,74 @@ const styles = StyleSheet.create({
     top: spacing.sm,
     padding: spacing.sm,
     zIndex: 5,
+  },
+  todayCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  todayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  todayTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  todayTime: {
+    fontSize: 48,
+    fontWeight: typography.bold,
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  streaksCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  streaksHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  streaksTitle: {
+    flex: 1,
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  streaksContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: spacing.md,
+  },
+  streakBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    flex: 1,
+  },
+  streakNumber: {
+    fontSize: 32,
+    fontWeight: typography.bold,
+    color: colors.warning,
+  },
+  streakLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   atarCard: {
     backgroundColor: colors.surfaceElevated,
@@ -490,32 +711,6 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.primary,
     fontWeight: typography.semibold,
-  },
-  todayCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  todayHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  todayTitle: {
-    fontSize: typography.body,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
-  },
-  todayTime: {
-    fontSize: 48,
-    fontWeight: typography.bold,
-    color: colors.primary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
   },
   section: {
     marginBottom: spacing.lg,
@@ -563,18 +758,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'center',
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  loadingText: {
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
-  },
-
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
