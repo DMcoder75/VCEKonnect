@@ -116,8 +116,8 @@ export async function endStudySession(
 // Get total study time by subject for a date range
 export async function getStudyTimeBySubject(
   userId: string,
-  startDate: Date,
-  endDate: Date
+  startDate?: Date,
+  endDate?: Date
 ): Promise<{ [subjectId: string]: number }> {
   try {
     const sessions = await getStudySessions(userId, startDate, endDate);
@@ -134,5 +134,80 @@ export async function getStudyTimeBySubject(
   } catch (err) {
     console.error('Error calculating study time:', err);
     return {};
+  }
+}
+
+// Update goal progress after study session (CRITICAL for real-time updates)
+export async function updateGoalProgressAfterSession(
+  userId: string,
+  subjectId: string,
+  durationMinutes: number
+): Promise<{ error: string | null }> {
+  try {
+    // Step 1: Get all active goal periods for this user
+    const { data: periods, error: periodsError } = await supabase
+      .from('vk_goal_periods')
+      .select('id, period_type, start_date, end_date')
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    if (periodsError) {
+      console.error('Failed to fetch active periods:', periodsError);
+      return { error: periodsError.message };
+    }
+
+    if (!periods || periods.length === 0) {
+      console.log('No active goal periods found');
+      return { error: null }; // Not an error, just no goals set
+    }
+
+    // Step 2: For each period, update the subject's achieved minutes
+    for (const period of periods) {
+      // Check if this subject has a goal for this period
+      const { data: goalSubject, error: fetchError } = await supabase
+        .from('vk_goal_subjects')
+        .select('minutes_achieved')
+        .eq('goal_period_id', period.id)
+        .eq('subject_id', subjectId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // PGRST116 = not found, which is fine
+        console.error('Error fetching goal subject:', fetchError);
+        continue;
+      }
+
+      if (!goalSubject) {
+        console.log(`No goal found for subject ${subjectId} in period ${period.id}`);
+        continue;
+      }
+
+      // Step 3: Increment the minutes_achieved
+      const newMinutes = (goalSubject.minutes_achieved || 0) + Math.round(durationMinutes);
+      const { error: updateError } = await supabase
+        .from('vk_goal_subjects')
+        .update({ minutes_achieved: newMinutes })
+        .eq('goal_period_id', period.id)
+        .eq('subject_id', subjectId);
+
+      if (updateError) {
+        console.error('Failed to update goal subject:', updateError);
+        continue;
+      }
+
+      // Step 4: Recalculate period total using the SQL function
+      const { error: calcError } = await supabase.rpc('calculate_goal_progress', {
+        p_period_id: period.id,
+      });
+
+      if (calcError) {
+        console.error('Failed to recalculate progress:', calcError);
+      }
+    }
+
+    return { error: null };
+  } catch (err: any) {
+    console.error('Error updating goal progress:', err);
+    return { error: err.message || 'Failed to update goal progress' };
   }
 }

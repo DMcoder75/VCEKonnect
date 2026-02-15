@@ -3,7 +3,8 @@ import { useAuth } from './useAuth';
 import { 
   startStudySession, 
   endStudySession, 
-  getStudyTimeBySubject 
+  getStudyTimeBySubject,
+  updateGoalProgressAfterSession
 } from '@/services/studyService';
 
 export function useStudyTimer() {
@@ -49,14 +50,30 @@ export function useStudyTimer() {
   }
 
   async function stopTimer() {
-    if (!activeSubject || !activeSessionId || !startTime) return;
+    if (!activeSubject || !activeSessionId || !startTime || !user) return;
 
     const now = new Date();
     const durationMinutes = (now.getTime() - startTime.getTime()) / 1000 / 60;
 
+    console.log(`⏱️ Stopping timer: ${Math.round(durationMinutes)} minutes for subject ${activeSubject}`);
+
+    // Step 1: End the study session
     const { error } = await endStudySession(activeSessionId, durationMinutes);
     if (error) {
       console.error('Failed to stop timer:', error);
+    }
+
+    // Step 2: Update goal progress (CRITICAL for real-time dashboard updates)
+    const { error: goalError } = await updateGoalProgressAfterSession(
+      user.id,
+      activeSubject,
+      durationMinutes
+    );
+    
+    if (goalError) {
+      console.error('Failed to update goal progress:', goalError);
+    } else {
+      console.log('✅ Goal progress updated successfully');
     }
 
     setActiveSubject(null);
