@@ -211,6 +211,31 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.greeting}>G'day, {user.name}!</Text>
+            <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
+          </View>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            style={styles.settingsButton}
+          >
+            <MaterialIcons name="settings" size={24} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        {/* Total Study Time */}
+        <View style={styles.todayCard}>
+          <View style={styles.todayHeader}>
+            <MaterialIcons name="access-time" size={24} color={colors.primary} />
+            <Text style={styles.todayTitle}>Total Study Time (All Time)</Text>
+          </View>
+          <Text style={styles.todayTime}>
+            {Math.floor(allTime / 60)}h {allTime % 60}m
+          </Text>
+        </View>
+
         {/* Weekly Reset Prompt */}
         {showWeeklyResetPrompt && (
           <View style={styles.resetPrompt}>
@@ -237,31 +262,6 @@ export default function DashboardScreen() {
             </View>
           </View>
         )}
-
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.greeting}>G'day, {user.name}!</Text>
-            <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
-          </View>
-          <Pressable
-            onPress={() => router.push('/settings')}
-            style={styles.settingsButton}
-          >
-            <MaterialIcons name="settings" size={24} color={colors.textSecondary} />
-          </Pressable>
-        </View>
-
-        {/* Total Study Time */}
-        <View style={styles.todayCard}>
-          <View style={styles.todayHeader}>
-            <MaterialIcons name="access-time" size={24} color={colors.primary} />
-            <Text style={styles.todayTitle}>Total Study Time (All Time)</Text>
-          </View>
-          <Text style={styles.todayTime}>
-            {Math.floor(allTime / 60)}h {allTime % 60}m
-          </Text>
-        </View>
 
         {/* Streaks Card */}
         {streaks.length > 0 && streaks.some(s => s.currentStreak > 0) && (
