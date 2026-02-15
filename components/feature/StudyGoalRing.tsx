@@ -28,10 +28,7 @@ export function StudyGoalRing({
   };
   
   const config = sizeConfig[size];
-  const radius = (config.ring - config.stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
   const progress = Math.min(100, Math.max(0, progressPercent));
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
   
   // Color based on progress
   const getColor = () => {
@@ -48,29 +45,37 @@ export function StudyGoalRing({
       {/* Progress Ring */}
       <View style={[styles.ringContainer, { width: config.ring, height: config.ring }]}>
         {/* Background circle */}
-        <svg width={config.ring} height={config.ring} style={styles.svg}>
-          <circle
-            cx={config.ring / 2}
-            cy={config.ring / 2}
-            r={radius}
-            stroke={colors.border}
-            strokeWidth={config.stroke}
-            fill="none"
-          />
-          {/* Progress circle */}
-          <circle
-            cx={config.ring / 2}
-            cy={config.ring / 2}
-            r={radius}
-            stroke={ringColor}
-            strokeWidth={config.stroke}
-            fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${config.ring / 2} ${config.ring / 2})`}
-          />
-        </svg>
+        <View
+          style={[
+            styles.backgroundRing,
+            {
+              width: config.ring,
+              height: config.ring,
+              borderRadius: config.ring / 2,
+              borderWidth: config.stroke,
+              borderColor: colors.border,
+            },
+          ]}
+        />
+        
+        {/* Progress overlay - simplified to colored border */}
+        <View
+          style={[
+            styles.progressRing,
+            {
+              width: config.ring,
+              height: config.ring,
+              borderRadius: config.ring / 2,
+              borderWidth: config.stroke,
+              borderColor: 'transparent',
+              borderTopColor: progress > 0 ? ringColor : 'transparent',
+              borderRightColor: progress > 25 ? ringColor : 'transparent',
+              borderBottomColor: progress > 50 ? ringColor : 'transparent',
+              borderLeftColor: progress > 75 ? ringColor : 'transparent',
+              opacity: progress / 100,
+            },
+          ]}
+        />
         
         {/* Center content */}
         <View style={styles.centerContent}>
@@ -103,7 +108,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  svg: {
+  backgroundRing: {
+    position: 'absolute',
+  },
+  progressRing: {
     position: 'absolute',
   },
   centerContent: {
