@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -110,8 +111,8 @@ export default function AchievementsScreen() {
     return (
       <View style={styles.subjectBreakdown}>
         {subjects.map(subject => {
-          const subjectProgress = subject.hoursTarget > 0
-            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
+          const subjectProgress = subject.targetHours > 0
+            ? ((subject.achievedMinutes / 60) / subject.targetHours) * 100
             : 0;
           const isCompleted = subjectProgress >= 100;
           
@@ -179,6 +180,36 @@ export default function AchievementsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Streaks Card */}
+          <View style={styles.streaksCard}>
+            <View style={styles.sectionHeader}>
+              <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
+              <Text style={styles.sectionTitle}>Current Streaks</Text>
+            </View>
+            
+            <View style={styles.streakRow}>
+              <View style={styles.streakItem}>
+                <MaterialIcons name="calendar-today" size={32} color={colors.primary} />
+                <Text style={styles.streakNumber}>{weeklyStreak?.currentStreak || 0}</Text>
+                <Text style={styles.streakLabel}>Weekly Streak</Text>
+                {weeklyStreak && weeklyStreak.longestStreak > 0 && (
+                  <Text style={styles.streakBest}>Best: {weeklyStreak.longestStreak}</Text>
+                )}
+              </View>
+              
+              <View style={styles.streakDivider} />
+              
+              <View style={styles.streakItem}>
+                <MaterialIcons name="event-note" size={32} color={colors.success} />
+                <Text style={styles.streakNumber}>{monthlyStreak?.currentStreak || 0}</Text>
+                <Text style={styles.streakLabel}>Monthly Streak</Text>
+                {monthlyStreak && monthlyStreak.longestStreak > 0 && (
+                  <Text style={styles.streakBest}>Best: {monthlyStreak.longestStreak}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
           {/* Current Active Goals */}
           {activeGoals?.weekly && (
             <View style={styles.activeGoalsSection}>
@@ -251,36 +282,6 @@ export default function AchievementsScreen() {
               </View>
             </View>
           )}
-
-          {/* Streaks Card */}
-          <View style={styles.streaksCard}>
-            <View style={styles.sectionHeader}>
-              <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
-              <Text style={styles.sectionTitle}>Current Streaks</Text>
-            </View>
-            
-            <View style={styles.streakRow}>
-              <View style={styles.streakItem}>
-                <MaterialIcons name="calendar-today" size={32} color={colors.primary} />
-                <Text style={styles.streakNumber}>{weeklyStreak?.currentStreak || 0}</Text>
-                <Text style={styles.streakLabel}>Weekly Streak</Text>
-                {weeklyStreak && weeklyStreak.longestStreak > 0 && (
-                  <Text style={styles.streakBest}>Best: {weeklyStreak.longestStreak}</Text>
-                )}
-              </View>
-              
-              <View style={styles.streakDivider} />
-              
-              <View style={styles.streakItem}>
-                <MaterialIcons name="event-note" size={32} color={colors.success} />
-                <Text style={styles.streakNumber}>{monthlyStreak?.currentStreak || 0}</Text>
-                <Text style={styles.streakLabel}>Monthly Streak</Text>
-                {monthlyStreak && monthlyStreak.longestStreak > 0 && (
-                  <Text style={styles.streakBest}>Best: {monthlyStreak.longestStreak}</Text>
-                )}
-              </View>
-            </View>
-          </View>
 
           {/* Achievements */}
           {achievements.length > 0 && (
