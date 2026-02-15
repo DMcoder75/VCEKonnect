@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
-import { useStudyGoals } from '@/hooks/useStudyGoals';
+import { useStudyGoals, ActiveGoalsResponse } from '@/hooks/useStudyGoals';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { StudyGoalRing, CelebrationOverlay, GoalAlertBanner } from '@/components/feature';
@@ -124,6 +124,33 @@ export default function GoalsProgressScreen() {
   function getSubjectName(subjectId: string): string {
     const subject = userSubjects.find(s => s.id === subjectId);
     return subject?.code || subjectId;
+  }
+
+  function formatHours(hours: number): string {
+    if (hours < 1) {
+      // Show minutes for values less than 1 hour
+      const minutes = Math.round(hours * 60);
+      return `${minutes}min`;
+    }
+    return `${hours}h`;
+  }
+
+  function formatProgress(achievedHours: number, targetHours: number): string {
+    if (targetHours < 1) {
+      // For small targets, show minutes
+      const achievedMin = Math.round(achievedHours * 60);
+      const targetMin = Math.round(targetHours * 60);
+      return `${achievedMin}/${targetMin}min`;
+    }
+    return `${achievedHours.toFixed(1)}/${targetHours}h`;
+  }
+
+  function calculateProgressPercent(achievedHours: number, targetHours: number): number {
+    if (targetHours === 0) return 0;
+    const percent = (achievedHours / targetHours) * 100;
+    // Show at least 1% if there's any progress, but cap at 100%
+    if (percent > 0 && percent < 1) return 1;
+    return Math.min(100, Math.round(percent));
   }
 
   function getMotivationalMessage(period: any): string {
@@ -283,14 +310,14 @@ export default function GoalsProgressScreen() {
                             style={[
                               styles.progressBarFill,
                               {
-                                width: `${Math.min(100, subject.progressPercent)}%`,
+                                width: `${calculateProgressPercent(subject.achievedHours, subject.targetHours)}%`,
                                 backgroundColor: isComplete ? colors.success : colors.primary,
                               },
                             ]}
                           />
                         </View>
                         <Text style={styles.progressText}>
-                          {subject.achievedHours.toFixed(1)}/{subject.targetHours}h ({Math.round(subject.progressPercent)}%)
+                          {formatProgress(subject.achievedHours, subject.targetHours)} ({calculateProgressPercent(subject.achievedHours, subject.targetHours)}%)
                         </Text>
                       </View>
                     </View>
@@ -340,14 +367,14 @@ export default function GoalsProgressScreen() {
                             style={[
                               styles.progressBarFill,
                               {
-                                width: `${Math.min(100, subject.progressPercent)}%`,
+                                width: `${calculateProgressPercent(subject.achievedHours, subject.targetHours)}%`,
                                 backgroundColor: isComplete ? colors.success : colors.primary,
                               },
                             ]}
                           />
                         </View>
                         <Text style={styles.progressText}>
-                          {subject.achievedHours.toFixed(1)}/{subject.targetHours}h ({Math.round(subject.progressPercent)}%)
+                          {formatProgress(subject.achievedHours, subject.targetHours)} ({calculateProgressPercent(subject.achievedHours, subject.targetHours)}%)
                         </Text>
                       </View>
                     </View>
@@ -397,14 +424,14 @@ export default function GoalsProgressScreen() {
                             style={[
                               styles.progressBarFill,
                               {
-                                width: `${Math.min(100, subject.progressPercent)}%`,
+                                width: `${calculateProgressPercent(subject.achievedHours, subject.targetHours)}%`,
                                 backgroundColor: isComplete ? colors.success : colors.primary,
                               },
                             ]}
                           />
                         </View>
                         <Text style={styles.progressText}>
-                          {subject.achievedHours.toFixed(1)}/{subject.targetHours}h ({Math.round(subject.progressPercent)}%)
+                          {formatProgress(subject.achievedHours, subject.targetHours)} ({calculateProgressPercent(subject.achievedHours, subject.targetHours)}%)
                         </Text>
                       </View>
                     </View>
