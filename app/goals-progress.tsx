@@ -138,9 +138,16 @@ export default function GoalsProgressScreen() {
   function formatProgress(achievedHours: number, targetHours: number): string {
     if (targetHours < 1) {
       // For small targets, show minutes
-      const achievedMin = Math.round(achievedHours * 60);
+      const achievedMin = achievedHours * 60;
       const targetMin = Math.round(targetHours * 60);
-      return `${achievedMin}/${targetMin}min`;
+      
+      // Show seconds for very small progress (< 1 minute)
+      if (achievedMin < 1 && achievedMin > 0) {
+        const achievedSec = Math.round(achievedMin * 60);
+        return `${achievedSec}s/${targetMin}min`;
+      }
+      
+      return `${Math.round(achievedMin)}/${targetMin}min`;
     }
     return `${achievedHours.toFixed(1)}/${targetHours}h`;
   }
