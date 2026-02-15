@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@/constants/theme';
-import { MaterialIcons } from '@expo/vector-icons';
 
 interface StudyGoalRingProps {
   label: string;
@@ -9,7 +8,7 @@ interface StudyGoalRingProps {
   achievedHours: number;
   progressPercent: number;
   size?: 'small' | 'medium' | 'large';
-  icon?: keyof typeof MaterialIcons.glyphMap;
+  icon?: string;
 }
 
 export function StudyGoalRing({
@@ -17,19 +16,13 @@ export function StudyGoalRing({
   targetHours,
   achievedHours,
   progressPercent,
-  size = 'medium',
-  icon,
 }: StudyGoalRingProps) {
-  const progress = Math.min(100, Math.max(0, progressPercent));
+  const progress = Math.min(100, Math.max(0, progressPercent || 0));
   
-  const getColor = () => {
-    if (progress >= 100) return colors.success;
-    if (progress >= 75) return colors.primary;
-    if (progress >= 50) return colors.warning;
-    return colors.error;
-  };
-  
-  const ringColor = getColor();
+  let ringColor = colors.error;
+  if (progress >= 100) ringColor = colors.success;
+  else if (progress >= 75) ringColor = colors.primary;
+  else if (progress >= 50) ringColor = colors.warning;
 
   return (
     <View style={styles.container}>
@@ -42,9 +35,9 @@ export function StudyGoalRing({
       </View>
       
       <View style={styles.stats}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>{label || 'Goal'}</Text>
         <Text style={styles.hours}>
-          {achievedHours.toFixed(1)}/{targetHours}h
+          {(achievedHours || 0).toFixed(1)}/{targetHours || 0}h
         </Text>
       </View>
     </View>
@@ -69,7 +62,7 @@ const styles = StyleSheet.create({
   },
   percentage: {
     fontSize: typography.h3,
-    fontWeight: typography.bold,
+    fontWeight: typography.bold as any,
   },
   stats: {
     alignItems: 'center',
@@ -77,7 +70,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: typography.caption,
     color: colors.textSecondary,
-    fontWeight: typography.semibold,
+    fontWeight: typography.semibold as any,
   },
   hours: {
     fontSize: typography.bodySmall,
