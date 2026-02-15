@@ -253,8 +253,16 @@ export async function deactivateExpiredGoals(userId: string): Promise<{
   termDeactivated: number;
 }> {
   try {
+    // Get current date in user's local timezone (YYYY-MM-DD)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const currentDateStr = `${year}-${month}-${day}`;
+
     const { data, error } = await supabase.rpc('deactivate_expired_goals', {
       p_user_id: userId,
+      p_current_date: currentDateStr,  // Pass frontend's date for timezone consistency
     });
 
     if (error) {
