@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { CalendarEvent } from '@/services/calendarService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
+import { useAlert } from '@/template';
 import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
@@ -23,6 +24,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const { getPrediction, subjectScores, reloadScores } = useATAR();
   const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
@@ -69,9 +71,9 @@ export default function DashboardScreen() {
     if (result.success) {
       setShowWeeklyResetPrompt(false);
       await loadActiveGoals();
-      Alert.alert('Goals Copied!', `${result.copiedCount} subject goals copied to ${result.periodName}`);
+      showAlert('Goals Copied!', `${result.copiedCount} subject goals copied to ${result.periodName}`);
     } else {
-      Alert.alert('Info', result.message);
+      showAlert('Info', result.message);
     }
   }
 
@@ -169,7 +171,7 @@ export default function DashboardScreen() {
   async function handleCompleteEvent(eventId: string) {
     const result = await completeEvent(eventId);
     if (result.error) {
-      Alert.alert('Error', result.error);
+      showAlert('Error', result.error);
     }
   }
 
