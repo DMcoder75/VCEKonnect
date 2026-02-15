@@ -20,14 +20,6 @@ export function StudyGoalRing({
   size = 'medium',
   icon,
 }: StudyGoalRingProps) {
-  // Size configs
-  const sizeConfig = {
-    small: { ring: 60, stroke: 6, fontSize: 14, iconSize: 16 },
-    medium: { ring: 80, stroke: 8, fontSize: 16, iconSize: 20 },
-    large: { ring: 100, stroke: 10, fontSize: 20, iconSize: 24 },
-  };
-  
-  const config = sizeConfig[size];
   const progress = Math.min(100, Math.max(0, progressPercent));
   
   // Color based on progress
@@ -39,50 +31,27 @@ export function StudyGoalRing({
   };
   
   const ringColor = getColor();
+  const ringSize = size === 'large' ? 100 : size === 'medium' ? 80 : 60;
 
   return (
     <View style={styles.container}>
-      {/* Progress Ring */}
-      <View style={[styles.ringContainer, { width: config.ring, height: config.ring }]}>
-        {/* Background circle */}
+      {/* Simple circular progress indicator */}
+      <View style={[styles.ringContainer, { width: ringSize, height: ringSize }]}>
         <View
           style={[
-            styles.backgroundRing,
+            styles.ring,
             {
-              width: config.ring,
-              height: config.ring,
-              borderRadius: config.ring / 2,
-              borderWidth: config.stroke,
+              width: ringSize,
+              height: ringSize,
+              borderRadius: ringSize / 2,
+              borderWidth: 8,
               borderColor: colors.border,
             },
           ]}
         />
-        
-        {/* Progress overlay - simplified to colored border */}
-        <View
-          style={[
-            styles.progressRing,
-            {
-              width: config.ring,
-              height: config.ring,
-              borderRadius: config.ring / 2,
-              borderWidth: config.stroke,
-              borderColor: 'transparent',
-              borderTopColor: progress > 0 ? ringColor : 'transparent',
-              borderRightColor: progress > 25 ? ringColor : 'transparent',
-              borderBottomColor: progress > 50 ? ringColor : 'transparent',
-              borderLeftColor: progress > 75 ? ringColor : 'transparent',
-              opacity: progress / 100,
-            },
-          ]}
-        />
-        
-        {/* Center content */}
         <View style={styles.centerContent}>
-          {icon && (
-            <MaterialIcons name={icon} size={config.iconSize} color={ringColor} />
-          )}
-          <Text style={[styles.percentage, { fontSize: config.fontSize, color: ringColor }]}>
+          {icon && <MaterialIcons name={icon} size={20} color={ringColor} />}
+          <Text style={[styles.percentage, { color: ringColor }]}>
             {Math.round(progress)}%
           </Text>
         </View>
@@ -104,21 +73,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ringContainer: {
-    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backgroundRing: {
-    position: 'absolute',
-  },
-  progressRing: {
+  ring: {
     position: 'absolute',
   },
   centerContent: {
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
   },
   percentage: {
+    fontSize: typography.body,
     fontWeight: typography.bold,
   },
   stats: {
