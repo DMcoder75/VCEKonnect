@@ -4,8 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Achievement } from '@/services/achievementsService';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const ANIMATION_DURATION = 6000; // 6 seconds total (slower)
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const ANIMATION_DURATION = 7000; // 7 seconds total (slower)
 const TOAST_HEIGHT = 60;
 
 interface AchievementLaunchToastProps {
@@ -18,31 +18,31 @@ export function AchievementLaunchToast({ achievement, onComplete }: AchievementL
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animation sequence (slower, stays lower on screen):
-    // 1. Slide up from bottom to 20% from bottom (1.5s)
-    // 2. Stay visible at 20% (3s)
-    // 3. Fade out while continuing upward to ~15% (1.5s)
+    // Animation sequence (slower, left-aligned, travels more):
+    // 1. Slide up from bottom to 35% from bottom (2s)
+    // 2. Stay visible at 35% (3.5s)
+    // 3. Fade out while continuing upward to 65% (1.5s)
     
-    const targetPosition = SCREEN_HEIGHT * 0.2; // 20% from bottom (stay lower)
-    const fadeOutPosition = SCREEN_HEIGHT * 0.25; // 25% from bottom
+    const targetPosition = SCREEN_HEIGHT * 0.35; // 35% from bottom (visible area)
+    const fadeOutPosition = SCREEN_HEIGHT * 0.65; // 65% from bottom (travel more)
 
     Animated.sequence([
-      // Phase 1: Slide up and fade in (1500ms)
+      // Phase 1: Slide up and fade in (2000ms)
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: -targetPosition,
-          duration: 1500,
+          duration: 2000,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.8, // 80% visible
-          duration: 1200,
+          toValue: 0.85, // 85% visible
+          duration: 1500,
           useNativeDriver: true,
         }),
       ]),
       
-      // Phase 2: Stay visible (3000ms)
-      Animated.delay(3000),
+      // Phase 2: Stay visible (3500ms)
+      Animated.delay(3500),
       
       // Phase 3: Continue upward and fade out (1500ms)
       Animated.parallel([
@@ -92,10 +92,10 @@ export function AchievementLaunchToast({ achievement, onComplete }: AchievementL
 
   const accentColor = getColor(achievement.achievementType);
 
-  // Extract subject name from metadata or description
-  const subjectName = achievement.metadata?.subjectCode || achievement.metadata?.subjectName || 'Subject';
-  const periodType = achievement.achievementType.includes('weekly') ? 'weekly' : 
-                     achievement.achievementType.includes('monthly') ? 'monthly' : 'goal';
+  // Extract subject name from metadata (subject_code or subject_id)
+  const subjectCode = achievement.metadata?.subject_code || achievement.metadata?.subject_id || achievement.metadata?.subjectCode || achievement.metadata?.subjectName;
+  const subjectName = subjectCode || 'Subject';
+  const periodType = 'weekly';
 
   return (
     <Animated.View
@@ -124,23 +124,24 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 0,
-    left: spacing.lg,
-    right: spacing.lg,
-    borderRadius: borderRadius.full,
+    left: spacing.md,
+    right: SCREEN_WIDTH * 0.25, // Leave space on right (75% width)
+    borderRadius: borderRadius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-    alignItems: 'center',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    alignItems: 'flex-start', // Left-aligned
     justifyContent: 'center',
     minHeight: TOAST_HEIGHT,
   },
   simpleMessage: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'nowrap',
   },
   icon: {
     fontSize: 20,

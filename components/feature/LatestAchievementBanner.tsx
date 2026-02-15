@@ -17,20 +17,20 @@ export function LatestAchievementBanner({ achievement, onPress }: LatestAchievem
   useEffect(() => {
     if (descriptionWidth > containerWidth && containerWidth > 0) {
       // Start scrolling animation if text overflows
-      const scrollDistance = descriptionWidth - containerWidth;
+      const scrollDistance = descriptionWidth - containerWidth + 20; // Add padding
       Animated.loop(
         Animated.sequence([
-          Animated.delay(1000), // Wait 1s before scrolling
+          Animated.delay(1500), // Wait 1.5s before scrolling
           Animated.timing(scrollX, {
             toValue: -scrollDistance,
-            duration: scrollDistance * 30, // Slower scroll (30ms per pixel)
+            duration: scrollDistance * 40, // Slower scroll (40ms per pixel)
             easing: Easing.linear,
             useNativeDriver: true,
           }),
-          Animated.delay(1000), // Wait 1s at end
+          Animated.delay(1500), // Wait 1.5s at end
           Animated.timing(scrollX, {
             toValue: 0,
-            duration: scrollDistance * 30,
+            duration: scrollDistance * 40,
             easing: Easing.linear,
             useNativeDriver: true,
           }),
@@ -66,14 +66,13 @@ export function LatestAchievementBanner({ achievement, onPress }: LatestAchievem
     return colors.primary;
   }
 
-  // Extract subject name from metadata
-  const subjectName = achievement.metadata?.subjectCode || achievement.metadata?.subjectName || 'Subject';
-  const periodType = achievement.achievementType.includes('weekly') ? 'weekly' : 
-                     achievement.achievementType.includes('monthly') ? 'monthly' : '';
+  // Extract subject name from metadata (subject_code or subject_id)
+  const subjectCode = achievement.metadata?.subject_code || achievement.metadata?.subject_id || achievement.metadata?.subjectCode || achievement.metadata?.subjectName;
+  const subjectName = subjectCode || 'Subject';
   
-  // Format description as: "Completed {subject} {period} goal! {original description}"
-  const formattedDescription = periodType 
-    ? `Completed ${subjectName} ${periodType} goal! ${achievement.achievementDescription.split(' - ')[1] || achievement.achievementDescription}`
+  // Format description with subject name prominently
+  const formattedDescription = subjectCode
+    ? `Completed ${subjectName} weekly goal! ${achievement.achievementDescription.split(' - ')[1] || achievement.achievementDescription}`
     : achievement.achievementDescription;
 
   return (
@@ -101,13 +100,15 @@ export function LatestAchievementBanner({ achievement, onPress }: LatestAchievem
             <Text style={styles.newBadge}>NEW</Text>
           </View>
           <Text style={styles.title}>{achievement.achievementName}</Text>
-          <View style={styles.descriptionContainer}>
+          <View 
+            style={styles.descriptionContainer}
+            onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+          >
             <Animated.Text
               style={[
                 styles.description,
                 { transform: [{ translateX: scrollX }] },
               ]}
-              numberOfLines={1}
               onLayout={(e) => setDescriptionWidth(e.nativeEvent.layout.width)}
             >
               {formattedDescription}
@@ -149,6 +150,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+    minWidth: 0, // Allow text to shrink
   },
   titleRow: {
     flexDirection: 'row',
@@ -167,6 +169,7 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     overflow: 'hidden',
+    width: '100%',
   },
   title: {
     fontSize: typography.body,
