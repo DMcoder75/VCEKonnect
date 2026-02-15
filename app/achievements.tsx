@@ -211,6 +211,54 @@ export default function AchievementsScreen() {
                         </Text>
                       </View>
                     </View>
+                    
+                    {/* Per-Subject Breakdown */}
+                    {period.subjects && period.subjects.length > 0 && (
+                      <View style={styles.subjectBreakdown}>
+                        {period.subjects.map(subject => {
+                          const subjectProgress = subject.hoursTarget > 0
+                            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
+                            : 0;
+                          const isCompleted = subjectProgress >= 100;
+                          
+                          return (
+                            <View key={subject.subjectId} style={styles.subjectRow}>
+                              <View style={styles.subjectInfo}>
+                                <View style={styles.subjectNameRow}>
+                                  <Text style={styles.subjectName}>
+                                    {getSubjectName(subject.subjectId)}
+                                  </Text>
+                                  {isCompleted && (
+                                    <MaterialIcons 
+                                      name="verified" 
+                                      size={16} 
+                                      color={colors.success} 
+                                    />
+                                  )}
+                                </View>
+                                <View style={styles.subjectProgressBar}>
+                                  <View 
+                                    style={[
+                                      styles.subjectProgressFill,
+                                      { 
+                                        width: `${Math.min(subjectProgress, 100)}%`,
+                                        backgroundColor: isCompleted ? colors.success : colors.primary,
+                                      }
+                                    ]} 
+                                  />
+                                </View>
+                              </View>
+                              <Text style={[
+                                styles.subjectProgressText,
+                                isCompleted && { color: colors.success, fontWeight: '700' }
+                              ]}>
+                                {Math.round(subjectProgress)}%
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
                   </View>
                 );
               })}
@@ -247,6 +295,54 @@ export default function AchievementsScreen() {
                         </Text>
                       </View>
                     </View>
+                    
+                    {/* Per-Subject Breakdown */}
+                    {period.subjects && period.subjects.length > 0 && (
+                      <View style={styles.subjectBreakdown}>
+                        {period.subjects.map(subject => {
+                          const subjectProgress = subject.hoursTarget > 0
+                            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
+                            : 0;
+                          const isCompleted = subjectProgress >= 100;
+                          
+                          return (
+                            <View key={subject.subjectId} style={styles.subjectRow}>
+                              <View style={styles.subjectInfo}>
+                                <View style={styles.subjectNameRow}>
+                                  <Text style={styles.subjectName}>
+                                    {getSubjectName(subject.subjectId)}
+                                  </Text>
+                                  {isCompleted && (
+                                    <MaterialIcons 
+                                      name="verified" 
+                                      size={16} 
+                                      color={colors.success} 
+                                    />
+                                  )}
+                                </View>
+                                <View style={styles.subjectProgressBar}>
+                                  <View 
+                                    style={[
+                                      styles.subjectProgressFill,
+                                      { 
+                                        width: `${Math.min(subjectProgress, 100)}%`,
+                                        backgroundColor: isCompleted ? colors.success : colors.primary,
+                                      }
+                                    ]} 
+                                  />
+                                </View>
+                              </View>
+                              <Text style={[
+                                styles.subjectProgressText,
+                                isCompleted && { color: colors.success, fontWeight: '700' }
+                              ]}>
+                                {Math.round(subjectProgress)}%
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
                   </View>
                 );
               })}
@@ -283,6 +379,54 @@ export default function AchievementsScreen() {
                         </Text>
                       </View>
                     </View>
+                    
+                    {/* Per-Subject Breakdown */}
+                    {period.subjects && period.subjects.length > 0 && (
+                      <View style={styles.subjectBreakdown}>
+                        {period.subjects.map(subject => {
+                          const subjectProgress = subject.hoursTarget > 0
+                            ? ((subject.minutesAchieved / 60) / subject.hoursTarget) * 100
+                            : 0;
+                          const isCompleted = subjectProgress >= 100;
+                          
+                          return (
+                            <View key={subject.subjectId} style={styles.subjectRow}>
+                              <View style={styles.subjectInfo}>
+                                <View style={styles.subjectNameRow}>
+                                  <Text style={styles.subjectName}>
+                                    {getSubjectName(subject.subjectId)}
+                                  </Text>
+                                  {isCompleted && (
+                                    <MaterialIcons 
+                                      name="verified" 
+                                      size={16} 
+                                      color={colors.success} 
+                                    />
+                                  )}
+                                </View>
+                                <View style={styles.subjectProgressBar}>
+                                  <View 
+                                    style={[
+                                      styles.subjectProgressFill,
+                                      { 
+                                        width: `${Math.min(subjectProgress, 100)}%`,
+                                        backgroundColor: isCompleted ? colors.success : colors.primary,
+                                      }
+                                    ]} 
+                                  />
+                                </View>
+                              </View>
+                              <Text style={[
+                                styles.subjectProgressText,
+                                isCompleted && { color: colors.success, fontWeight: '700' }
+                              ]}>
+                                {Math.round(subjectProgress)}%
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
                   </View>
                 );
               })}
@@ -468,5 +612,48 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     marginTop: spacing.xs,
     textAlign: 'center',
+  },
+  subjectBreakdown: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
+  },
+  subjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  subjectInfo: {
+    flex: 1,
+  },
+  subjectNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  subjectName: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  subjectProgressBar: {
+    height: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  subjectProgressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  subjectProgressText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    fontWeight: typography.semibold,
+    minWidth: 42,
+    textAlign: 'right',
   },
 });
