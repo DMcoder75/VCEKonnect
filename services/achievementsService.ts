@@ -29,6 +29,25 @@ export interface CopyGoalsResult {
   periodName?: string;
 }
 
+export interface SubjectCompletion {
+  id: string;
+  userId: string;
+  subjectId: string;
+  goalPeriodId: string;
+  completionPercent: number;
+  completedAt: string;
+}
+
+export interface SubjectStreak {
+  id: string;
+  userId: string;
+  subjectId: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastCompletionWeek: string | null;
+  updatedAt: string;
+}
+
 // Get user's achievements
 export async function getUserAchievements(userId: string): Promise<Achievement[]> {
   try {
@@ -165,6 +184,63 @@ export async function updateStreakAfterCompletion(
   } catch (err: any) {
     console.error('Error updating streak:', err);
     return { success: false, error: err.message || 'Failed to update streak' };
+  }
+}
+
+// Get subject completions (100%+ subject goals)
+export async function getSubjectCompletions(userId: string): Promise<SubjectCompletion[]> {
+  try {
+    const { data, error } = await supabase
+      .from('vk_subject_completions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch subject completions:', error);
+      return [];
+    }
+
+    return (data || []).map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      subjectId: row.subject_id,
+      goalPeriodId: row.goal_period_id,
+      completionPercent: row.completion_percent,
+      completedAt: row.completed_at,
+    }));
+  } catch (err) {
+    console.error('Error fetching subject completions:', err);
+    return [];
+  }
+}
+
+// Get subject streaks (consecutive weeks)
+export async function getSubjectStreaks(userId: string): Promise<SubjectStreak[]> {
+  try {
+    const { data, error } = await supabase
+      .from('vk_subject_streaks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('current_streak', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch subject streaks:', error);
+      return [];
+    }
+
+    return (data || []).map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      subjectId: row.subject_id,
+      currentStreak: row.current_streak,
+      longestStreak: row.longest_streak,
+      lastCompletionWeek: row.last_completion_week,
+      updatedAt: row.updated_at,
+    }));
+  } catch (err) {
+    console.error('Error fetching subject streaks:', err);
+    return [];
   }
 }
 

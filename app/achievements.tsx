@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { LoadingSpinner } from '@/components/ui';
+import { SubjectAchievementCard } from '@/components/feature';
 import { GoalPeriod, GoalSubject } from '@/services/studyGoalsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -17,7 +18,13 @@ export default function AchievementsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { achievements, streaks, isLoading: achievementsLoading } = useAchievements();
+  const { 
+    achievements, 
+    streaks, 
+    subjectCompletions, 
+    subjectStreaks, 
+    isLoading: achievementsLoading 
+  } = useAchievements();
   const { activeGoals, loadHistory, isLoading: goalsLoading } = useStudyGoals();
   
   const [weeklyHistory, setWeeklyHistory] = useState<GoalPeriod[]>([]);
@@ -283,34 +290,103 @@ export default function AchievementsScreen() {
             </View>
           )}
 
-          {/* Achievements */}
-          {achievements.length > 0 && (
+          {/* Subject Achievements (Cookie, Pizza, Ice Cream rewards!) */}
+          {achievements.filter(a => a.achievementType.startsWith('subject_')).length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="emoji-events" size={24} color={colors.premium} />
-                <Text style={styles.sectionTitle}>Earned Badges</Text>
+                <Text style={styles.sectionTitle}>Subject Achievements 🎉</Text>
+              </View>
+              
+              {achievements
+                .filter(a => a.achievementType.startsWith('subject_'))
+                .map(achievement => {
+                  // Extract reward message from description
+                  const reward = achievement.achievementDescription.includes('cookie')
+                    ? 'Treat yourself with a cookie!'
+                    : achievement.achievementDescription.includes('pizza')
+                    ? 'Pizza party time!'
+                    : achievement.achievementDescription.includes('ice cream')
+                    ? 'Ice cream reward!'
+                    : achievement.achievementDescription.includes('chocolate')
+                    ? 'You deserve chocolate!'
+                    : achievement.achievementDescription.includes('Anything you want')
+                    ? 'EPIC! Anything you want!'
+                    : undefined;
+
+                  return (
+                    <SubjectAchievementCard
+                      key={achievement.id}
+                      name={achievement.achievementName}
+                      description={achievement.achievementDescription}
+                      icon={achievement.iconName}
+                      earnedAt={achievement.earnedAt}
+                      reward={reward}
+                    />
+                  );
+                })}
+            </View>
+          )}
+
+          {/* Period Achievements (Weekly/Monthly/Term streaks) */}
+          {achievements.filter(a => !a.achievementType.startsWith('subject_')).length > 0 && (
+            <View style={styles.achievementsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="emoji-events" size={24} color={colors.premium} />
+                <Text style={styles.sectionTitle}>Period Achievements</Text>
               </View>
               
               <View style={styles.achievementsGrid}>
-                {achievements.map(achievement => (
-                  <View key={achievement.id} style={styles.achievementCard}>
-                    <MaterialIcons
-                      name={achievement.iconName as any}
-                      size={40}
-                      color={getAchievementColor(achievement.achievementType)}
-                    />
-                    <Text style={styles.achievementName}>{achievement.achievementName}</Text>
-                    <Text style={styles.achievementDesc}>{achievement.achievementDescription}</Text>
-                    <Text style={styles.achievementDate}>
-                      {new Date(achievement.earnedAt).toLocaleDateString('en-AU', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </Text>
+                {achievements
+                  .filter(a => !a.achievementType.startsWith('subject_'))
+                  .map(achievement => (
+                    <View key={achievement.id} style={styles.achievementCard}>
+                      <MaterialIcons
+                        name={achievement.iconName as any}
+                        size={40}
+                        color={getAchievementColor(achievement.achievementType)}
+                      />
+                      <Text style={styles.achievementName}>{achievement.achievementName}</Text>
+                      <Text style={styles.achievementDesc}>{achievement.achievementDescription}</Text>
+                      <Text style={styles.achievementDate}>
+                        {new Date(achievement.earnedAt).toLocaleDateString('en-AU', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            </View>
+          )}
+
+          {/* Subject Streaks */}
+          {subjectStreaks.filter(s => s.currentStreak > 0).length > 0 && (
+            <View style={styles.achievementsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
+                <Text style={styles.sectionTitle}>Subject Streaks 🔥</Text>
+              </View>
+              
+              {subjectStreaks
+                .filter(s => s.currentStreak > 0)
+                .map(streak => (
+                  <View key={streak.id} style={styles.subjectStreakCard}>
+                    <View style={styles.subjectStreakInfo}>
+                      <Text style={styles.subjectStreakName}>
+                        {getSubjectName(streak.subjectId)}
+                      </Text>
+                      <Text style={styles.subjectStreakDesc}>
+                        {streak.currentStreak} consecutive week{streak.currentStreak !== 1 ? 's' : ''} at 100%+
+                      </Text>
+                    </View>
+                    <View style={styles.subjectStreakBadge}>
+                      <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
+                      <Text style={styles.subjectStreakNumber}>{streak.currentStreak}</Text>
+                    </View>
                   </View>
                 ))}
-              </View>
             </View>
           )}
 
@@ -699,5 +775,43 @@ const styles = StyleSheet.create({
     fontWeight: typography.semibold,
     minWidth: 42,
     textAlign: 'right',
+  },
+  subjectStreakCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.warning + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  subjectStreakInfo: {
+    flex: 1,
+  },
+  subjectStreakName: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  subjectStreakDesc: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  subjectStreakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.warning + '20',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  subjectStreakNumber: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.warning,
   },
 });

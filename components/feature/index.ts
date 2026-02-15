@@ -5,3 +5,4 @@ export { UpcomingAssessmentCard } from './UpcomingAssessmentCard';
 export { StudyGoalRing } from './StudyGoalRing';
 export { CelebrationOverlay } from './CelebrationOverlay';
 export { GoalAlertBanner } from './GoalAlertBanner';
+export { SubjectAchievementCard } from './SubjectAchievementCard';

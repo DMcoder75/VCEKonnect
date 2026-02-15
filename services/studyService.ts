@@ -92,12 +92,19 @@ export async function startStudySession(
   }
 }
 
-// End a study session
+// End a study session and detect achievements
 export async function endStudySession(
   sessionId: string,
+  userId: string,
   durationMinutes: number
-): Promise<{ error: string | null }> {
+): Promise<{ 
+  error: string | null;
+  newAchievements?: any[];
+  totalSubjectCompletions?: number;
+  perfectWeek?: boolean;
+}> {
   try {
+    // Step 1: Save study session
     const { error } = await supabase
       .from('vk_study_sessions')
       .update({
@@ -107,7 +114,24 @@ export async function endStudySession(
       .eq('id', sessionId);
 
     if (error) return { error: error.message };
-    return { error: null };
+
+    // Step 2: Detect subject achievements (cookie rewards, streaks, etc.)
+    const { data: achievementData, error: achievementError } = await supabase.rpc(
+      'detect_subject_achievements',
+      { p_user_id: userId }
+    );
+
+    if (achievementError) {
+      console.error('Failed to detect achievements:', achievementError);
+      // Don't fail the session save, just log the error
+    }
+
+    return { 
+      error: null,
+      newAchievements: achievementData?.newAchievements || [],
+      totalSubjectCompletions: achievementData?.totalSubjectCompletions || 0,
+      perfectWeek: achievementData?.perfectWeek || false,
+    };
   } catch (err: any) {
     return { error: err.message || 'Failed to end session' };
   }

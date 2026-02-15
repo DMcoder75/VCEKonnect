@@ -57,10 +57,21 @@ export function useStudyTimer() {
 
     console.log(`⏱️ Stopping timer: ${Math.round(durationMinutes)} minutes for subject ${activeSubject}`);
 
-    // Step 1: End the study session
-    const { error } = await endStudySession(activeSessionId, durationMinutes);
+    // Step 1: End the study session and detect achievements
+    const { error, newAchievements } = await endStudySession(
+      activeSessionId,
+      user.id,
+      durationMinutes
+    );
+    
     if (error) {
       console.error('Failed to stop timer:', error);
+    }
+
+    // Log new achievements (if any)
+    if (newAchievements && newAchievements.length > 0) {
+      console.log('🎉 New achievements unlocked:', newAchievements);
+      // Achievements will be displayed in the achievements page automatically
     }
 
     // Step 2: Update goal progress (CRITICAL for real-time dashboard updates)
