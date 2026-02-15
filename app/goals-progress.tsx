@@ -77,7 +77,7 @@ export default function GoalsProgressScreen() {
           <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Goals Progress</Text>
-        <Pressable onPress={() => router.push('/goals')} style={styles.iconButton}>
+        <Pressable onPress={() => router.push('/goals')} style={styles.editButton}>
           <MaterialIcons name="edit" size={20} color={colors.primary} />
         </Pressable>
       </View>
@@ -352,9 +352,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   editButton: {
-    padding: spacing.xs,
-  },
-  iconButton: {
     padding: spacing.xs,
   },
   scrollView: {
