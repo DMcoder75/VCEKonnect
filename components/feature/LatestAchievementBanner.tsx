@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Achievement } from '@/services/achievementsService';
@@ -10,6 +10,34 @@ interface LatestAchievementBannerProps {
 }
 
 export function LatestAchievementBanner({ achievement, onPress }: LatestAchievementBannerProps) {
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [descriptionWidth, setDescriptionWidth] = React.useState(0);
+  const [containerWidth, setContainerWidth] = React.useState(0);
+
+  useEffect(() => {
+    if (descriptionWidth > containerWidth && containerWidth > 0) {
+      // Start scrolling animation if text overflows
+      const scrollDistance = descriptionWidth - containerWidth;
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(1000), // Wait 1s before scrolling
+          Animated.timing(scrollX, {
+            toValue: -scrollDistance,
+            duration: scrollDistance * 30, // Slower scroll (30ms per pixel)
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1000), // Wait 1s at end
+          Animated.timing(scrollX, {
+            toValue: 0,
+            duration: scrollDistance * 30,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [descriptionWidth, containerWidth]);
   // Helper to map icon names to MaterialIcons
   function getIconName(iconName: string): any {
     const iconMap: Record<string, any> = {
@@ -38,21 +66,15 @@ export function LatestAchievementBanner({ achievement, onPress }: LatestAchievem
     return colors.primary;
   }
 
-  const earnedTime = new Date(achievement.earnedAt);
-  const now = new Date();
-  const minutesAgo = Math.floor((now.getTime() - earnedTime.getTime()) / (1000 * 60));
-  const hoursAgo = Math.floor(minutesAgo / 60);
-
-  let timeText = '';
-  if (minutesAgo < 1) {
-    timeText = 'Just now';
-  } else if (minutesAgo < 60) {
-    timeText = `${minutesAgo}m ago`;
-  } else if (hoursAgo < 24) {
-    timeText = `${hoursAgo}h ago`;
-  } else {
-    timeText = earnedTime.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
-  }
+  // Extract subject name from metadata
+  const subjectName = achievement.metadata?.subjectCode || achievement.metadata?.subjectName || 'Subject';
+  const periodType = achievement.achievementType.includes('weekly') ? 'weekly' : 
+                     achievement.achievementType.includes('monthly') ? 'monthly' : '';
+  
+  // Format description as: "Completed {subject} {period} goal! {original description}"
+  const formattedDescription = periodType 
+    ? `Completed ${subjectName} ${periodType} goal! ${achievement.achievementDescription.split(' - ')[1] || achievement.achievementDescription}`
+    : achievement.achievementDescription;
 
   return (
     <Pressable
@@ -71,15 +93,26 @@ export function LatestAchievementBanner({ achievement, onPress }: LatestAchievem
             color={getIconColor(achievement.achievementType)}
           />
         </View>
-        <View style={styles.textContainer}>
+        <View 
+          style={styles.textContainer}
+          onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+        >
           <View style={styles.titleRow}>
             <Text style={styles.newBadge}>NEW</Text>
-            <Text style={styles.time}>{timeText}</Text>
           </View>
           <Text style={styles.title}>{achievement.achievementName}</Text>
-          <Text style={styles.description} numberOfLines={2}>
-            {achievement.achievementDescription}
-          </Text>
+          <View style={styles.descriptionContainer}>
+            <Animated.Text
+              style={[
+                styles.description,
+                { transform: [{ translateX: scrollX }] },
+              ]}
+              numberOfLines={1}
+              onLayout={(e) => setDescriptionWidth(e.nativeEvent.layout.width)}
+            >
+              {formattedDescription}
+            </Animated.Text>
+          </View>
         </View>
       </View>
       <MaterialIcons name="chevron-right" size={20} color={colors.textSecondary} />
@@ -120,7 +153,6 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
     marginBottom: spacing.xs,
   },
   newBadge: {
@@ -133,9 +165,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  time: {
-    fontSize: typography.caption,
-    color: colors.textTertiary,
+  descriptionContainer: {
+    overflow: 'hidden',
   },
   title: {
     fontSize: typography.body,

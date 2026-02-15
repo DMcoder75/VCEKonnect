@@ -5,8 +5,8 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Achievement } from '@/services/achievementsService';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const ANIMATION_DURATION = 3000; // 3 seconds total
-const TOAST_HEIGHT = 80;
+const ANIMATION_DURATION = 6000; // 6 seconds total (slower)
+const TOAST_HEIGHT = 60;
 
 interface AchievementLaunchToastProps {
   achievement: Achievement;
@@ -18,42 +18,42 @@ export function AchievementLaunchToast({ achievement, onComplete }: AchievementL
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animation sequence:
-    // 1. Slide up from bottom to 80% screen (0.8s)
-    // 2. Stay visible at 80% (1.5s)
-    // 3. Fade out while continuing upward to ~75% (0.7s)
+    // Animation sequence (slower, stays lower on screen):
+    // 1. Slide up from bottom to 20% from bottom (1.5s)
+    // 2. Stay visible at 20% (3s)
+    // 3. Fade out while continuing upward to ~15% (1.5s)
     
-    const targetPosition = SCREEN_HEIGHT * 0.8; // 80% from bottom
-    const fadeOutPosition = SCREEN_HEIGHT * 0.75; // 75% from bottom
+    const targetPosition = SCREEN_HEIGHT * 0.2; // 20% from bottom (stay lower)
+    const fadeOutPosition = SCREEN_HEIGHT * 0.25; // 25% from bottom
 
     Animated.sequence([
-      // Phase 1: Slide up and fade in (800ms)
+      // Phase 1: Slide up and fade in (1500ms)
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: -targetPosition,
-          duration: 800,
+          duration: 1500,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
           toValue: 0.8, // 80% visible
-          duration: 600,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ]),
       
-      // Phase 2: Stay visible (1500ms)
-      Animated.delay(1500),
+      // Phase 2: Stay visible (3000ms)
+      Animated.delay(3000),
       
-      // Phase 3: Continue upward and fade out (700ms)
+      // Phase 3: Continue upward and fade out (1500ms)
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: -fadeOutPosition,
-          duration: 700,
+          duration: 1500,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
           toValue: 0,
-          duration: 700,
+          duration: 1500,
           useNativeDriver: true,
         }),
       ]),
@@ -92,6 +92,11 @@ export function AchievementLaunchToast({ achievement, onComplete }: AchievementL
 
   const accentColor = getColor(achievement.achievementType);
 
+  // Extract subject name from metadata or description
+  const subjectName = achievement.metadata?.subjectCode || achievement.metadata?.subjectName || 'Subject';
+  const periodType = achievement.achievementType.includes('weekly') ? 'weekly' : 
+                     achievement.achievementType.includes('monthly') ? 'monthly' : 'goal';
+
   return (
     <Animated.View
       style={[
@@ -99,26 +104,18 @@ export function AchievementLaunchToast({ achievement, onComplete }: AchievementL
         {
           transform: [{ translateY }],
           opacity,
-          borderColor: accentColor,
+          backgroundColor: accentColor + '15',
         },
       ]}
     >
-      <View style={[styles.iconContainer, { backgroundColor: accentColor + '30' }]}>
-        <MaterialIcons
-          name={getIconName(achievement.iconName)}
-          size={40}
-          color={accentColor}
-        />
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.badge}>🎉 ACHIEVEMENT UNLOCKED</Text>
-        <Text style={styles.title} numberOfLines={1}>
-          {achievement.achievementName}
-        </Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {achievement.achievementDescription}
-        </Text>
-      </View>
+      <Text style={styles.simpleMessage}>
+        <Text style={styles.icon}>{achievement.iconName === 'cookie' ? '🍪' : 
+                                    achievement.iconName === 'pizza' ? '🍕' : 
+                                    achievement.iconName === 'ice-cream' ? '🍦' : 
+                                    achievement.iconName === 'chocolate' ? '🍫' : 
+                                    achievement.iconName === 'trophy' ? '🏆' : '⭐'}</Text>
+        <Text style={styles.messageText}> {subjectName} {periodType} achievement</Text>
+      </Text>
     </Animated.View>
   );
 }
@@ -127,47 +124,30 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 0,
-    left: spacing.md,
-    right: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    borderWidth: 3,
+    left: spacing.lg,
+    right: spacing.lg,
+    borderRadius: borderRadius.full,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    minHeight: TOAST_HEIGHT,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.md,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: TOAST_HEIGHT,
   },
-  textContainer: {
-    flex: 1,
+  simpleMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  badge: {
-    fontSize: 10,
-    fontWeight: typography.bold,
-    color: colors.premium,
-    marginBottom: spacing.xs,
-    letterSpacing: 0.5,
+  icon: {
+    fontSize: 20,
   },
-  title: {
-    fontSize: typography.h3,
-    fontWeight: typography.bold,
+  messageText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  description: {
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
   },
 });
