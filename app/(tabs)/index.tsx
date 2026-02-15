@@ -84,6 +84,21 @@ export default function DashboardScreen() {
     startTimer(subjectId);
   }
 
+  // Calculate live progress including current timer session
+  function calculateLiveProgress(
+    period: { achievedHours: number; targetHours: number; subjects?: any[] } | undefined,
+    currentSubject: string | null
+  ): number {
+    if (!period || !isRunning || !currentSubject) {
+      return period?.achievedHours ? (period.achievedHours / period.targetHours) * 100 : 0;
+    }
+    
+    // Add current elapsed time to achieved hours
+    const currentSessionHours = elapsedSeconds / 3600;
+    const liveAchieved = period.achievedHours + currentSessionHours;
+    return (liveAchieved / period.targetHours) * 100;
+  }
+
   async function handleStopTimer() {
     await stopTimer();
     loadAllTime();
@@ -184,6 +199,12 @@ export default function DashboardScreen() {
               <View style={styles.goalsHeaderLeft}>
                 <MaterialIcons name="flag" size={20} color={colors.primary} />
                 <Text style={styles.goalsTitle}>Goal Progress Summary</Text>
+                {isRunning && (
+                  <View style={styles.liveIndicator}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>LIVE</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.goalsHeaderButtons}>
                 <Pressable
@@ -209,6 +230,8 @@ export default function DashboardScreen() {
                   progressPercent={activeGoals.weekly.progressPercent}
                   size="large"
                   icon="calendar-today"
+                  isActive={isRunning}
+                  liveProgress={calculateLiveProgress(activeGoals.weekly, activeSubject)}
                 />
               )}
               {activeGoals.monthly && (
@@ -219,6 +242,8 @@ export default function DashboardScreen() {
                   progressPercent={activeGoals.monthly.progressPercent}
                   size="medium"
                   icon="event-note"
+                  isActive={isRunning}
+                  liveProgress={calculateLiveProgress(activeGoals.monthly, activeSubject)}
                 />
               )}
               {activeGoals.term && (
@@ -229,6 +254,8 @@ export default function DashboardScreen() {
                   progressPercent={activeGoals.term.progressPercent}
                   size="medium"
                   icon="school"
+                  isActive={isRunning}
+                  liveProgress={calculateLiveProgress(activeGoals.term, activeSubject)}
                 />
               )}
             </View>
@@ -689,5 +716,27 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
     textAlign: 'center',
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.error,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginLeft: spacing.sm,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.textPrimary,
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
 });

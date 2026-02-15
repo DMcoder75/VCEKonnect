@@ -11,6 +11,8 @@ interface StudyGoalRingProps {
   progressPercent: number;
   size?: 'small' | 'medium' | 'large';
   icon?: keyof typeof MaterialIcons.glyphMap;
+  isActive?: boolean; // True when timer is running for this goal
+  liveProgress?: number; // Real-time progress including current timer
 }
 
 export function StudyGoalRing({
@@ -20,8 +22,11 @@ export function StudyGoalRing({
   progressPercent,
   size = 'medium',
   icon,
+  isActive = false,
+  liveProgress,
 }: StudyGoalRingProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const previousProgress = useRef(0);
   // Size configs
@@ -34,57 +39,124 @@ export function StudyGoalRing({
   const config = sizeConfig[size];
   const radius = (config.ring - config.stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(100, Math.max(0, progressPercent));
+  // Use live progress when timer is active, otherwise use stored progress
+  const displayProgress = isActive && liveProgress !== undefined ? liveProgress : progressPercent;
+  const progress = Math.min(100, Math.max(0, displayProgress));
   
-  // Celebrate when goal is achieved
+  // Pulsing glow animation when timer is active
   useEffect(() => {
-    if (progress >= 100 && previousProgress.current < 100) {
-      // Pulse animation for celebration
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 300,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 300,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (isActive) {
+      // Continuous pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 1200,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1200,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+      
+      // Glow animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      // Reset to normal when inactive
+      pulseAnim.setValue(1);
+      glowAnim.setValue(0);
+      
+      // Celebrate when goal is achieved
+      if (progress >= 100 && previousProgress.current < 100) {
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.15,
+            duration: 300,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 300,
+            easing: Easing.in(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
     }
     previousProgress.current = progress;
-  }, [progress]);
+  }, [isActive, progress]);
   
-  // Smooth progress animation
+  // Smooth progress animation (faster when active for real-time feel)
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progress,
-      duration: 800,
-      easing: Easing.out(Easing.cubic),
+      duration: isActive ? 300 : 800,
+      easing: isActive ? Easing.linear : Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [progress]);
+  }, [progress, isActive]);
   
   const animatedStrokeDashoffset = progressAnim.interpolate({
     inputRange: [0, 100],
     outputRange: [circumference, 0],
   });
   
-  // Color based on progress
+  // Color based on progress with smooth transitions
   const getColor = () => {
     if (progress >= 100) return colors.success;
+    if (progress >= 90) return '#00d084'; // Bright green approaching completion
     if (progress >= 75) return colors.primary;
     if (progress >= 50) return colors.warning;
+    if (progress >= 25) return '#ff9500'; // Orange
     return colors.error;
   };
   
   const ringColor = getColor();
+  
+  // Animated glow opacity
+  const glowOpacity = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.8],
+  });
 
   return (
     <Animated.View style={[styles.container, { transform: [{ scale: pulseAnim }] }]}>
+      {/* Glow effect when active */}
+      {isActive && (
+        <Animated.View
+          style={[
+            styles.glowRing,
+            {
+              width: config.ring + 16,
+              height: config.ring + 16,
+              borderRadius: (config.ring + 16) / 2,
+              opacity: glowOpacity,
+              backgroundColor: ringColor,
+            },
+          ]}
+        />
+      )}
       {/* Trophy icon for 100% completion */}
       {progress >= 100 && (
         <View style={styles.trophyBadge}>
@@ -149,6 +221,17 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     position: 'relative',
+  },
+  glowRing: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    opacity: 0.3,
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 8,
   },
   trophyBadge: {
     position: 'absolute',
