@@ -244,6 +244,49 @@ export async function getSubjectStreaks(userId: string): Promise<SubjectStreak[]
   }
 }
 
+// Deactivate expired goals (end_date < current_date)
+export async function deactivateExpiredGoals(userId: string): Promise<{
+  success: boolean;
+  totalDeactivated: number;
+  weeklyDeactivated: number;
+  monthlyDeactivated: number;
+  termDeactivated: number;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('deactivate_expired_goals', {
+      p_user_id: userId,
+    });
+
+    if (error) {
+      console.error('Failed to deactivate expired goals:', error);
+      return {
+        success: false,
+        totalDeactivated: 0,
+        weeklyDeactivated: 0,
+        monthlyDeactivated: 0,
+        termDeactivated: 0,
+      };
+    }
+
+    return {
+      success: data.success,
+      totalDeactivated: data.total_deactivated,
+      weeklyDeactivated: data.weekly_deactivated,
+      monthlyDeactivated: data.monthly_deactivated,
+      termDeactivated: data.term_deactivated,
+    };
+  } catch (err: any) {
+    console.error('Error deactivating expired goals:', err);
+    return {
+      success: false,
+      totalDeactivated: 0,
+      weeklyDeactivated: 0,
+      monthlyDeactivated: 0,
+      termDeactivated: 0,
+    };
+  }
+}
+
 // Check if user needs weekly reset
 export async function checkNeedsWeeklyReset(userId: string): Promise<{
   needsReset: boolean;
@@ -251,6 +294,9 @@ export async function checkNeedsWeeklyReset(userId: string): Promise<{
   hasActiveWeeklyGoal: boolean;
 }> {
   try {
+    // FIRST: Deactivate any expired goals before checking
+    await deactivateExpiredGoals(userId);
+
     // Get start of current week (Monday)
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
