@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
-import { StudyGoalRing } from '@/components/feature';
+import { StudyGoalRing, CelebrationOverlay, GoalAlertBanner } from '@/components/feature';
 import { LoadingSpinner } from '@/components/ui';
 
 export default function GoalsProgressScreen() {
@@ -19,12 +19,99 @@ export default function GoalsProgressScreen() {
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    show: boolean;
+    type: 'week_complete' | 'on_pace' | 'behind_pace' | 'milestone';
+    message: string;
+  }>({ show: false, type: 'on_pace', message: '' });
+  
+  const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
   useEffect(() => {
     if (user) {
       loadSubjects();
     }
   }, [user]);
+  
+  // Monitor goal completion and trigger celebrations
+  useEffect(() => {
+    if (!activeGoals || !previousGoalsRef.current) {
+      previousGoalsRef.current = activeGoals;
+      return;
+    }
+    
+    const prev = previousGoalsRef.current;
+    
+    // Check weekly goal completion
+    if (
+      activeGoals.weekly &&
+      prev.weekly &&
+      activeGoals.weekly.progressPercent >= 100 &&
+      prev.weekly.progressPercent < 100
+    ) {
+      setShowCelebration(true);
+      setAlertConfig({
+        show: true,
+        type: 'week_complete',
+        message: '🎉 Weekly goal achieved! You are crushing it!',
+      });
+    }
+    // Check monthly goal completion
+    else if (
+      activeGoals.monthly &&
+      prev.monthly &&
+      activeGoals.monthly.progressPercent >= 100 &&
+      prev.monthly.progressPercent < 100
+    ) {
+      setShowCelebration(true);
+      setAlertConfig({
+        show: true,
+        type: 'week_complete',
+        message: '🏆 Monthly goal complete! Outstanding dedication!',
+      });
+    }
+    // Check term goal completion
+    else if (
+      activeGoals.term &&
+      prev.term &&
+      activeGoals.term.progressPercent >= 100 &&
+      prev.term.progressPercent < 100
+    ) {
+      setShowCelebration(true);
+      setAlertConfig({
+        show: true,
+        type: 'week_complete',
+        message: '👑 Term goal achieved! You are a study champion!',
+      });
+    }
+    // Check milestone progress (50%, 75%)
+    else if (
+      activeGoals.weekly &&
+      prev.weekly &&
+      activeGoals.weekly.progressPercent >= 50 &&
+      prev.weekly.progressPercent < 50
+    ) {
+      setAlertConfig({
+        show: true,
+        type: 'milestone',
+        message: '⭐ Halfway to weekly goal! Keep it up!',
+      });
+    } else if (
+      activeGoals.weekly &&
+      prev.weekly &&
+      activeGoals.weekly.progressPercent >= 75 &&
+      prev.weekly.progressPercent < 75
+    ) {
+      setAlertConfig({
+        show: true,
+        type: 'on_pace',
+        message: '🔥 75% done! Almost at your weekly goal!',
+      });
+    }
+    
+    previousGoalsRef.current = activeGoals;
+  }, [activeGoals]);
 
   async function loadSubjects() {
     if (!user) return;
@@ -82,6 +169,11 @@ export default function GoalsProgressScreen() {
         </Pressable>
       </View>
 
+      <CelebrationOverlay
+        show={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+      />
+      
       {isLoading ? (
         <LoadingSpinner message="Loading your progress..." />
       ) : !activeGoals?.weekly && !activeGoals?.monthly && !activeGoals?.term ? (
@@ -103,6 +195,14 @@ export default function GoalsProgressScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Goal Alert Banner */}
+          <GoalAlertBanner
+            show={alertConfig.show}
+            type={alertConfig.type}
+            message={alertConfig.message}
+            onDismiss={() => setAlertConfig({ ...alertConfig, show: false })}
+          />
+          
           {/* Overall Message */}
           <View style={styles.messageCard}>
             <Text style={styles.messageText}>{getOverallMessage()}</Text>

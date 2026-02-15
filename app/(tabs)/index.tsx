@@ -11,7 +11,7 @@ import { useATAR } from '@/hooks/useATAR';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { ATARDisplay, LoadingSpinner } from '@/components/ui';
-import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing } from '@/components/feature';
+import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay } from '@/components/feature';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -29,6 +29,9 @@ export default function DashboardScreen() {
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
+  
+  const previousGoalsRef = React.useRef<any>(null);
 
   const prediction = getPrediction();
 
@@ -83,7 +86,28 @@ export default function DashboardScreen() {
   async function handleStopTimer() {
     await stopTimer();
     loadAllTime();
-    loadActiveGoals(); // Refresh goal progress after timer stops
+    
+    // Save previous goals state before reload
+    const prevGoals = activeGoals;
+    
+    await loadActiveGoals(); // Refresh goal progress after timer stops
+    
+    // Check if any goal just completed
+    if (prevGoals && activeGoals) {
+      const weeklyCompleted = 
+        activeGoals.weekly?.progressPercent >= 100 && 
+        prevGoals.weekly?.progressPercent < 100;
+      const monthlyCompleted = 
+        activeGoals.monthly?.progressPercent >= 100 && 
+        prevGoals.monthly?.progressPercent < 100;
+      const termCompleted = 
+        activeGoals.term?.progressPercent >= 100 && 
+        prevGoals.term?.progressPercent < 100;
+      
+      if (weeklyCompleted || monthlyCompleted || termCompleted) {
+        setShowCelebration(true);
+      }
+    }
   }
 
   async function handleCompleteEvent(eventId: string) {
@@ -118,6 +142,10 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <CelebrationOverlay
+        show={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+      />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

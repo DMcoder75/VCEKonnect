@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { colors, spacing, typography } from '@/constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -20,6 +20,9 @@ export function StudyGoalRing({
   size = 'medium',
   icon,
 }: StudyGoalRingProps) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const previousProgress = useRef(0);
   // Size configs
   const sizeConfig = {
     small: { ring: 60, stroke: 6, fontSize: 14, iconSize: 16 },
@@ -31,7 +34,43 @@ export function StudyGoalRing({
   const radius = (config.ring - config.stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = Math.min(100, Math.max(0, progressPercent));
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  
+  // Celebrate when goal is achieved
+  useEffect(() => {
+    if (progress >= 100 && previousProgress.current < 100) {
+      // Pulse animation for celebration
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    previousProgress.current = progress;
+  }, [progress]);
+  
+  // Smooth progress animation
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+  
+  const animatedStrokeDashoffset = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+  });
   
   // Color based on progress
   const getColor = () => {
@@ -44,7 +83,14 @@ export function StudyGoalRing({
   const ringColor = getColor();
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { transform: [{ scale: pulseAnim }] }]}>
+      {/* Trophy icon for 100% completion */}
+      {progress >= 100 && (
+        <View style={styles.trophyBadge}>
+          <MaterialIcons name="emoji-events" size={16} color={colors.premium} />
+        </View>
+      )}
+      
       {/* Progress Ring */}
       <View style={[styles.ringContainer, { width: config.ring, height: config.ring }]}>
         {/* Background circle */}
@@ -57,8 +103,8 @@ export function StudyGoalRing({
             strokeWidth={config.stroke}
             fill="none"
           />
-          {/* Progress circle */}
-          <circle
+          {/* Progress circle - will be replaced with Animated version in React Native Web */}
+          <AnimatedCircle
             cx={config.ring / 2}
             cy={config.ring / 2}
             r={radius}
@@ -66,7 +112,7 @@ export function StudyGoalRing({
             strokeWidth={config.stroke}
             fill="none"
             strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
+            strokeDashoffset={animatedStrokeDashoffset}
             strokeLinecap="round"
             transform={`rotate(-90 ${config.ring / 2} ${config.ring / 2})`}
           />
@@ -90,13 +136,33 @@ export function StudyGoalRing({
           {achievedHours.toFixed(1)}/{targetHours}h
         </Text>
       </View>
-    </View>
+    </Animated.View>
   );
 }
+
+// Animated SVG Circle component
+const AnimatedCircle = Animated.createAnimatedComponent(
+  (props: any) => <circle {...props} />
+);
 
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    position: 'relative',
+  },
+  trophyBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.premium,
+    zIndex: 10,
   },
   ringContainer: {
     position: 'relative',
