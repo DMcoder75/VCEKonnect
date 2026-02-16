@@ -1,8 +1,14 @@
+
 // DalsiAI API Service for FairPrep
 // API Documentation: https://api.neodalsi.com
 
+import { getSupabaseClient } from '@/template';
+
 const DALSI_API_KEY = 'sk-dalsi-b2b6c7d012b1cbac235c7aeef7c2b9191ec6fdbe7226bc3db1e1880ab8cd6bf6';
 const DALSI_API_BASE = 'https://api.neodalsi.com';
+
+// Use Edge Function proxy to bypass CORS in web preview
+const USE_PROXY = true;
 
 export type AIMode = 'short' | 'medium' | 'long' | 'detailed';
 
@@ -45,45 +51,67 @@ export async function generateAIResponse(
   request: AIRequest
 ): Promise<{ data: AIResponse | null; error: string | null }> {
   try {
-    const response = await fetch(`${DALSI_API_BASE}/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': DALSI_API_KEY,
-      },
-      body: JSON.stringify({
-        message: request.message,
-        mode: request.mode || 'medium',
-        session_id: request.session_id,
-        user_id: request.user_id,
-      }),
-    });
+    let response: Response;
 
-    if (!response.ok) {
-      // Capture full error response for debugging
-      let errorDetails = '';
-      try {
-        const errorText = await response.text();
-        errorDetails = errorText;
-      } catch (parseErr) {
-        errorDetails = 'Could not parse error response';
+    if (USE_PROXY) {
+      // Use Edge Function proxy (bypasses CORS)
+      const supabase = getSupabaseClient();
+      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('dalsi-ai-proxy', {
+        body: {
+          message: request.message,
+          mode: request.mode || 'medium',
+          user_id: request.user_id,
+        },
+      });
+
+      if (proxyError) {
+        throw new Error(`Proxy error: ${proxyError.message}`);
       }
 
-      const errorMessage = `API Error ${response.status}: ${response.statusText}\n\nFull Response:\n${errorDetails}`;
-      
-      if (response.status === 401) {
-        return { data: null, error: `Invalid API key\n\n${errorMessage}` };
-      } else if (response.status === 429) {
-        return { data: null, error: `Rate limit exceeded\n\n${errorMessage}` };
-      } else if (response.status === 524) {
-        return { data: null, error: `Request timeout\n\n${errorMessage}` };
-      } else {
-        return { data: null, error: errorMessage };
+      // Edge function returns data directly, not a Response object
+      return { data: proxyData as AIResponse, error: null };
+    } else {
+      // Direct API call (works on mobile, may fail on web due to CORS)
+      response = await fetch(`${DALSI_API_BASE}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': DALSI_API_KEY,
+        },
+        body: JSON.stringify({
+          message: request.message,
+          mode: request.mode || 'medium',
+          session_id: request.session_id,
+          user_id: request.user_id,
+        }),
+      });
+
+      if (!response.ok) {
+        // Capture full error response for debugging
+        let errorDetails = '';
+        try {
+          const errorText = await response.text();
+          errorDetails = errorText;
+        } catch (parseErr) {
+          errorDetails = 'Could not parse error response';
+        }
+
+        const errorMessage = `API Error ${response.status}: ${response.statusText}\n\nFull Response:\n${errorDetails}`;
+
+        if (response.status === 401) {
+          return { data: null, error: `Invalid API key\n\n${errorMessage}` };
+        } else if (response.status === 429) {
+          return { data: null, error: `Rate limit exceeded\n\n${errorMessage}` };
+        } else if (response.status === 524) {
+          return { data: null, error: `Request timeout\n\n${errorMessage}` };
+        } else {
+          return { data: null, error: errorMessage };
+        }
       }
+
+      const data: AIResponse = await response.json();
+      return { data, error: null };
     }
-
-    const data: AIResponse = await response.json();
-    return { data, error: null };
   } catch (err: any) {
     console.error('AI service error:', err);
     const detailedError = `Network Error: ${err.message}\n\nStack: ${err.stack || 'No stack trace'}`;
