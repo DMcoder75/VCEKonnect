@@ -7,8 +7,8 @@ import { getSupabaseClient } from '@/template';
 const DALSI_API_KEY = 'sk-dalsi-b2b6c7d012b1cbac235c7aeef7c2b9191ec6fdbe7226bc3db1e1880ab8cd6bf6';
 const DALSI_API_BASE = 'https://api.neodalsi.com';
 
-// Use Edge Function proxy to bypass CORS in web preview
-const USE_PROXY = true;
+// Direct API calls (works on mobile, may have CORS issues on web preview)
+const USE_PROXY = false;
 
 export type AIMode = 'short' | 'medium' | 'long' | 'detailed';
 
