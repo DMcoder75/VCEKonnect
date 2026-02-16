@@ -37,14 +37,18 @@ export default function ATARScreen() {
   const whatIfPrediction = showWhatIf ? calculateWhatIfATAR() : null;
   
   function calculateWhatIfATAR() {
+    if (subjectScores.length === 0) {
+      return { atar: 0, aggregate: 0 };
+    }
+    
     // Clone current scores and apply what-if changes
     const modifiedScores = subjectScores.map(score => {
       const whatIf = whatIfScores[score.subjectId];
       if (whatIf) {
         return {
           ...score,
-          sacAverage: whatIf.sac,
-          examPrediction: whatIf.exam,
+          sacAverage: whatIf.sac || score.sacAverage || 0,
+          examPrediction: whatIf.exam || score.examPrediction || 0,
         };
       }
       return score;
@@ -55,12 +59,13 @@ export default function ATARScreen() {
   }
   
   function getPredictionFromScores(scores: any[]) {
-    if (scores.length === 0) {
+    if (!scores || scores.length === 0) {
       return { atar: 0, aggregate: 0 };
     }
     
     // Simplified ATAR calculation (using same logic as atarCalculator)
     const studyScores = scores
+      .filter(s => s && (s.sacAverage || s.examPrediction)) // Only include scores with data
       .map(s => {
         const sac = s.sacAverage || 0;
         const exam = s.examPrediction || 0;
@@ -281,10 +286,10 @@ export default function ATARScreen() {
                           <Text style={styles.whatIfInputLabel}>SAC %</Text>
                           <TextInput
                             style={styles.whatIfInput}
-                            value={whatIf?.sac?.toString() || score.sacAverage.toString()}
+                            value={whatIf?.sac?.toString() || (score.sacAverage || 0).toString()}
                             onChangeText={(v) => setWhatIfScore(subject.id, 'sac', v)}
                             keyboardType="numeric"
-                            placeholder={score.sacAverage.toString()}
+                            placeholder={(score.sacAverage || 0).toString()}
                             placeholderTextColor={colors.textTertiary}
                           />
                         </View>
@@ -292,10 +297,10 @@ export default function ATARScreen() {
                           <Text style={styles.whatIfInputLabel}>Exam %</Text>
                           <TextInput
                             style={styles.whatIfInput}
-                            value={whatIf?.exam?.toString() || score.examPrediction.toString()}
+                            value={whatIf?.exam?.toString() || (score.examPrediction || 0).toString()}
                             onChangeText={(v) => setWhatIfScore(subject.id, 'exam', v)}
                             keyboardType="numeric"
-                            placeholder={score.examPrediction.toString()}
+                            placeholder={(score.examPrediction || 0).toString()}
                             placeholderTextColor={colors.textTertiary}
                           />
                         </View>
