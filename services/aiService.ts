@@ -68,6 +68,11 @@ export async function generateAIResponse(
         throw new Error(`Proxy error: ${proxyError.message}`);
       }
 
+      // Check if proxy returned an error in the response body
+      if (proxyData && typeof proxyData === 'object' && 'error' in proxyData) {
+        return { data: null, error: `${proxyData.error}${proxyData.details ? '\n\n' + proxyData.details : ''}` };
+      }
+
       // Edge function returns data directly, not a Response object
       return { data: proxyData as AIResponse, error: null };
     } else {
@@ -135,26 +140,24 @@ export async function generateStudyPlan(
     .map(([code, score]) => `${code}: ${score}%`)
     .join(', ');
 
-  const message = `Create a personalized VCE study plan for an Australian Year 12 student:
+  const message = `Create a VCE study plan:
 
 Target ATAR: ${targetATAR}
 Subjects: ${subjectsList}
 Current Scores: ${scoresList}
-Available Study Time: ${availableHoursPerWeek} hours/week
+Study Time: ${availableHoursPerWeek}h/week
 Exam Date: ${examDate}
 
-Generate a weekly study schedule that:
-1. Prioritizes subjects with lowest scores
-2. Allocates more time to high-scaling subjects (Specialist Maths, Chemistry, Physics)
-3. Includes review sessions and practice exams
-4. Suggests specific study techniques for each subject
-5. Balances workload across the week
+Provide:
+1. Daily schedule (Mon-Sun)
+2. Priority subjects
+3. Key study tips
 
-Format as a structured weekly plan with daily tasks.`;
+Keep it concise and actionable.`;
 
   return await generateAIResponse({
     message,
-    mode: 'long', // Use long mode for detailed study plan
+    mode: 'short', // Use short mode for faster response
     user_id: userId,
   });
 }

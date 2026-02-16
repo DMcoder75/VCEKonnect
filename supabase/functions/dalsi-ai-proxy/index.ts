@@ -35,13 +35,15 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('DalsiAI API error:', response.status, errorText);
+      // Always return 200 to mobile with error details in body
       return new Response(
         JSON.stringify({ 
           error: `API Error ${response.status}`,
-          details: errorText 
+          details: errorText,
+          response: `Unable to generate response. API returned error ${response.status}.`
         }),
         {
-          status: response.status,
+          status: 200, // Return 200 to avoid "non-2xx status code" error on mobile
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -54,13 +56,15 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Edge function error:', error);
+    // Always return 200 to mobile with error details in body
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',
-        details: error.stack 
+        details: error.stack,
+        response: 'Unable to generate response. Internal server error.'
       }),
       {
-        status: 500,
+        status: 200, // Return 200 to avoid "non-2xx status code" error on mobile
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

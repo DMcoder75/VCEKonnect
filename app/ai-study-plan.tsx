@@ -84,9 +84,10 @@ export default function AIStudyPlanScreen() {
       studyHoursPerWeek: parseFloat(hoursPerWeek),
     });
     
+    // Use short subject codes for concise AI prompt
     await createStudyPlan(
       user.id,
-      userSubjects.map(s => ({ code: s.code, name: s.name })),
+      userSubjects.map(s => ({ code: s.code, name: s.code })), // Use code as name for brevity
       parseFloat(targetATAR),
       currentScores,
       parseFloat(hoursPerWeek),
@@ -198,7 +199,7 @@ export default function AIStudyPlanScreen() {
             {isLoading && (
               <View style={styles.loadingCard}>
                 <LoadingSpinner message="AI is creating your personalized study plan..." />
-                <Text style={styles.loadingText}>This may take 10-20 seconds</Text>
+                <Text style={styles.loadingText}>This may take 2-5 seconds</Text>
               </View>
             )}
 
