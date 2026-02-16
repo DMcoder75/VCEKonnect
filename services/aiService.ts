@@ -60,14 +60,25 @@ export async function generateAIResponse(
     });
 
     if (!response.ok) {
+      // Capture full error response for debugging
+      let errorDetails = '';
+      try {
+        const errorText = await response.text();
+        errorDetails = errorText;
+      } catch (parseErr) {
+        errorDetails = 'Could not parse error response';
+      }
+
+      const errorMessage = `API Error ${response.status}: ${response.statusText}\n\nFull Response:\n${errorDetails}`;
+      
       if (response.status === 401) {
-        return { data: null, error: 'Invalid API key' };
+        return { data: null, error: `Invalid API key\n\n${errorMessage}` };
       } else if (response.status === 429) {
-        return { data: null, error: 'Rate limit exceeded. Please try again later.' };
+        return { data: null, error: `Rate limit exceeded\n\n${errorMessage}` };
       } else if (response.status === 524) {
-        return { data: null, error: 'Request timeout. Query too complex, try a simpler question.' };
+        return { data: null, error: `Request timeout\n\n${errorMessage}` };
       } else {
-        return { data: null, error: `API error: ${response.status}` };
+        return { data: null, error: errorMessage };
       }
     }
 
@@ -75,7 +86,8 @@ export async function generateAIResponse(
     return { data, error: null };
   } catch (err: any) {
     console.error('AI service error:', err);
-    return { data: null, error: err.message || 'Failed to generate AI response' };
+    const detailedError = `Network Error: ${err.message}\n\nStack: ${err.stack || 'No stack trace'}`;
+    return { data: null, error: detailedError };
   }
 }
 

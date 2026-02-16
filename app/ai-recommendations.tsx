@@ -164,11 +164,16 @@ export default function AIRecommendationsScreen() {
           </>
         )}
 
-        {/* Error Display */}
+        {/* Error Display - Debug Panel */}
         {error && (
           <View style={styles.errorCard}>
-            <MaterialIcons name="error-outline" size={24} color={colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.errorHeader}>
+              <MaterialIcons name="error-outline" size={24} color={colors.error} />
+              <Text style={styles.errorTitle}>API Error (Debug)</Text>
+            </View>
+            <ScrollView style={styles.errorScrollView} nestedScrollEnabled>
+              <Text style={styles.errorText}>{error}</Text>
+            </ScrollView>
           </View>
         )}
       </ScrollView>
@@ -315,19 +320,32 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginTop: spacing.md,
     borderWidth: 2,
     borderColor: colors.error,
+    maxHeight: 300,
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  errorTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.error,
+  },
+  errorScrollView: {
+    maxHeight: 250,
   },
   errorText: {
-    flex: 1,
-    fontSize: typography.bodySmall,
+    fontSize: 12,
     color: colors.error,
+    fontFamily: 'monospace',
+    lineHeight: 18,
   },
 });
