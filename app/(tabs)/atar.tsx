@@ -22,12 +22,89 @@ export default function ATARScreen() {
   const [sacInput, setSacInput] = useState('');
   const [examInput, setExamInput] = useState('');
   const [rankInput, setRankInput] = useState('');
+  
+  // What-if calculator state
+  const [showWhatIf, setShowWhatIf] = useState(false);
+  const [whatIfScores, setWhatIfScores] = useState<{ [subjectId: string]: { sac: number; exam: number } }>({});
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isLoadingScores, setIsLoadingScores] = useState(true);
   const prediction = getPrediction();
   const scenarios = getScenarios();
+  
+  // Calculate what-if ATAR
+  const whatIfPrediction = showWhatIf ? calculateWhatIfATAR() : null;
+  
+  function calculateWhatIfATAR() {
+    // Clone current scores and apply what-if changes
+    const modifiedScores = subjectScores.map(score => {
+      const whatIf = whatIfScores[score.subjectId];
+      if (whatIf) {
+        return {
+          ...score,
+          sacAverage: whatIf.sac,
+          examPrediction: whatIf.exam,
+        };
+      }
+      return score;
+    });
+    
+    // Use the same calculation logic from useATAR
+    return getPredictionFromScores(modifiedScores);
+  }
+  
+  function getPredictionFromScores(scores: any[]) {
+    if (scores.length === 0) {
+      return { atar: 0, aggregate: 0 };
+    }
+    
+    // Simplified ATAR calculation (using same logic as atarCalculator)
+    const studyScores = scores
+      .map(s => {
+        const sac = s.sacAverage || 0;
+        const exam = s.examPrediction || 0;
+        const rank = s.studyRank || 50;
+        
+        // Simple weighted average
+        const rawScore = sac * 0.4 + exam * 0.6;
+        
+        // Apply cohort scaling (simplified)
+        const scaledScore = rawScore * (1 + (rank - 50) / 200);
+        
+        return Math.max(0, Math.min(50, scaledScore));
+      })
+      .sort((a, b) => b - a);
+    
+    // Top 4 subjects (or all if less than 4)
+    const top4 = studyScores.slice(0, 4);
+    const aggregate = top4.reduce((sum, score) => sum + score, 0);
+    
+    // Add 10% of 5th and 6th subjects if available
+    if (studyScores[4]) aggregate += studyScores[4] * 0.1;
+    if (studyScores[5]) aggregate += studyScores[5] * 0.1;
+    
+    // Convert aggregate to ATAR (simplified)
+    const atar = Math.min(99.95, Math.max(0, aggregate / 2));
+    
+    return { atar, aggregate };
+  }
+  
+  function setWhatIfScore(subjectId: string, field: 'sac' | 'exam', value: string) {
+    const numValue = parseFloat(value) || 0;
+    setWhatIfScores(prev => ({
+      ...prev,
+      [subjectId]: {
+        ...(prev[subjectId] || { sac: 0, exam: 0 }),
+        [field]: numValue,
+      },
+    }));
+  }
+  
+  function resetWhatIf() {
+    setWhatIfScores({});
+    setShowWhatIf(false);
+  }
 
   useEffect(() => {
     loadSubjects();
@@ -104,6 +181,53 @@ export default function ATARScreen() {
               </Text>
             </View>
 
+            {/* What-If Calculator Toggle */}
+            <Pressable
+              style={[styles.whatIfToggle, showWhatIf && styles.whatIfToggleActive]}
+              onPress={() => setShowWhatIf(!showWhatIf)}
+            >
+              <MaterialIcons 
+                name="calculate" 
+                size={20} 
+                color={showWhatIf ? colors.background : colors.primary} 
+              />
+              <Text style={[styles.whatIfText, showWhatIf && styles.whatIfTextActive]}>
+                {showWhatIf ? 'Exit What-If Mode' : 'Try What-If Calculator'}
+              </Text>
+            </Pressable>
+
+            {/* What-If Results */}
+            {showWhatIf && whatIfPrediction && (
+              <View style={styles.whatIfCard}>
+                <View style={styles.whatIfHeader}>
+                  <MaterialIcons name="lightbulb-outline" size={24} color={colors.warning} />
+                  <Text style={styles.whatIfTitle}>What-If Scenario</Text>
+                </View>
+                <View style={styles.whatIfResults}>
+                  <View style={styles.whatIfResult}>
+                    <Text style={styles.whatIfLabel}>Predicted ATAR</Text>
+                    <Text style={[styles.whatIfValue, { color: colors.success }]}>
+                      {whatIfPrediction.atar.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.whatIfDivider} />
+                  <View style={styles.whatIfResult}>
+                    <Text style={styles.whatIfLabel}>Difference</Text>
+                    <Text style={[
+                      styles.whatIfValue,
+                      { color: whatIfPrediction.atar >= prediction.atar ? colors.success : colors.error }
+                    ]}>
+                      {whatIfPrediction.atar >= prediction.atar ? '+' : ''}
+                      {(whatIfPrediction.atar - prediction.atar).toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+                <Pressable style={styles.resetButton} onPress={resetWhatIf}>
+                  <Text style={styles.resetButtonText}>Reset Changes</Text>
+                </Pressable>
+              </View>
+            )}
+
             {/* Scenarios */}
             <View style={styles.scenariosCard}>
               <Text style={styles.sectionTitle}>ATAR Scenarios</Text>
@@ -143,10 +267,41 @@ export default function ATARScreen() {
             {userSubjects.map(subject => {
               const score = subjectScores.find(s => s.subjectId === subject.id);
               const isEditing = editingSubject === subject.id;
+              const whatIf = whatIfScores[subject.id];
+              const displaySac = showWhatIf && whatIf ? whatIf.sac : score?.sacAverage || 0;
+              const displayExam = showWhatIf && whatIf ? whatIf.exam : score?.examPrediction || 0;
 
               return (
                 <View key={subject.id} style={styles.subjectContainer}>
-                  {!isEditing && score ? (
+                  {showWhatIf && score ? (
+                    <View style={[styles.whatIfSubjectCard, whatIf && styles.whatIfSubjectCardActive]}>
+                      <Text style={styles.whatIfSubjectName}>{subject.name}</Text>
+                      <View style={styles.whatIfInputs}>
+                        <View style={styles.whatIfInputGroup}>
+                          <Text style={styles.whatIfInputLabel}>SAC %</Text>
+                          <TextInput
+                            style={styles.whatIfInput}
+                            value={whatIf?.sac?.toString() || score.sacAverage.toString()}
+                            onChangeText={(v) => setWhatIfScore(subject.id, 'sac', v)}
+                            keyboardType="numeric"
+                            placeholder={score.sacAverage.toString()}
+                            placeholderTextColor={colors.textTertiary}
+                          />
+                        </View>
+                        <View style={styles.whatIfInputGroup}>
+                          <Text style={styles.whatIfInputLabel}>Exam %</Text>
+                          <TextInput
+                            style={styles.whatIfInput}
+                            value={whatIf?.exam?.toString() || score.examPrediction.toString()}
+                            onChangeText={(v) => setWhatIfScore(subject.id, 'exam', v)}
+                            keyboardType="numeric"
+                            placeholder={score.examPrediction.toString()}
+                            placeholderTextColor={colors.textTertiary}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ) : !isEditing && score ? (
                     <Pressable onPress={() => handleEditSubject(subject.id)}>
                       <SubjectScoreCard
                         subjectId={subject.id}
@@ -379,6 +534,124 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  whatIfToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  whatIfToggleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  whatIfText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.primary,
+  },
+  whatIfTextActive: {
+    color: colors.background,
+  },
+  whatIfCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+  },
+  whatIfHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  whatIfTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  whatIfResults: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+  },
+  whatIfResult: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  whatIfLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  whatIfValue: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+  },
+  whatIfDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: spacing.md,
+  },
+  resetButton: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  resetButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  whatIfSubjectCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  whatIfSubjectCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceElevated,
+  },
+  whatIfSubjectName: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  whatIfInputs: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  whatIfInputGroup: {
+    flex: 1,
+  },
+  whatIfInputLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  whatIfInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   loadingContainer: {
     alignItems: 'center',

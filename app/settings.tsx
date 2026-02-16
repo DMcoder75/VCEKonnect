@@ -220,6 +220,36 @@ export default function SettingsScreen() {
             </View>
             <MaterialIcons name="arrow-forward" size={24} color={colors.textTertiary} />
           </Pressable>
+
+          {/* Study Analytics */}
+          <Pressable
+            style={[styles.appOptionCard, { marginTop: spacing.sm }]}
+            onPress={() => router.push('/analytics')}
+          >
+            <View style={styles.appOptionLeft}>
+              <MaterialIcons name="bar-chart" size={24} color={colors.success} />
+              <View>
+                <Text style={styles.appOptionTitle}>Study Analytics</Text>
+                <Text style={styles.appOptionDesc}>View your study insights and heatmap</Text>
+              </View>
+            </View>
+            <MaterialIcons name="arrow-forward" size={24} color={colors.textTertiary} />
+          </Pressable>
+
+          {/* Export Data */}
+          <Pressable
+            style={[styles.appOptionCard, { marginTop: spacing.sm }]}
+            onPress={() => router.push('/export-data')}
+          >
+            <View style={styles.appOptionLeft}>
+              <MaterialIcons name="file-download" size={24} color={colors.warning} />
+              <View>
+                <Text style={styles.appOptionTitle}>Export Data</Text>
+                <Text style={styles.appOptionDesc}>Backup your data in JSON or CSV format</Text>
+              </View>
+            </View>
+            <MaterialIcons name="arrow-forward" size={24} color={colors.textTertiary} />
+          </Pressable>
         </View>
 
         {/* Premium Status */}

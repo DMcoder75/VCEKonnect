@@ -513,6 +513,15 @@ export default function DashboardScreen() {
             <Text style={styles.actionDesc}>Plan your future</Text>
           </Pressable>
 
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => router.push('/analytics')}
+          >
+            <MaterialIcons name="bar-chart" size={32} color={colors.success} />
+            <Text style={styles.actionTitle}>Analytics</Text>
+            <Text style={styles.actionDesc}>View insights</Text>
+          </Pressable>
+
           {!user.isPremium && (
             <Pressable
               style={[styles.actionCard, styles.premiumCard]}

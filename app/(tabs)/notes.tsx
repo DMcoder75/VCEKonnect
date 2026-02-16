@@ -15,19 +15,56 @@ export default function NotesScreen() {
   const { user } = useAuth();
   const { notes, saveNote: saveNoteHook, deleteNote: deleteNoteHook } = useNotes();
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'date' | 'subject'>('date');
   const [isCreating, setIsCreating] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [noteSubject, setNoteSubject] = useState<string>('');
+  const [noteTags, setNoteTags] = useState<string>('');
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isLoadingNotes, setIsLoadingNotes] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const filteredNotes = selectedSubject === 'all'
-    ? notes
-    : notes.filter(n => n.subjectId === selectedSubject);
+  // Get all unique tags from notes
+  const allTags = Array.from(new Set(notes.flatMap(note => note.tags || [])));
+
+  // Advanced filtering
+  let filteredNotes = notes;
+  
+  // Filter by subject
+  if (selectedSubject !== 'all') {
+    filteredNotes = filteredNotes.filter(n => n.subjectId === selectedSubject);
+  }
+  
+  // Filter by search query (title or content)
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    filteredNotes = filteredNotes.filter(n => 
+      n.title.toLowerCase().includes(query) || 
+      n.content.toLowerCase().includes(query)
+    );
+  }
+  
+  // Filter by tags
+  if (selectedTags.length > 0) {
+    filteredNotes = filteredNotes.filter(n => 
+      selectedTags.some(tag => (n.tags || []).includes(tag))
+    );
+  }
+  
+  // Sort notes
+  filteredNotes = [...filteredNotes].sort((a, b) => {
+    if (sortBy === 'date') {
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    } else {
+      return a.subjectId.localeCompare(b.subjectId);
+    }
+  });
 
   useEffect(() => {
     loadSubjects();
@@ -47,17 +84,30 @@ export default function NotesScreen() {
     setIsLoadingSubjects(false);
   }
 
+  function toggleTag(tag: string) {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  }
+
   async function handleSaveNote() {
     if (!noteSubject) {
       alert('Please select a subject for this note');
       return;
     }
 
+    const tags = noteTags
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+
     const note: any = {
       subjectId: noteSubject,
       title: title.trim() || 'Untitled Note',
       content: content.trim(),
-      tags: [],
+      tags,
     };
 
     if (editingNote?.id) {
@@ -80,6 +130,7 @@ export default function NotesScreen() {
     setTitle(note.title);
     setContent(note.content);
     setNoteSubject(note.subjectId);
+    setNoteTags((note.tags || []).join(', '));
     setIsCreating(true);
   }
 
@@ -98,20 +149,114 @@ export default function NotesScreen() {
     setTitle('');
     setContent('');
     setNoteSubject('');
+    setNoteTags('');
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <View style={styles.headerPlaceholder} />
-        <Text style={styles.title}>Notes & Progress</Text>
-        <Pressable
-          style={styles.addButton}
-          onPress={openNoteEditor}
-        >
-          <MaterialIcons name="add" size={24} color={colors.textPrimary} />
-        </Pressable>
-      </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerPlaceholder} />
+          <Text style={styles.title}>Notes & Progress</Text>
+          <View style={styles.headerButtons}>
+            <Pressable
+              style={styles.iconButtonHeader}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <MaterialIcons 
+                name={showFilters ? "filter-list-off" : "filter-list"} 
+                size={24} 
+                color={showFilters ? colors.primary : colors.textSecondary} 
+              />
+            </Pressable>
+            <Pressable
+              style={styles.addButton}
+              onPress={openNoteEditor}
+            >
+              <MaterialIcons name="add" size={24} color={colors.textPrimary} />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color={colors.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search notes..."
+            placeholderTextColor={colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <MaterialIcons name="close" size={20} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <View style={styles.filtersContainer}>
+            {/* Sort By */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Sort by:</Text>
+              <View style={styles.sortButtons}>
+                <Pressable
+                  style={[styles.sortChip, sortBy === 'date' && styles.sortChipActive]}
+                  onPress={() => setSortBy('date')}
+                >
+                  <Text style={[styles.sortText, sortBy === 'date' && styles.sortTextActive]}>Date</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.sortChip, sortBy === 'subject' && styles.sortChipActive]}
+                  onPress={() => setSortBy('subject')}
+                >
+                  <Text style={[styles.sortText, sortBy === 'subject' && styles.sortTextActive]}>Subject</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Tag Filters */}
+            {allTags.length > 0 && (
+              <View style={styles.filterRow}>
+                <Text style={styles.filterLabel}>Tags:</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.tagsScroll}
+                >
+                  {allTags.map(tag => (
+                    <Pressable
+                      key={tag}
+                      style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipActive]}
+                      onPress={() => toggleTag(tag)}
+                    >
+                      <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>
+                        {tag}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Clear Filters */}
+            {(searchQuery || selectedTags.length > 0 || selectedSubject !== 'all') && (
+              <Pressable
+                style={styles.clearFiltersButton}
+                onPress={() => {
+                  setSearchQuery('');
+                  setSelectedTags([]);
+                  setSelectedSubject('all');
+                }}
+              >
+                <MaterialIcons name="clear-all" size={16} color={colors.error} />
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
       {/* Subject Filter */}
       <View style={styles.filterWrapper}>
@@ -184,6 +329,17 @@ export default function NotesScreen() {
             </ScrollView>
           </View>
           
+          <View style={styles.tagInputContainer}>
+            <Text style={styles.tagInputLabel}>Tags (comma separated)</Text>
+            <TextInput
+              style={styles.tagInput}
+              placeholder="e.g., revision, important, exam"
+              placeholderTextColor={colors.textTertiary}
+              value={noteTags}
+              onChangeText={setNoteTags}
+            />
+          </View>
+          
           <TextInput
             style={styles.titleInput}
             placeholder="Note title..."
@@ -240,6 +396,15 @@ export default function NotesScreen() {
                   <Text style={styles.noteContent} numberOfLines={3}>
                     {note.content}
                   </Text>
+                  {note.tags && note.tags.length > 0 && (
+                    <View style={styles.noteTags}>
+                      {note.tags.map((tag, idx) => (
+                        <View key={idx} style={styles.noteTag}>
+                          <Text style={styles.noteTagText}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                   <Text style={styles.noteDate}>
                     {new Date(note.updatedAt).toLocaleDateString('en-AU')}
                   </Text>
@@ -267,6 +432,138 @@ const styles = StyleSheet.create({
   },
   headerPlaceholder: {
     width: 40,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  iconButtonHeader: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.body,
+    color: colors.textPrimary,
+    paddingVertical: spacing.xs,
+  },
+  filtersContainer: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    gap: spacing.md,
+  },
+  filterRow: {
+    gap: spacing.xs,
+  },
+  filterLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  sortButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  sortChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sortChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  sortText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+  },
+  sortTextActive: {
+    color: colors.background,
+  },
+  tagsScroll: {
+    gap: spacing.xs,
+  },
+  tagChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tagChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  tagText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+  },
+  tagTextActive: {
+    color: colors.background,
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  clearFiltersText: {
+    fontSize: typography.bodySmall,
+    color: colors.error,
+    fontWeight: typography.semibold,
+  },
+  tagInputContainer: {
+    marginBottom: spacing.md,
+  },
+  tagInputLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  tagInput: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: typography.body,
+    color: colors.textPrimary,
+  },
+  noteTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  noteTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  noteTagText: {
+    fontSize: 10,
+    color: colors.background,
+    fontWeight: typography.medium,
   },
   title: {
     fontSize: typography.h1,

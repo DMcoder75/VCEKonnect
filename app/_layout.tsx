@@ -22,6 +22,8 @@ export default function RootLayout() {
           <Stack.Screen name="faq" />
           <Stack.Screen name="add-event" />
           <Stack.Screen name="edit-event" />
+          <Stack.Screen name="analytics" />
+          <Stack.Screen name="export-data" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="premium"
