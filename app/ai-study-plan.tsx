@@ -38,19 +38,13 @@ export default function AIStudyPlanScreen() {
     
     // Load user preferences (target ATAR and study hours)
     const preferences = await getUserPreferences(user.id);
-    console.log('Loaded preferences:', preferences);
-    
     if (preferences) {
       if (preferences.targetATAR) {
-        console.log('Setting target ATAR:', preferences.targetATAR);
         setTargetATAR(preferences.targetATAR.toString());
       }
       if (preferences.studyHoursPerWeek) {
-        console.log('Setting study hours:', preferences.studyHoursPerWeek);
         setHoursPerWeek(preferences.studyHoursPerWeek.toString());
       }
-    } else {
-      console.log('No preferences found - columns may not exist in database yet');
     }
     
     // Load subjects
