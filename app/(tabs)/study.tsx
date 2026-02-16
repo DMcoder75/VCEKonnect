@@ -69,7 +69,6 @@ export default function StudyScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Study Tracker</Text>
-          <MaterialIcons name="timer" size={32} color={colors.primary} />
         </View>
 
         {isLoading ? (
@@ -140,8 +139,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
