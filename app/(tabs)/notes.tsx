@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotes } from '@/hooks/useNotes';
+import { useAI } from '@/hooks/useAI';
 import { LoadingSpinner } from '@/components/ui';
 import { Note } from '@/types';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -29,6 +30,9 @@ export default function NotesScreen() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isLoadingNotes, setIsLoadingNotes] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [summarizingNoteId, setSummarizingNoteId] = useState<string | null>(null);
+  const [noteSummaries, setNoteSummaries] = useState<{ [noteId: string]: string }>({});
+  const { summarize, isLoading: isAILoading } = useAI();
 
   // Get all unique tags from notes
   const allTags = Array.from(new Set(notes.flatMap(note => note.tags || [])));
@@ -123,6 +127,29 @@ export default function NotesScreen() {
 
   async function handleDeleteNote(noteId: string) {
     await deleteNoteHook(noteId);
+  }
+
+  async function handleSummarizeNote(note: Note) {
+    if (!user) return;
+    
+    setSummarizingNoteId(note.id);
+    const subject = userSubjects.find(s => s.id === note.subjectId);
+    
+    const result = await summarize(
+      user.id,
+      note.title,
+      note.content,
+      subject?.code || 'General'
+    );
+    
+    if (result.data) {
+      setNoteSummaries(prev => ({
+        ...prev,
+        [note.id]: result.data!.response,
+      }));
+    }
+    
+    setSummarizingNoteId(null);
   }
 
   function handleEditNote(note: Note) {
@@ -385,6 +412,17 @@ export default function NotesScreen() {
                       <Text style={styles.noteSubject}>{subject?.name || 'General'}</Text>
                     </View>
                     <View style={styles.noteActions}>
+                      <Pressable 
+                        onPress={() => handleSummarizeNote(note)} 
+                        style={styles.iconButton}
+                        disabled={summarizingNoteId === note.id}
+                      >
+                        <MaterialIcons 
+                          name={summarizingNoteId === note.id ? "hourglass-empty" : "auto-awesome"} 
+                          size={20} 
+                          color={summarizingNoteId === note.id ? colors.textTertiary : colors.warning} 
+                        />
+                      </Pressable>
                       <Pressable onPress={() => handleEditNote(note)} style={styles.iconButton}>
                         <MaterialIcons name="edit" size={20} color={colors.textSecondary} />
                       </Pressable>
@@ -393,9 +431,38 @@ export default function NotesScreen() {
                       </Pressable>
                     </View>
                   </View>
-                  <Text style={styles.noteContent} numberOfLines={3}>
+                  <Text style={styles.noteContent} numberOfLines={noteSummaries[note.id] ? undefined : 3}>
                     {note.content}
                   </Text>
+                  
+                  {/* AI Summary */}
+                  {noteSummaries[note.id] && (
+                    <View style={styles.summaryCard}>
+                      <View style={styles.summaryHeader}>
+                        <MaterialIcons name="auto-awesome" size={16} color={colors.success} />
+                        <Text style={styles.summaryTitle}>AI Summary</Text>
+                      </View>
+                      <Text style={styles.summaryText}>{noteSummaries[note.id]}</Text>
+                      <Pressable 
+                        onPress={() => setNoteSummaries(prev => {
+                          const newSummaries = { ...prev };
+                          delete newSummaries[note.id];
+                          return newSummaries;
+                        })}
+                        style={styles.dismissButton}
+                      >
+                        <Text style={styles.dismissText}>Dismiss</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                  
+                  {summarizingNoteId === note.id && (
+                    <View style={styles.summarizingCard}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={styles.summarizingText}>AI is summarizing your note...</Text>
+                    </View>
+                  )}
+                  
                   {note.tags && note.tags.length > 0 && (
                     <View style={styles.noteTags}>
                       {note.tags.map((tag, idx) => (
@@ -564,6 +631,52 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.background,
     fontWeight: typography.medium,
+  },
+  summaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  summaryTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.success,
+  },
+  summaryText: {
+    fontSize: typography.bodySmall,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  dismissButton: {
+    alignSelf: 'flex-end',
+  },
+  dismissText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    fontWeight: typography.semibold,
+  },
+  summarizingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  summarizingText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
   },
   title: {
     fontSize: typography.h1,

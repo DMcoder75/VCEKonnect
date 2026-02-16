@@ -24,6 +24,9 @@ export default function RootLayout() {
           <Stack.Screen name="edit-event" />
           <Stack.Screen name="analytics" />
           <Stack.Screen name="export-data" />
+          <Stack.Screen name="ai-study-plan" />
+          <Stack.Screen name="ai-recommendations" />
+          <Stack.Screen name="ai-questions" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="premium"

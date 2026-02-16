@@ -27,6 +27,27 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
 
   const menuItems = [
     {
+      icon: 'auto-awesome' as const,
+      label: 'AI Study Plan',
+      route: '/ai-study-plan',
+      color: colors.primary,
+      premium: true,
+    },
+    {
+      icon: 'lightbulb' as const,
+      label: 'AI Recommendations',
+      route: '/ai-recommendations',
+      color: colors.success,
+      premium: true,
+    },
+    {
+      icon: 'quiz' as const,
+      label: 'Practice Questions',
+      route: '/ai-questions',
+      color: colors.warning,
+      premium: true,
+    },
+    {
       icon: 'privacy-tip' as const,
       label: 'Privacy Policy',
       route: '/privacy',
@@ -91,9 +112,33 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
 
         {/* Menu Items */}
         <View style={styles.menuList}>
-          {menuItems.map((item, index) => (
+          {/* AI Features Section */}
+          <Text style={styles.sectionTitle}>AI Features (Premium)</Text>
+          {menuItems.filter(item => item.premium).map((item, index) => (
             <Pressable
-              key={index}
+              key={`premium-${index}`}
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
+              onPress={() => handleNavigate(item.route)}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
+                <MaterialIcons name={item.icon} size={24} color={item.color} />
+              </View>
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
+            </Pressable>
+          ))}
+          
+          {/* Divider */}
+          <View style={styles.divider} />
+          
+          {/* General Section */}
+          <Text style={styles.sectionTitle}>General</Text>
+          {menuItems.filter(item => !item.premium).map((item, index) => (
+            <Pressable
+              key={`general-${index}`}
               style={({ pressed }) => [
                 styles.menuItem,
                 pressed && styles.menuItemPressed,
@@ -168,6 +213,21 @@ const styles = StyleSheet.create({
   menuList: {
     flex: 1,
     paddingTop: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.sm,
+    marginHorizontal: spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
