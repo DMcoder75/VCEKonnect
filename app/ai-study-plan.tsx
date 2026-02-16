@@ -10,6 +10,7 @@ import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { VCESubject } from '@/services/vceSubjectsService';
+import { getUserPreferences, updateUserPreferences } from '@/services/userPreferencesService';
 
 export default function AIStudyPlanScreen() {
   const router = useRouter();
@@ -35,6 +36,17 @@ export default function AIStudyPlanScreen() {
     
     setIsLoadingData(true);
     
+    // Load user preferences (target ATAR and study hours)
+    const preferences = await getUserPreferences(user.id);
+    if (preferences) {
+      if (preferences.targetATAR) {
+        setTargetATAR(preferences.targetATAR.toString());
+      }
+      if (preferences.studyHoursPerWeek) {
+        setHoursPerWeek(preferences.studyHoursPerWeek.toString());
+      }
+    }
+    
     // Load subjects
     const subjects = await getUserSubjects(user.id);
     setUserSubjects(subjects);
@@ -57,6 +69,12 @@ export default function AIStudyPlanScreen() {
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
+    
+    // Save preferences for future use
+    await updateUserPreferences(user.id, {
+      targetATAR: parseFloat(targetATAR),
+      studyHoursPerWeek: parseFloat(hoursPerWeek),
+    });
     
     await createStudyPlan(
       user.id,
