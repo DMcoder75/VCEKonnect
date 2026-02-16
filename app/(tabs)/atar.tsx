@@ -65,11 +65,17 @@ export default function ATARScreen() {
     
     // Simplified ATAR calculation (using same logic as atarCalculator)
     const studyScores = scores
-      .filter(s => s && (s.sacAverage || s.examPrediction)) // Only include scores with data
+      .filter(s => {
+        // Only include scores where at least one value is defined and not null
+        return s && (
+          (typeof s.sacAverage === 'number' && s.sacAverage >= 0) || 
+          (typeof s.examPrediction === 'number' && s.examPrediction >= 0)
+        );
+      })
       .map(s => {
-        const sac = s.sacAverage || 0;
-        const exam = s.examPrediction || 0;
-        const rank = s.studyRank || 50;
+        const sac = typeof s.sacAverage === 'number' ? s.sacAverage : 0;
+        const exam = typeof s.examPrediction === 'number' ? s.examPrediction : 0;
+        const rank = typeof s.studyRank === 'number' ? s.studyRank : 50;
         
         // Simple weighted average
         const rawScore = sac * 0.4 + exam * 0.6;
@@ -81,9 +87,13 @@ export default function ATARScreen() {
       })
       .sort((a, b) => b - a);
     
+    if (studyScores.length === 0) {
+      return { atar: 0, aggregate: 0 };
+    }
+    
     // Top 4 subjects (or all if less than 4)
     const top4 = studyScores.slice(0, 4);
-    const aggregate = top4.reduce((sum, score) => sum + score, 0);
+    let aggregate = top4.reduce((sum, score) => sum + score, 0);
     
     // Add 10% of 5th and 6th subjects if available
     if (studyScores[4]) aggregate += studyScores[4] * 0.1;
