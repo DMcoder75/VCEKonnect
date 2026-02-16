@@ -11,6 +11,8 @@ import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { getUserPreferences, updateUserPreferences } from '@/services/userPreferencesService';
+import { getActiveGoals } from '@/services/studyGoalsService';
+import { calculateATAR } from '@/services/atarCalculator';
 
 export default function AIStudyPlanScreen() {
   const router = useRouter();
@@ -36,18 +38,7 @@ export default function AIStudyPlanScreen() {
     
     setIsLoadingData(true);
     
-    // Load user preferences (target ATAR and study hours)
-    const preferences = await getUserPreferences(user.id);
-    if (preferences) {
-      if (preferences.targetATAR) {
-        setTargetATAR(preferences.targetATAR.toString());
-      }
-      if (preferences.studyHoursPerWeek) {
-        setHoursPerWeek(preferences.studyHoursPerWeek.toString());
-      }
-    }
-    
-    // Load subjects
+    // Load subjects first
     const subjects = await getUserSubjects(user.id);
     setUserSubjects(subjects);
     
@@ -63,6 +54,23 @@ export default function AIStudyPlanScreen() {
       }
     });
     setCurrentScores(scoresMap);
+    
+    // Auto-fill Target ATAR from ATAR predictor
+    if (scores.length > 0) {
+      const { atar } = calculateATAR(scores);
+      if (atar > 0) {
+        setTargetATAR(atar.toFixed(2));
+      }
+    }
+    
+    // Auto-fill Study Hours Per Week from active weekly goals
+    const activeGoals = await getActiveGoals(user.id);
+    if (activeGoals?.weekly) {
+      // Convert target hours to hours per week
+      const weeklyHours = activeGoals.weekly.targetHours;
+      setHoursPerWeek(weeklyHours.toString());
+    }
+    // If no active weekly goal, leave field blank (don't load from preferences)
     
     setIsLoadingData(false);
   }
