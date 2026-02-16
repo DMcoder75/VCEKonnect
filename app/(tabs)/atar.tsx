@@ -26,6 +26,12 @@ export default function ATARScreen() {
   // What-if calculator state
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [whatIfScores, setWhatIfScores] = useState<{ [subjectId: string]: { sac: number; exam: number } }>({});
+  
+  // Advanced tools state
+  const [showRoadmap, setShowRoadmap] = useState(false);
+  const [targetATAR, setTargetATAR] = useState('');
+  const [showScaling, setShowScaling] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
@@ -120,6 +126,97 @@ export default function ATARScreen() {
     setWhatIfScores({});
     setShowWhatIf(false);
   }
+  
+  // Calculate required improvements to reach target ATAR
+  function calculateRoadmap() {
+    if (!targetATAR || parseFloat(targetATAR) <= prediction.atar) {
+      return null;
+    }
+    
+    const target = parseFloat(targetATAR);
+    const gap = target - prediction.atar;
+    
+    // Calculate required aggregate
+    const currentAggregate = prediction.aggregate;
+    const requiredAggregate = currentAggregate + (gap * 2); // Approximate conversion
+    
+    // Calculate score improvements needed per subject
+    const improvements = subjectScores.map(score => {
+      const currentStudyScore = score.predictedStudyScore;
+      const improvementNeeded = (requiredAggregate - currentAggregate) / subjectScores.length;
+      const targetStudyScore = Math.min(50, currentStudyScore + improvementNeeded);
+      const scoreGap = targetStudyScore - currentStudyScore;
+      
+      // Convert study score gap to percentage improvement
+      const percentageImprovement = (scoreGap / 50) * 100;
+      
+      return {
+        subjectId: score.subjectId,
+        current: currentStudyScore,
+        target: targetStudyScore,
+        improvementNeeded: scoreGap,
+        percentageBoost: percentageImprovement,
+      };
+    }).sort((a, b) => b.improvementNeeded - a.improvementNeeded);
+    
+    return {
+      targetATAR: target,
+      currentATAR: prediction.atar,
+      gap,
+      requiredAggregate,
+      improvements,
+    };
+  }
+  
+  // Get subject difficulty recommendations based on scaling data
+  function getSubjectRecommendations() {
+    if (userSubjects.length === 0) return [];
+    
+    const recommendations = userSubjects.map(subject => {
+      const score = subjectScores.find(s => s.subjectId === subject.id);
+      const scaledMean = subject.scaledMean || 30;
+      const scaledStdDev = subject.scaledStdDev || 7;
+      
+      // Calculate difficulty rating (higher mean = harder/better scaling)
+      const difficultyRating = scaledMean / 50; // Normalized to 0-1
+      const scalingPotential = (scaledMean - 30) / 10; // Scaling advantage
+      
+      // Calculate current performance vs potential
+      const currentPerformance = score ? (score.sacAverage + score.examPrediction) / 2 : 0;
+      const potentialGain = scalingPotential * (100 - currentPerformance) / 100;
+      
+      let recommendation = '';
+      let priority: 'high' | 'medium' | 'low' = 'medium';
+      
+      if (scaledMean >= 35) {
+        recommendation = `High scaling subject! Even moderate scores get scaled up significantly.`;
+        priority = 'high';
+      } else if (scaledMean >= 30) {
+        recommendation = `Average scaling. Focus on consistency and strong exam performance.`;
+        priority = 'medium';
+      } else {
+        recommendation = `Lower scaling. Aim for very high raw scores (85%+) to maximize ATAR impact.`;
+        priority = currentPerformance >= 80 ? 'medium' : 'high';
+      }
+      
+      return {
+        subject,
+        scaledMean,
+        scaledStdDev,
+        difficultyRating,
+        scalingPotential,
+        currentPerformance,
+        potentialGain,
+        recommendation,
+        priority,
+      };
+    }).sort((a, b) => b.scalingPotential - a.scalingPotential);
+    
+    return recommendations;
+  }
+  
+  const roadmap = calculateRoadmap();
+  const recommendations = getSubjectRecommendations();
 
   useEffect(() => {
     loadSubjects();
@@ -196,21 +293,291 @@ export default function ATARScreen() {
               </Text>
             </View>
 
-            {/* What-If Calculator Toggle */}
-            <Pressable
-              style={[styles.whatIfToggle, showWhatIf && styles.whatIfToggleActive]}
-              onPress={() => setShowWhatIf(!showWhatIf)}
-            >
-              <MaterialIcons 
-                name="calculate" 
-                size={20} 
-                color={showWhatIf ? colors.background : colors.primary} 
-              />
-              <Text style={[styles.whatIfText, showWhatIf && styles.whatIfTextActive]}>
-                {showWhatIf ? 'Exit What-If Mode' : 'Try What-If Calculator'}
-              </Text>
-            </Pressable>
+            {/* Advanced Tools Grid */}
+            <View style={styles.toolsGrid}>
+              <Pressable
+                style={[styles.toolCard, showWhatIf && styles.toolCardActive]}
+                onPress={() => {
+                  setShowWhatIf(!showWhatIf);
+                  setShowRoadmap(false);
+                  setShowScaling(false);
+                  setShowRecommendations(false);
+                }}
+              >
+                <MaterialIcons 
+                  name="calculate" 
+                  size={24} 
+                  color={showWhatIf ? colors.background : colors.primary} 
+                />
+                <Text style={[styles.toolText, showWhatIf && styles.toolTextActive]}>What-If</Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.toolCard, showRoadmap && styles.toolCardActive]}
+                onPress={() => {
+                  setShowRoadmap(!showRoadmap);
+                  setShowWhatIf(false);
+                  setShowScaling(false);
+                  setShowRecommendations(false);
+                }}
+              >
+                <MaterialIcons 
+                  name="route" 
+                  size={24} 
+                  color={showRoadmap ? colors.background : colors.success} 
+                />
+                <Text style={[styles.toolText, showRoadmap && styles.toolTextActive]}>Roadmap</Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.toolCard, showRecommendations && styles.toolCardActive]}
+                onPress={() => {
+                  setShowRecommendations(!showRecommendations);
+                  setShowWhatIf(false);
+                  setShowRoadmap(false);
+                  setShowScaling(false);
+                }}
+              >
+                <MaterialIcons 
+                  name="trending-up" 
+                  size={24} 
+                  color={showRecommendations ? colors.background : colors.warning} 
+                />
+                <Text style={[styles.toolText, showRecommendations && styles.toolTextActive]}>Tips</Text>
+              </Pressable>
+              
+              <Pressable
+                style={[styles.toolCard, showScaling && styles.toolCardActive]}
+                onPress={() => {
+                  setShowScaling(!showScaling);
+                  setShowWhatIf(false);
+                  setShowRoadmap(false);
+                  setShowRecommendations(false);
+                }}
+              >
+                <MaterialIcons 
+                  name="show-chart" 
+                  size={24} 
+                  color={showScaling ? colors.background : colors.error} 
+                />
+                <Text style={[styles.toolText, showScaling && styles.toolTextActive]}>Scaling</Text>
+              </Pressable>
+            </View>
 
+            {/* Target Score Roadmap */}
+            {showRoadmap && (
+              <View style={styles.roadmapCard}>
+                <View style={styles.roadmapHeader}>
+                  <MaterialIcons name="route" size={24} color={colors.success} />
+                  <Text style={styles.roadmapTitle}>Target Score Roadmap</Text>
+                </View>
+                <Text style={styles.roadmapDesc}>Enter your target ATAR to see what you need</Text>
+                
+                <View style={styles.targetInputContainer}>
+                  <Text style={styles.targetInputLabel}>Target ATAR:</Text>
+                  <TextInput
+                    style={styles.targetInput}
+                    value={targetATAR}
+                    onChangeText={setTargetATAR}
+                    keyboardType="numeric"
+                    placeholder="e.g., 95.00"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </View>
+                
+                {roadmap && (
+                  <View style={styles.roadmapResults}>
+                    <View style={styles.roadmapStats}>
+                      <View style={styles.roadmapStat}>
+                        <Text style={styles.roadmapStatLabel}>Current</Text>
+                        <Text style={[styles.roadmapStatValue, { color: colors.primary }]}>
+                          {roadmap.currentATAR.toFixed(2)}
+                        </Text>
+                      </View>
+                      <MaterialIcons name="arrow-forward" size={24} color={colors.textSecondary} />
+                      <View style={styles.roadmapStat}>
+                        <Text style={styles.roadmapStatLabel}>Target</Text>
+                        <Text style={[styles.roadmapStatValue, { color: colors.success }]}>
+                          {roadmap.targetATAR.toFixed(2)}
+                        </Text>
+                      </View>
+                      <View style={styles.roadmapStat}>
+                        <Text style={styles.roadmapStatLabel}>Gap</Text>
+                        <Text style={[styles.roadmapStatValue, { color: colors.warning }]}>
+                          +{roadmap.gap.toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.improvementsTitle}>Required Improvements:</Text>
+                    {roadmap.improvements.map((imp, idx) => {
+                      const subject = userSubjects.find(s => s.id === imp.subjectId);
+                      return (
+                        <View key={imp.subjectId} style={styles.improvementItem}>
+                          <View style={styles.improvementHeader}>
+                            <Text style={styles.improvementSubject}>{subject?.code || imp.subjectId}</Text>
+                            <Text style={styles.improvementValue}>+{imp.improvementNeeded.toFixed(1)} points</Text>
+                          </View>
+                          <View style={styles.improvementBar}>
+                            <View style={styles.improvementBarBg}>
+                              <View 
+                                style={[
+                                  styles.improvementBarFill, 
+                                  { width: `${Math.min(100, (imp.target / 50) * 100)}%` }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.improvementText}>
+                              {imp.current.toFixed(1)} → {imp.target.toFixed(1)} (≈{imp.percentageBoost.toFixed(0)}% boost)
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                    
+                    <View style={styles.roadmapTip}>
+                      <MaterialIcons name="lightbulb-outline" size={20} color={colors.warning} />
+                      <Text style={styles.roadmapTipText}>
+                        Focus on your weakest subjects first - they have the most room for improvement!
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                
+                {targetATAR && !roadmap && (
+                  <View style={styles.roadmapMessage}>
+                    <Text style={styles.roadmapMessageText}>
+                      Your current ATAR ({prediction.atar.toFixed(2)}) is already at or above your target!
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+            
+            {/* Subject Difficulty Recommendations */}
+            {showRecommendations && (
+              <View style={styles.recommendationsCard}>
+                <View style={styles.recommendationsHeader}>
+                  <MaterialIcons name="trending-up" size={24} color={colors.warning} />
+                  <Text style={styles.recommendationsTitle}>Subject Strategy Tips</Text>
+                </View>
+                <Text style={styles.recommendationsDesc}>Smart recommendations based on VCE scaling</Text>
+                
+                {recommendations.map((rec, idx) => (
+                  <View key={rec.subject.id} style={[
+                    styles.recommendationItem,
+                    rec.priority === 'high' && styles.recommendationItemHigh,
+                  ]}>
+                    <View style={styles.recommendationHeader}>
+                      <View style={styles.recommendationSubjectInfo}>
+                        <Text style={styles.recommendationSubject}>{rec.subject.name}</Text>
+                        <Text style={styles.recommendationCode}>{rec.subject.code}</Text>
+                      </View>
+                      <View style={styles.recommendationStats}>
+                        <View style={styles.recommendationStatItem}>
+                          <Text style={styles.recommendationStatLabel}>Scaled Mean</Text>
+                          <Text style={[
+                            styles.recommendationStatValue,
+                            { color: rec.scaledMean >= 35 ? colors.success : rec.scaledMean >= 30 ? colors.primary : colors.warning }
+                          ]}>
+                            {rec.scaledMean.toFixed(1)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.recommendationMeter}>
+                      <Text style={styles.recommendationMeterLabel}>Scaling Potential:</Text>
+                      <View style={styles.recommendationMeterBar}>
+                        <View 
+                          style={[
+                            styles.recommendationMeterFill,
+                            { 
+                              width: `${Math.min(100, Math.max(0, ((rec.scaledMean - 20) / 30) * 100))}%`,
+                              backgroundColor: rec.scaledMean >= 35 ? colors.success : rec.scaledMean >= 30 ? colors.primary : colors.warning,
+                            }
+                          ]} 
+                        />
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.recommendationText}>{rec.recommendation}</Text>
+                    
+                    {rec.priority === 'high' && (
+                      <View style={styles.recommendationBadge}>
+                        <MaterialIcons name="priority-high" size={16} color={colors.error} />
+                        <Text style={styles.recommendationBadgeText}>High Priority</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+            
+            {/* Historical Scaling Data Visualization */}
+            {showScaling && (
+              <View style={styles.scalingCard}>
+                <View style={styles.scalingHeader}>
+                  <MaterialIcons name="show-chart" size={24} color={colors.error} />
+                  <Text style={styles.scalingTitle}>VCE Scaling Data (2024)</Text>
+                </View>
+                <Text style={styles.scalingDesc}>Compare your subjects' scaling metrics</Text>
+                
+                <View style={styles.scalingLegend}>
+                  <View style={styles.scalingLegendItem}>
+                    <View style={[styles.scalingLegendDot, { backgroundColor: colors.success }]} />
+                    <Text style={styles.scalingLegendText}>High Scaling (35+)</Text>
+                  </View>
+                  <View style={styles.scalingLegendItem}>
+                    <View style={[styles.scalingLegendDot, { backgroundColor: colors.primary }]} />
+                    <Text style={styles.scalingLegendText}>Average (30-35)</Text>
+                  </View>
+                  <View style={styles.scalingLegendItem}>
+                    <View style={[styles.scalingLegendDot, { backgroundColor: colors.warning }]} />
+                    <Text style={styles.scalingLegendText}>Lower (&lt;30)</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.scalingChart}>
+                  {userSubjects
+                    .sort((a, b) => (b.scaledMean || 30) - (a.scaledMean || 30))
+                    .map(subject => {
+                      const scaledMean = subject.scaledMean || 30;
+                      const scaledStdDev = subject.scaledStdDev || 7;
+                      const barColor = scaledMean >= 35 ? colors.success : scaledMean >= 30 ? colors.primary : colors.warning;
+                      
+                      return (
+                        <View key={subject.id} style={styles.scalingBar}>
+                          <View style={styles.scalingBarHeader}>
+                            <Text style={styles.scalingBarSubject}>{subject.code}</Text>
+                            <Text style={styles.scalingBarValue}>{scaledMean.toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.scalingBarContainer}>
+                            <View 
+                              style={[
+                                styles.scalingBarFill, 
+                                { 
+                                  width: `${(scaledMean / 50) * 100}%`,
+                                  backgroundColor: barColor,
+                                }
+                              ]} 
+                            />
+                          </View>
+                          <Text style={styles.scalingBarStdDev}>Std Dev: ±{scaledStdDev.toFixed(1)}</Text>
+                        </View>
+                      );
+                    })}
+                </View>
+                
+                <View style={styles.scalingInfo}>
+                  <MaterialIcons name="info-outline" size={20} color={colors.primary} />
+                  <Text style={styles.scalingInfoText}>
+                    Higher scaled mean = better ATAR scaling. Lower std deviation = more consistent results.
+                  </Text>
+                </View>
+              </View>
+            )}
+            
             {/* What-If Results */}
             {showWhatIf && whatIfPrediction && (
               <View style={styles.whatIfCard}>
@@ -676,5 +1043,388 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: typography.body,
     color: colors.textSecondary,
+  },
+  
+  // Advanced Tools Grid
+  toolsGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  toolCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  toolCardActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  toolText: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  toolTextActive: {
+    color: colors.background,
+  },
+  
+  // Target Score Roadmap
+  roadmapCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.success,
+  },
+  roadmapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  roadmapTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  roadmapDesc: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  targetInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  targetInputLabel: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  targetInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: colors.success,
+    textAlign: 'center',
+    borderWidth: 2,
+    borderColor: colors.success,
+  },
+  roadmapResults: {
+    gap: spacing.md,
+  },
+  roadmapStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  roadmapStat: {
+    alignItems: 'center',
+  },
+  roadmapStatLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  roadmapStatValue: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+  },
+  improvementsTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  improvementItem: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  improvementHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  improvementSubject: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.primary,
+  },
+  improvementValue: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.warning,
+  },
+  improvementBar: {
+    gap: spacing.xs,
+  },
+  improvementBarBg: {
+    height: 8,
+    backgroundColor: colors.background,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  improvementBarFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: 4,
+  },
+  improvementText: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+  },
+  roadmapTip: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  roadmapTipText: {
+    flex: 1,
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  roadmapMessage: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  roadmapMessageText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  
+  // Subject Recommendations
+  recommendationsCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+  },
+  recommendationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  recommendationsTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  recommendationsDesc: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  recommendationItem: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  recommendationItemHigh: {
+    borderColor: colors.error,
+    borderWidth: 2,
+  },
+  recommendationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  recommendationSubjectInfo: {
+    flex: 1,
+  },
+  recommendationSubject: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  recommendationCode: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    marginTop: 2,
+  },
+  recommendationStats: {
+    alignItems: 'flex-end',
+  },
+  recommendationStatItem: {
+    alignItems: 'flex-end',
+  },
+  recommendationStatLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+  },
+  recommendationStatValue: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    marginTop: 2,
+  },
+  recommendationMeter: {
+    marginBottom: spacing.sm,
+  },
+  recommendationMeterLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  recommendationMeterBar: {
+    height: 8,
+    backgroundColor: colors.background,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  recommendationMeterFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  recommendationText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
+  },
+  recommendationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.background,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  recommendationBadgeText: {
+    fontSize: typography.caption,
+    fontWeight: typography.semibold,
+    color: colors.error,
+  },
+  
+  // Scaling Visualization
+  scalingCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.error,
+  },
+  scalingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  scalingTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  scalingDesc: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  scalingLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  scalingLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  scalingLegendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  scalingLegendText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+  },
+  scalingChart: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  scalingBar: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  scalingBarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  scalingBarSubject: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.primary,
+  },
+  scalingBarValue: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  scalingBarContainer: {
+    height: 20,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
+  },
+  scalingBarFill: {
+    height: '100%',
+    borderRadius: 10,
+  },
+  scalingBarStdDev: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+  },
+  scalingInfo: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  scalingInfoText: {
+    flex: 1,
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });
