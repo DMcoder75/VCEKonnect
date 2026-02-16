@@ -164,14 +164,16 @@ export default function AIStudyPlanScreen() {
             {/* Current Subjects */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Your Subjects ({userSubjects.length})</Text>
-              {userSubjects.map(subject => (
-                <View key={subject.id} style={styles.subjectCard}>
-                  <Text style={styles.subjectName}>{subject.name}</Text>
-                  <Text style={styles.subjectScore}>
-                    Current: {currentScores[subject.code] || 0}%
-                  </Text>
-                </View>
-              ))}
+              <View style={styles.subjectsGrid}>
+                {userSubjects.map(subject => (
+                  <View key={subject.id} style={styles.subjectChip}>
+                    <Text style={styles.subjectCode}>{subject.code}</Text>
+                    <Text style={styles.subjectScore}>
+                      {currentScores[subject.code] || 0}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
 
             {/* Generate Button */}
@@ -323,25 +325,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  subjectCard: {
+  subjectsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  subjectChip: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+    minWidth: 80,
   },
-  subjectName: {
-    fontSize: typography.body,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
+  subjectCode: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.primary,
+    marginBottom: 2,
   },
   subjectScore: {
-    fontSize: typography.bodySmall,
-    color: colors.primary,
+    fontSize: typography.caption,
+    color: colors.textSecondary,
   },
   errorCard: {
     backgroundColor: colors.surface,
