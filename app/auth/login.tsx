@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -35,20 +35,20 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <ImageBackground
+      source={require('@/assets/login-background.png')}
+      style={[styles.container, { paddingTop: insets.top }]}
+      resizeMode="cover"
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Logo Area */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <MaterialIcons name="school" size={48} color={colors.primary} />
-          </View>
-          <Text style={styles.appName}>FairPrep</Text>
-          <Text style={styles.byline}>Dalsi Academy</Text>
-          <Text style={styles.tagline}>Your ATAR Journey Starts Here</Text>
-        </View>
+        {/* Spacer to position content below the logo circle */}
+        <View style={styles.brandingSpace} />
+
+        {/* FairPrep Heading */}
+        <Text style={styles.appName}>FairPrep</Text>
 
         {/* Mock Notice */}
         <View style={styles.mockNotice}>
@@ -112,7 +112,7 @@ export default function LoginScreen() {
           <Text style={styles.demoText}>Password: 123456</Text>
         </View>
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -124,35 +124,19 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.lg,
-    justifyContent: 'center',
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
+  brandingSpace: {
+    height: 280,
   },
   appName: {
-    fontSize: typography.h1,
+    fontSize: 36,
     fontWeight: typography.bold,
     color: colors.textPrimary,
-  },
-  byline: {
-    fontSize: typography.caption,
-    color: colors.textTertiary,
-    marginTop: spacing.xs,
-  },
-  tagline: {
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   mockNotice: {
     flexDirection: 'row',
