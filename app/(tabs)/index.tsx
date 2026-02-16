@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, ImageBackground } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { CalendarEvent } from '@/services/calendarService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -202,7 +202,11 @@ export default function DashboardScreen() {
   const latestAchievement = achievements.length > 0 ? achievements[0] : null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <ImageBackground
+      source={require('@/assets/background.png')}
+      style={[styles.container, { paddingTop: insets.top }]}
+      resizeMode="cover"
+    >
       <CelebrationOverlay
         show={showCelebration}
         onComplete={() => setShowCelebration(false)}
@@ -521,14 +525,13 @@ export default function DashboardScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
