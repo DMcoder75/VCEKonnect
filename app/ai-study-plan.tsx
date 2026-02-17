@@ -122,6 +122,7 @@ export default function AIStudyPlanScreen() {
       // After typewriter completes, trigger fade-in effect to show full text
       setTimeout(() => {
         setShowFullText(true);
+        setShowPlaceholder(false); // Hide placeholder only after full text is revealed
       }, 300);
     },
   });
@@ -204,7 +205,7 @@ export default function AIStudyPlanScreen() {
     }
     
     console.log('🎨 [Thread 1] Displaying response, length:', fullResponse.length);
-    setShowPlaceholder(false); // Hide placeholder when response starts displaying
+    // Keep placeholder visible - both cards display together
     setDisplayResponse(fullResponse);
     setShowFullText(false); // Reset fade-in trigger
   }, [fullResponse]);
