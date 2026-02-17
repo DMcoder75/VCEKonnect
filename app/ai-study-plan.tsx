@@ -114,20 +114,6 @@ export default function AIStudyPlanScreen() {
     slowDownNearEnd: true,
   });
 
-  // Typewriter for actual AI response (normal speed) with fade-in transition
-  const responseTypewriter = useTypewriter({
-    text: fullResponse,
-    speed: 40,
-    transitionText: 'Here is your complete study plan:',
-    onComplete: () => {
-      // After typewriter completes, trigger fade-in effect to show full text
-      setTimeout(() => {
-        setShowFullText(true);
-        setShowPlaceholder(false); // Hide placeholder only after full text is revealed
-      }, 300);
-    },
-  });
-
   // Background completion checker (runs silently, no state updates until complete)
   useEffect(() => {
     async function checkAndComplete() {
@@ -180,8 +166,15 @@ export default function AIStudyPlanScreen() {
         }
       }
       
-      // Update UI with final complete text (SINGLE state update)
+      // Update UI with final complete text + trigger fade-in
       setFullResponse(currentText);
+      setShowPlaceholder(false);
+      
+      // Trigger fade-in animation after brief delay
+      setTimeout(() => {
+        setShowFullText(true);
+      }, 100);
+      
       completionInProgress.current = false;
     }
     
@@ -338,22 +331,16 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Response Display */}
+            {/* Response Display - Fade-in effect only */}
             {fullResponse && (
-              <View style={styles.responseCard}>
+              <View style={[styles.responseCard, showFullText && styles.fadeInCard]}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Your Personalized Study Plan</Text>
                 </View>
                 
-                {/* Show either typewriter animation or full text with fade-in */}
-                {showFullText ? (
-                  <View style={[styles.fadeInContainer, { opacity: 1 }]}>
-                    <Text style={styles.responseText}>{formatResponseText(fullResponse)}</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.responseText}>{formatResponseText(responseTypewriter.displayedText)}</Text>
-                )}
+                {/* Display full text with fade-in animation (no typewriter) */}
+                <Text style={styles.responseText}>{formatResponseText(fullResponse)}</Text>
                 
                 {/* Metadata Info */}
                 {response && (
@@ -551,6 +538,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     borderWidth: 2,
     borderColor: colors.success,
+    opacity: 0.3,
+  },
+  fadeInCard: {
+    opacity: 1,
   },
   responseHeader: {
     flexDirection: 'row',
@@ -570,9 +561,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
 
-  fadeInContainer: {
-    opacity: 1,
-  },
+
   modelInfo: {
     paddingTop: spacing.sm,
     borderTopWidth: 1,
