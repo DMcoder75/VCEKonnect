@@ -44,15 +44,12 @@ export default function AIStudyPlanScreen() {
   const [examDate, setExamDate] = useState('2026-11-01'); // Default VCE exam date
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [displayResponse, setDisplayResponse] = useState(''); // What's currently being displayed
+  const [fullResponse, setFullResponse] = useState(''); // Complete accumulated response
   const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
   
-  // Thread separation: Use refs to prevent re-render triggers
-  const completionThreadActive = React.useRef(false); // Thread 2 lock
-  const accumulatedResponseRef = React.useRef(''); // Thread 2's working buffer
-  const displayInitialized = React.useRef(false); // Thread 1 initialization guard
+  // Background completion tracking (no state updates, no re-renders)
+  const completionInProgress = React.useRef(false);
 
   useEffect(() => {
     if (user) {
@@ -119,7 +116,7 @@ export default function AIStudyPlanScreen() {
 
   // Typewriter for actual AI response (normal speed) with fade-in transition
   const responseTypewriter = useTypewriter({
-    text: displayResponse,
+    text: fullResponse,
     speed: 40,
     transitionText: 'Here is your complete study plan:',
     onComplete: () => {
@@ -131,31 +128,25 @@ export default function AIStudyPlanScreen() {
     },
   });
 
-  // THREAD 2: API Thread (runs independently in background)
-  // Accumulates ALL continuations in ref WITHOUT triggering re-renders
-  // Only updates UI state ONCE at the very end
+  // Background completion checker (runs silently, no state updates until complete)
   useEffect(() => {
-    async function completionThread() {
-      // Guard: Only run once per response
-      if (!response || completionThreadActive.current) return;
+    async function checkAndComplete() {
+      if (!response || completionInProgress.current) return;
       
-      console.log('🔄 [Thread 2 - API] Starting...');
-      completionThreadActive.current = true;
-      setIsCompleting(true);
+      completionInProgress.current = true;
       
-      // Start with original response - accumulate in REF (no re-renders)
+      // Start with original response
       let currentText = response.response;
-      accumulatedResponseRef.current = currentText;
       let sessionId = response.session_id;
       let continuesFetched = 0;
       const maxContinuations = 10;
       
-      // Background loop: fetch all continuations silently
+      // Silent background loop - accumulate all continuations
       while (continuesFetched < maxContinuations) {
         const trimmed = currentText.trim();
         if (!trimmed) break;
         
-        // Incomplete detection
+        // Check if incomplete
         const lastChar = trimmed[trimmed.length - 1];
         const lastLine = trimmed.split('\n').pop()?.trim() || '';
         const endsWithNumberedList = /\(\d+\.?$/.test(trimmed);
@@ -176,68 +167,35 @@ export default function AIStudyPlanScreen() {
           (lastLineVeryShort && !endsWithProperPunctuation) ||
           !hasAllWeekdays;
         
-        console.log(`🔍 [Thread 2] Round ${continuesFetched + 1}: Incomplete=${isIncomplete}, Weekdays=${uniqueWeekdays.length}`);
+        if (!isIncomplete || !sessionId) break;
         
-        if (!isIncomplete || !sessionId) {
-          console.log('✅ [Thread 2] Response complete!');
-          break;
-        }
-        
-        // Fetch continuation (silent, no UI updates)
-        console.log(`⚙️ [Thread 2] Fetching continuation ${continuesFetched + 1}...`);
+        // Fetch continuation silently
         const result = await continueAIResponse(sessionId, 'short');
         
         if (result.data) {
           currentText = currentText + ' ' + result.data.response;
-          accumulatedResponseRef.current = currentText; // Update ref only (no re-render)
           continuesFetched++;
-          console.log(`✅ [Thread 2] Continuation ${continuesFetched} received, length: ${currentText.length}`);
         } else {
-          console.log('❌ [Thread 2] Continuation failed');
           break;
         }
       }
       
-      // ALL continuations complete - trigger UI update ONCE
-      console.log(`🎉 [Thread 2 - API] DONE! Continuations: ${continuesFetched}, Final length: ${currentText.length}`);
-      console.log('📤 [Thread 2] Sending to UI Thread...');
-      
-      // Single state update to trigger UI rendering
-      setDisplayResponse(currentText);
-      setIsCompleting(false);
-      completionThreadActive.current = false;
+      // Update UI with final complete text (SINGLE state update)
+      setFullResponse(currentText);
+      completionInProgress.current = false;
     }
     
-    completionThread();
+    checkAndComplete();
   }, [response]);
-
-  // THREAD 1: UI Thread (pure rendering)
-  // Only initializes display ONCE when displayResponse arrives from Thread 2
-  useEffect(() => {
-    if (!displayResponse) {
-      displayInitialized.current = false;
-      setShowFullText(false);
-      return;
-    }
-    
-    // Initialize display only once (prevents resets)
-    if (!displayInitialized.current) {
-      console.log('🎨 [Thread 1 - UI] Initializing display, length:', displayResponse.length);
-      displayInitialized.current = true;
-      setShowFullText(false); // Start typewriter animation
-    }
-  }, [displayResponse]);
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
     
-    // Reset all threads and state
+    // Reset state
     setShowPlaceholder(true);
-    setDisplayResponse('');
+    setFullResponse('');
     setShowFullText(false);
-    accumulatedResponseRef.current = '';
-    completionThreadActive.current = false;
-    displayInitialized.current = false;
+    completionInProgress.current = false;
     
     // Save preferences for future use
     await updateUserPreferences(user.id, {
@@ -380,25 +338,18 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Response Display (Thread 1 output) */}
-            {displayResponse && (
+            {/* Response Display */}
+            {fullResponse && (
               <View style={styles.responseCard}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Your Personalized Study Plan</Text>
                 </View>
                 
-                {isCompleting && (
-                  <View style={styles.completingBanner}>
-                    <LoadingSpinner message="" size={16} />
-                    <Text style={styles.completingText}>Fetching more content...</Text>
-                  </View>
-                )}
-                
                 {/* Show either typewriter animation or full text with fade-in */}
                 {showFullText ? (
                   <View style={[styles.fadeInContainer, { opacity: 1 }]}>
-                    <Text style={styles.responseText}>{formatResponseText(displayResponse)}</Text>
+                    <Text style={styles.responseText}>{formatResponseText(fullResponse)}</Text>
                   </View>
                 ) : (
                   <Text style={styles.responseText}>{formatResponseText(responseTypewriter.displayedText)}</Text>
@@ -408,7 +359,7 @@ export default function AIStudyPlanScreen() {
                 {response && (
                   <View style={styles.modelInfo}>
                     <Text style={styles.modelText}>
-                      {new Date(response.timestamp).toLocaleString()} • {displayResponse.length} characters
+                      {new Date(response.timestamp).toLocaleString()} • {fullResponse.length} characters
                       {response.metadata.search_performed && ' • Web search used'}
                     </Text>
                   </View>
@@ -618,21 +569,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: spacing.sm,
   },
-  completingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  completingText: {
-    fontSize: typography.body,
-    color: colors.primary,
-    fontWeight: typography.semibold,
-  },
+
   fadeInContainer: {
     opacity: 1,
   },
