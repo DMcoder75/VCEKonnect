@@ -151,39 +151,70 @@ export default function AIStudyPlanScreen() {
   // Auto-detect incomplete response and request completion
   useEffect(() => {
     async function checkAndComplete() {
-      if (!response || isCompleting || !response.session_id) return;
+      if (!response) {
+        setFullResponse('');
+        return;
+      }
+      
+      if (isCompleting) return; // Already completing
       
       // Check if response is incomplete
       const trimmed = response.response.trim();
-      const lastChar = trimmed[trimmed.length - 1];
-      const isIncomplete = !(['.', '!', '?'].includes(lastChar)) || 
-                          trimmed.endsWith('-') || 
-                          trimmed.endsWith('*') || 
-                          trimmed.endsWith('#') ||
-                          trimmed.endsWith(':');
+      if (!trimmed) {
+        setFullResponse('');
+        return;
+      }
       
-      if (isIncomplete) {
-        console.log('Response is incomplete, requesting continuation...');
+      const lastChar = trimmed[trimmed.length - 1];
+      const endsWithProperPunctuation = ['.', '!', '?', '"', "'"].includes(lastChar);
+      const endsWithIncompleteMarker = trimmed.endsWith('-') || 
+                                        trimmed.endsWith('*') || 
+                                        trimmed.endsWith('#') ||
+                                        trimmed.endsWith(':') ||
+                                        trimmed.endsWith(',');
+      
+      const isIncomplete = !endsWithProperPunctuation || endsWithIncompleteMarker;
+      
+      console.log('Response check:', {
+        lastChar,
+        endsWithProperPunctuation,
+        endsWithIncompleteMarker,
+        isIncomplete,
+        hasSessionId: !!response.session_id,
+        sessionId: response.session_id
+      });
+      
+      if (isIncomplete && response.session_id) {
+        console.log('⚠️ Response is incomplete! Requesting continuation with session:', response.session_id);
         setIsCompleting(true);
         
         const result = await continueAIResponse(response.session_id, 'short');
         
+        console.log('Continuation result:', result);
+        
         if (result.data) {
           // Append continuation to original response
-          setFullResponse(response.response + ' ' + result.data.response);
+          const combined = response.response + ' ' + result.data.response;
+          console.log('✅ Combined response length:', combined.length);
+          setFullResponse(combined);
         } else {
+          console.log('❌ Continuation failed:', result.error);
           // If continuation failed, just use original
           setFullResponse(response.response);
         }
         
         setIsCompleting(false);
+      } else if (isIncomplete && !response.session_id) {
+        console.log('⚠️ Response incomplete but no session_id available');
+        setFullResponse(response.response);
       } else {
+        console.log('✅ Response is complete');
         setFullResponse(response.response);
       }
     }
     
     checkAndComplete();
-  }, [response]);
+  }, [response, isCompleting]);
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
