@@ -42,7 +42,6 @@ export default function AIStudyPlanScreen() {
   const [examDate, setExamDate] = useState('2026-11-01'); // Default VCE exam date
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
-  const [placeholderStage, setPlaceholderStage] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [fullResponse, setFullResponse] = useState('');
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
@@ -100,46 +99,14 @@ export default function AIStudyPlanScreen() {
     setIsLoadingData(false);
   }
 
-  // Generate placeholder scaffolding text (max 6 lines, snail pace)
-  const placeholderStages = useMemo(() => [
-    `📊 Analyzing your current situation...`,
-    
-    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...`,
-    
-    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...`,
-    
-    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...`,
-    
-    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...\n🔬 Optimizing time allocation...`,
-    
-    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...\n🔬 Optimizing time allocation...\n⏱️ Finalizing your plan...`,
-  ], []);
+  // Single continuous placeholder text (no resets)
+  const placeholderText = useMemo(() => `📊 Analyzing your current situation...\n\n🎯 Identifying priority areas...\n\n📅 Creating your weekly schedule...\n\n✨ Personalizing study strategies...\n\n🔬 Optimizing time allocation...\n\n⏱️ Finalizing your plan...`, []);
 
-  // Cycle through placeholder stages while loading
-  useEffect(() => {
-    if (!showPlaceholder) {
-      setPlaceholderStage(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setPlaceholderStage(prev => {
-        if (prev < placeholderStages.length - 1) {
-          return prev + 1;
-        }
-        return prev;
-      });
-    }, 2000); // Change stage every 2 seconds
-
-    return () => clearInterval(interval);
-  }, [showPlaceholder, placeholderStages.length]);
-
-  // Typewriter for placeholder with snail pace
+  // Typewriter for placeholder with very slow pace (5 chars/sec)
   const placeholderTypewriter = useTypewriter({
-    text: showPlaceholder ? placeholderStages[placeholderStage] : '',
-    speed: 10,
+    text: showPlaceholder ? placeholderText : '',
+    speed: 5, // Very slow - 5 characters per second
     slowDownNearEnd: true,
-    snailPace: true, // Very slow typing
   });
 
   // Typewriter for actual AI response (normal speed, no transition)
@@ -353,14 +320,14 @@ export default function AIStudyPlanScreen() {
                 <View style={styles.placeholderHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.primary} />
                   <Text style={styles.placeholderTitle}>Creating Your Study Plan</Text>
-                  {isLoading && <LoadingSpinner message="" />}
                 </View>
                 
                 <Text style={styles.placeholderText}>{placeholderTypewriter.displayedText}</Text>
                 
                 {isLoading && (
                   <View style={styles.placeholderFooter}>
-                    <Text style={styles.placeholderFooterText}>Powered by AI • Analyzing...</Text>
+                    <LoadingSpinner message="" />
+                    <Text style={styles.placeholderFooterText}>Powered by AI • Please wait while we generate your personalized plan...</Text>
                   </View>
                 )}
               </View>
@@ -557,11 +524,15 @@ const styles = StyleSheet.create({
     fontWeight: typography.semibold,
   },
   placeholderFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   placeholderFooterText: {
+    flex: 1,
     fontSize: typography.caption,
     color: colors.primary,
     fontWeight: typography.semibold,

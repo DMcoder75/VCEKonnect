@@ -6,7 +6,6 @@ interface TypewriterOptions {
   onComplete?: () => void;
   slowDownNearEnd?: boolean; // For placeholder: slow down if nearing end
   transitionText?: string; // For response: text to show after completion before revealing all
-  snailPace?: boolean; // For placeholder: very slow typing (10 chars/sec)
 }
 
 export function useTypewriter({ 
@@ -15,7 +14,6 @@ export function useTypewriter({
   onComplete,
   slowDownNearEnd = false,
   transitionText = '',
-  snailPace = false,
 }: TypewriterOptions) {
   const [displayedText, setDisplayedText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
@@ -30,8 +28,7 @@ export function useTypewriter({
     setIsComplete(false);
     setIsTransitioning(false);
     indexRef.current = 0;
-    // Use very slow speed for snail pace mode
-    currentSpeedRef.current = snailPace ? 10 : speed;
+    currentSpeedRef.current = speed;
 
     if (!text) return;
 
@@ -43,13 +40,14 @@ export function useTypewriter({
         // Dynamic speed adjustment for placeholder
         if (slowDownNearEnd) {
           const progress = indexRef.current / text.length;
-          if (progress > 0.7) {
-            // Slow down progressively as we approach the end
-            currentSpeedRef.current = speed * (1 - (progress - 0.7) * 1.5);
+          if (progress > 0.6) {
+            // Slow down progressively as we approach the end (more aggressive slowdown)
+            const slowdownFactor = 1 - ((progress - 0.6) * 2);
+            currentSpeedRef.current = Math.max(speed * slowdownFactor, 2);
           }
         }
         
-        const intervalMs = 1000 / Math.max(currentSpeedRef.current, 5); // Minimum 5 chars/sec
+        const intervalMs = 1000 / Math.max(currentSpeedRef.current, 2); // Minimum 2 chars/sec
         timeoutRef.current = setTimeout(typeNextChar, intervalMs);
       } else {
         // Reached end of main text
