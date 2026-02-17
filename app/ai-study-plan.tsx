@@ -16,16 +16,18 @@ import { getUserPreferences, updateUserPreferences } from '@/services/userPrefer
 import { getActiveGoals } from '@/services/studyGoalsService';
 import { calculateATAR } from '@/services/atarCalculator';
 
-// Format AI response text (parse markdown-style formatting)
+// Format AI response text (preserve structure, clean markdown)
 function formatResponseText(text: string) {
   if (!text) return '';
   
-  // Simple formatting: convert **bold** to uppercase, ### headers to larger text
-  // For now, just return cleaned text (proper formatting would need custom Text components)
   return text
-    .replace(/###\s*/g, '\n') // Remove markdown headers
+    .replace(/### /g, '\n') // Keep headers, remove ### marker
+    .replace(/## /g, '\n') // Keep subheaders
+    .replace(/# /g, '\n') // Keep main headers
     .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markers
-    .replace(/^-\s+/gm, '• ') // Convert - to bullets
+    .replace(/^- /gm, '  • ') // Convert - to indented bullets
+    .replace(/^\* /gm, '  • ') // Convert * to indented bullets
+    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
     .trim();
 }
 
@@ -99,8 +101,8 @@ export default function AIStudyPlanScreen() {
     setIsLoadingData(false);
   }
 
-  // Single continuous placeholder text (no resets)
-  const placeholderText = useMemo(() => `📊 Analyzing your current situation...\n\n🎯 Identifying priority areas...\n\n📅 Creating your weekly schedule...\n\n✨ Personalizing study strategies...\n\n🔬 Optimizing time allocation...\n\n⏱️ Finalizing your plan...`, []);
+  // Compact placeholder text (minimal vertical spacing)
+  const placeholderText = useMemo(() => `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...\n🔬 Optimizing time allocation...\n⏱️ Finalizing your plan...`, []);
 
   // Typewriter for placeholder with very slow pace (5 chars/sec)
   const placeholderTypewriter = useTypewriter({
@@ -109,7 +111,7 @@ export default function AIStudyPlanScreen() {
     slowDownNearEnd: true,
   });
 
-  // Typewriter for actual AI response (normal speed, no transition)
+  // Typewriter for actual AI response (normal speed)
   const responseTypewriter = useTypewriter({
     text: fullResponse,
     speed: 30,
@@ -122,6 +124,9 @@ export default function AIStudyPlanScreen() {
         setFullResponse('');
         return;
       }
+      
+      // Hide placeholder when response arrives
+      setShowPlaceholder(false);
       
       if (isCompleting) return; // Already completing
       
@@ -186,9 +191,8 @@ export default function AIStudyPlanScreen() {
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
     
-    // Start placeholder animation
+    // Start placeholder animation and clear previous response
     setShowPlaceholder(true);
-    setPlaceholderStage(0);
     setFullResponse('');
     
     // Save preferences for future use
@@ -208,8 +212,7 @@ export default function AIStudyPlanScreen() {
       sessionId // Pass session ID to maintain conversation context
     );
     
-    // Keep placeholder visible, response will append below
-    // setShowPlaceholder(false); // Don't hide placeholder
+    // Placeholder will hide automatically when response arrives
   }
 
   return (
@@ -314,7 +317,7 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Placeholder Text (stays visible during and after loading) */}
+            {/* Placeholder Text (visible only during loading) */}
             {showPlaceholder && (
               <View style={styles.placeholderCard}>
                 <View style={styles.placeholderHeader}>
@@ -327,14 +330,14 @@ export default function AIStudyPlanScreen() {
                 {isLoading && (
                   <View style={styles.placeholderFooter}>
                     <LoadingSpinner message="" />
-                    <Text style={styles.placeholderFooterText}>Powered by AI • Please wait while we generate your personalized plan...</Text>
+                    <Text style={styles.placeholderFooterText}>Powered by AI • Generating personalized plan...</Text>
                   </View>
                 )}
               </View>
             )}
 
-            {/* Response with Typewriter Effect (appended below placeholder) */}
-            {response && (
+            {/* Response with Typewriter Effect (replaces placeholder) */}
+            {response && !showPlaceholder && (
               <View style={styles.responseCard}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
@@ -508,7 +511,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   placeholderTitle: {
     flex: 1,
@@ -519,8 +522,8 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: typography.body,
     color: colors.primary,
-    lineHeight: 28,
-    marginBottom: spacing.md,
+    lineHeight: 22, // Compact line height
+    marginBottom: spacing.sm,
     fontWeight: typography.semibold,
   },
   placeholderFooter: {
@@ -559,9 +562,8 @@ const styles = StyleSheet.create({
   responseText: {
     fontSize: typography.body,
     color: colors.textPrimary,
-    lineHeight: 26,
-    marginBottom: spacing.md,
-    marginTop: spacing.md,
+    lineHeight: 24,
+    marginTop: spacing.sm,
   },
   completingBanner: {
     flexDirection: 'row',
@@ -581,33 +583,10 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    marginBottom: spacing.md,
+    marginTop: spacing.md,
   },
   modelText: {
     fontSize: typography.caption,
     color: colors.textTertiary,
-  },
-  followupSection: {
-    marginTop: spacing.md,
-  },
-  followupTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  followupButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  followupText: {
-    flex: 1,
-    fontSize: typography.caption,
-    color: colors.textPrimary,
   },
 });
