@@ -6,6 +6,16 @@ const DALSI_API_KEY = 'sk-dalsi-b2b6c7d012b1cbac235c7aeef7c2b9191ec6fdbe7226bc3d
 const DALSI_API_BASE = 'https://api.neodalsi.com';
 const APP_ID = 'fairprep_mobile_v1';
 
+/**
+ * Generate a globally unique session ID for a user's conversation
+ * Format: fairprep_{userId}_{timestamp}_{randomString}
+ */
+export function generateUniqueSessionId(userId: string): string {
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substring(2, 15);
+  return `fairprep_${userId}_${timestamp}_${randomString}`;
+}
+
 export type AIMode = 'short' | 'medium' | 'long' | 'detailed';
 
 export interface AIRequest {
@@ -122,7 +132,8 @@ export async function generateStudyPlan(
   targetATAR: number,
   currentScores: { [subjectCode: string]: number },
   availableHoursPerWeek: number,
-  examDate: string
+  examDate: string,
+  sessionId?: string
 ): Promise<{ data: AIResponse | null; error: string | null }> {
   // Build natural language subject descriptions with full names and current scores
   const subjectDescriptions = subjects.map(s => {
@@ -148,7 +159,7 @@ Please provide a clear, day-by-day breakdown that I can follow immediately.`;
   return await generateAIResponse({
     message,
     mode: 'short', // Use short mode for 300 tokens (~2-5 seconds)
-    session_id: undefined,
+    session_id: sessionId, // Use provided session ID to maintain conversation context
     app_id: APP_ID,
   });
 }
@@ -190,7 +201,7 @@ Please focus on practical strategies I can implement immediately.`;
   return await generateAIResponse({
     message,
     mode: 'short', // Use short mode for 300 tokens (~2-5 seconds)
-    session_id: undefined,
+    session_id: sessionId, // Use provided session ID to maintain conversation context
     app_id: APP_ID,
   });
 }

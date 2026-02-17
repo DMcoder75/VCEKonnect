@@ -7,7 +7,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
 import { useTypewriter } from '@/hooks/useTypewriter';
-import { continueAIResponse } from '@/services/aiService';
+import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
@@ -45,9 +45,15 @@ export default function AIStudyPlanScreen() {
   const [placeholderStage, setPlaceholderStage] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [fullResponse, setFullResponse] = useState('');
+  const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
 
   useEffect(() => {
     if (user) {
+      // Generate unique session ID for this conversation
+      const newSessionId = generateUniqueSessionId(user.id);
+      setSessionId(newSessionId);
+      console.log('Created new session:', newSessionId);
+      
       loadUserData();
     }
   }, [user]);
@@ -193,14 +199,15 @@ export default function AIStudyPlanScreen() {
       studyHoursPerWeek: parseFloat(hoursPerWeek),
     });
     
-    // Pass full subject names and codes
+    // Pass full subject names and codes with session ID
     await createStudyPlan(
       user.id,
       userSubjects.map(s => ({ code: s.code, name: s.name })),
       parseFloat(targetATAR),
       currentScores,
       parseFloat(hoursPerWeek),
-      examDate
+      examDate,
+      sessionId // Pass session ID to maintain conversation context
     );
     
     // Keep placeholder visible, response will append below

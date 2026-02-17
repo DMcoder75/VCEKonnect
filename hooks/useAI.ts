@@ -38,7 +38,8 @@ export function useAI() {
     targetATAR: number,
     currentScores: { [subjectCode: string]: number },
     availableHoursPerWeek: number,
-    examDate: string
+    examDate: string,
+    sessionId?: string
   ) {
     setIsLoading(true);
     setError(null);
@@ -50,7 +51,8 @@ export function useAI() {
       targetATAR,
       currentScores,
       availableHoursPerWeek,
-      examDate
+      examDate,
+      sessionId
     );
 
     if (result.error) {
