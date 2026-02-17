@@ -17,10 +17,12 @@ export function generateUniqueSessionId(userId: string): string {
 }
 
 export type AIMode = 'short' | 'medium' | 'long' | 'detailed';
+export type AIModel = 'auto' | 'fast' | 'accurate';
 
 export interface AIRequest {
   message: string;
   mode?: AIMode;
+  model?: AIModel;
   session_id?: string;
   app_id?: string;
 }
@@ -88,7 +90,7 @@ export async function generateAIResponse(
       body: JSON.stringify({
         message: request.message,
         mode: request.mode || 'medium',
-        model: 'auto', // Automatic model selection
+        model: request.model || 'auto', // Use provided model or auto
         FEtype: 'mobile', // Mobile optimization
         session_id: request.session_id || undefined,
         app_id: request.app_id || APP_ID,
@@ -284,6 +286,7 @@ The questions should help me practice both my knowledge and my exam technique. P
   return await generateAIResponse({
     message,
     mode: 'long', // Use long mode for 1500 tokens (~10-20 seconds)
+    model: 'accurate', // Use accurate model for complex subject content
     session_id: undefined,
     app_id: APP_ID,
   });
