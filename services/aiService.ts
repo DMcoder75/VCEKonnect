@@ -2,13 +2,9 @@
 // DalsiAI API Service for FairPrep
 // API Documentation: https://api.neodalsi.com
 
-import { getSupabaseClient } from '@/template';
-
 const DALSI_API_KEY = 'sk-dalsi-b2b6c7d012b1cbac235c7aeef7c2b9191ec6fdbe7226bc3db1e1880ab8cd6bf6';
 const DALSI_API_BASE = 'https://api.neodalsi.com';
-
-// Direct API calls (works on mobile, may have CORS issues on web preview)
-const USE_PROXY = false;
+const APP_ID = 'fairprep_mobile_v1';
 
 export type AIMode = 'short' | 'medium' | 'long' | 'detailed';
 
@@ -16,111 +12,69 @@ export interface AIRequest {
   message: string;
   mode?: AIMode;
   session_id?: string;
-  user_id?: string;
+  app_id?: string;
 }
 
 export interface AIResponse {
   response: string;
-  model: string;
-  model_selection_reason: string;
-  chat_id: string;
-  user_id: string;
   session_id: string;
   timestamp: string;
-  is_complete: boolean;
-  is_continuation: boolean;
-  completeness_score: number;
-  followup_questions: string[];
-  references: any[];
-  missing_elements: any[];
-  generation_params: {
-    temperature: number;
-    max_new_tokens: number;
-    min_new_tokens: number;
-    top_p: number;
-    repetition_penalty: number;
-    enable_eos: boolean;
+  metadata: {
+    search_performed: boolean;
+    response_length: number;
+    processing_time_ms: number;
+    app_id: string;
   };
-  powered_by: string;
 }
 
 /**
- * Generate AI response using DalsiAI API
+ * Generate AI response using DalsiChat API
  */
 export async function generateAIResponse(
   request: AIRequest
 ): Promise<{ data: AIResponse | null; error: string | null }> {
   try {
-    let response: Response;
+    // Direct API call to DalsiChat endpoint
+    const response = await fetch(`${DALSI_API_BASE}/dalsichat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': DALSI_API_KEY,
+      },
+      body: JSON.stringify({
+        message: request.message,
+        mode: request.mode || 'medium',
+        session_id: request.session_id || undefined,
+        app_id: request.app_id || APP_ID,
+      }),
+    });
 
-    if (USE_PROXY) {
-      // Use Edge Function proxy (bypasses CORS)
-      const supabase = getSupabaseClient();
-      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('dalsi-ai-proxy', {
-        body: {
-          message: request.message,
-          mode: request.mode || 'medium',
-          user_id: request.user_id,
-        },
-      });
-
-      if (proxyError) {
-        throw new Error(`Proxy error: ${proxyError.message}`);
+    if (!response.ok) {
+      // Capture full error response for debugging
+      let errorDetails = '';
+      try {
+        const errorText = await response.text();
+        errorDetails = errorText;
+      } catch (parseErr) {
+        errorDetails = 'Could not parse error response';
       }
 
-      // Check if proxy returned an error in the response body
-      if (proxyData && typeof proxyData === 'object' && 'error' in proxyData) {
-        return { data: null, error: `${proxyData.error}${proxyData.details ? '\n\n' + proxyData.details : ''}` };
+      if (response.status === 400) {
+        return { data: null, error: `Bad Request: ${errorDetails}` };
+      } else if (response.status === 401) {
+        return { data: null, error: `Invalid API key: ${errorDetails}` };
+      } else if (response.status === 500) {
+        return { data: null, error: `Server error: ${errorDetails}` };
+      } else {
+        return { data: null, error: `API Error ${response.status}: ${errorDetails}` };
       }
-
-      // Edge function returns data directly, not a Response object
-      return { data: proxyData as AIResponse, error: null };
-    } else {
-      // Direct API call (works on mobile, may fail on web due to CORS)
-      response = await fetch(`${DALSI_API_BASE}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': DALSI_API_KEY,
-        },
-        body: JSON.stringify({
-          message: request.message,
-          mode: request.mode || 'medium',
-          session_id: request.session_id,
-          user_id: request.user_id,
-        }),
-      });
-
-      if (!response.ok) {
-        // Capture full error response for debugging
-        let errorDetails = '';
-        try {
-          const errorText = await response.text();
-          errorDetails = errorText;
-        } catch (parseErr) {
-          errorDetails = 'Could not parse error response';
-        }
-
-        const errorMessage = `API Error ${response.status}: ${response.statusText}\n\nFull Response:\n${errorDetails}`;
-
-        if (response.status === 401) {
-          return { data: null, error: `Invalid API key\n\n${errorMessage}` };
-        } else if (response.status === 429) {
-          return { data: null, error: `Rate limit exceeded\n\n${errorMessage}` };
-        } else if (response.status === 524) {
-          return { data: null, error: `Request timeout\n\n${errorMessage}` };
-        } else {
-          return { data: null, error: errorMessage };
-        }
-      }
-
-      const data: AIResponse = await response.json();
-      return { data, error: null };
     }
+
+    const data: AIResponse = await response.json();
+    return { data, error: null };
   } catch (err: any) {
     console.error('AI service error:', err);
-    const detailedError = `Network Error: ${err.message}\n\nStack: ${err.stack || 'No stack trace'}`;
-    return { data: null, error: detailedError };
+    return { data: null, error: `Network Error: ${err.message}` };
   }
 }
 
@@ -135,7 +89,7 @@ export async function generateStudyPlan(
   availableHoursPerWeek: number,
   examDate: string
 ): Promise<{ data: AIResponse | null; error: string | null }> {
-  const subjectsList = subjects.map(s => `${s.code} (${s.name})`).join(', ');
+  const subjectsList = subjects.map(s => s.code).join(', ');
   const scoresList = Object.entries(currentScores)
     .map(([code, score]) => `${code}: ${score}%`)
     .join(', ');
@@ -157,8 +111,9 @@ Keep it concise and actionable.`;
 
   return await generateAIResponse({
     message,
-    mode: 'short', // Use short mode for faster response
-    user_id: userId,
+    mode: 'short', // Use short mode for 300 tokens (~2-5 seconds)
+    session_id: undefined,
+    app_id: APP_ID,
   });
 }
 
@@ -185,8 +140,9 @@ Give 3-5 actionable recommendations to improve their study approach. Keep it con
 
   return await generateAIResponse({
     message,
-    mode: 'short', // Use short mode for quick recommendations
-    user_id: userId,
+    mode: 'short', // Use short mode for 300 tokens (~2-5 seconds)
+    session_id: undefined,
+    app_id: APP_ID,
   });
 }
 
@@ -216,8 +172,9 @@ Keep the summary concise and exam-focused.`;
 
   return await generateAIResponse({
     message,
-    mode: 'medium', // Use medium mode for summaries
-    user_id: userId,
+    mode: 'medium', // Use medium mode for 800 tokens (~5-10 seconds)
+    session_id: undefined,
+    app_id: APP_ID,
   });
 }
 
@@ -248,8 +205,9 @@ Follow official VCE exam format and difficulty standards.`;
 
   return await generateAIResponse({
     message,
-    mode: 'long', // Use long mode for detailed questions
-    user_id: userId,
+    mode: 'long', // Use long mode for 1500 tokens (~10-20 seconds)
+    session_id: undefined,
+    app_id: APP_ID,
   });
 }
 
@@ -277,7 +235,8 @@ Focus on actionable, VCE-specific advice.`;
 
   return await generateAIResponse({
     message,
-    mode: 'medium',
-    user_id: userId,
+    mode: 'medium', // Use medium mode for 800 tokens (~5-10 seconds)
+    session_id: undefined,
+    app_id: APP_ID,
   });
 }

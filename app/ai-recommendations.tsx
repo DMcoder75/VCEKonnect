@@ -142,20 +142,9 @@ export default function AIRecommendationsScreen() {
                       <View style={styles.metaInfo}>
                         <Text style={styles.metaText}>
                           Generated {new Date(subjectRec.timestamp).toLocaleTimeString()}
+                          {subjectRec.metadata?.search_performed && ' • Web search used'}
                         </Text>
                       </View>
-                      
-                      {/* Follow-up Questions */}
-                      {subjectRec.followup_questions && subjectRec.followup_questions.length > 0 && (
-                        <View style={styles.followupSection}>
-                          {subjectRec.followup_questions.map((question: string, index: number) => (
-                            <View key={index} style={styles.followupItem}>
-                              <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
-                              <Text style={styles.followupText}>{question}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
                     </View>
                   )}
                 </View>
