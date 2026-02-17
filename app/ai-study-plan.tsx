@@ -125,8 +125,8 @@ export default function AIStudyPlanScreen() {
         return;
       }
       
-      // Hide placeholder when response arrives
-      setShowPlaceholder(false);
+      // Keep placeholder visible (don't hide it)
+      // AI response will be appended below the placeholder
       
       if (isCompleting) return; // Already completing
       
@@ -137,23 +137,44 @@ export default function AIStudyPlanScreen() {
         return;
       }
       
+      // Advanced incomplete detection
       const lastChar = trimmed[trimmed.length - 1];
-      const endsWithProperPunctuation = ['.', '!', '?', '"', "'"].includes(lastChar);
-      const endsWithIncompleteMarker = trimmed.endsWith('-') || 
-                                        trimmed.endsWith('*') || 
-                                        trimmed.endsWith('#') ||
-                                        trimmed.endsWith(':') ||
-                                        trimmed.endsWith(',');
+      const lastTwoChars = trimmed.slice(-2);
+      const lastLine = trimmed.split('\n').pop()?.trim() || '';
       
-      const isIncomplete = !endsWithProperPunctuation || endsWithIncompleteMarker;
+      // Check various incomplete patterns
+      const endsWithNumberedList = /\(\d+\.?$/.test(trimmed); // Ends with (1. or (1
+      const endsWithBulletPoint = /^\s*[•\-\*]\s*$/.test(lastLine); // Last line is just a bullet
+      const endsWithIncompleteMarker = ['-', '*', '#', ':', ',', '('].some(char => lastChar === char);
+      const lastLineVeryShort = lastLine.length < 10 && lastLine.length > 0; // Suspiciously short last line
+      const endsWithProperPunctuation = ['.', '!', '?'].includes(lastChar);
       
-      console.log('Response check:', {
+      // For study plans: check if all weekdays are covered
+      const weekdayPattern = /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/gi;
+      const weekdaysFound = (trimmed.match(weekdayPattern) || []).map(d => d.toLowerCase());
+      const uniqueWeekdays = [...new Set(weekdaysFound)];
+      const hasAllWeekdays = uniqueWeekdays.length >= 7;
+      
+      const isIncomplete = 
+        endsWithNumberedList ||
+        endsWithBulletPoint ||
+        endsWithIncompleteMarker ||
+        (lastLineVeryShort && !endsWithProperPunctuation) ||
+        !hasAllWeekdays; // Weekly plan must cover all 7 days
+      
+      console.log('Response completeness check:', {
         lastChar,
-        endsWithProperPunctuation,
+        lastTwoChars,
+        lastLine,
+        endsWithNumberedList,
+        endsWithBulletPoint,
         endsWithIncompleteMarker,
+        lastLineVeryShort,
+        endsWithProperPunctuation,
+        uniqueWeekdays: uniqueWeekdays.length,
+        hasAllWeekdays,
         isIncomplete,
-        hasSessionId: !!response.session_id,
-        sessionId: response.session_id
+        hasSessionId: !!response.session_id
       });
       
       if (isIncomplete && response.session_id) {
@@ -336,8 +357,8 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Response with Typewriter Effect (replaces placeholder) */}
-            {response && !showPlaceholder && (
+            {/* Response with Typewriter Effect (appends below placeholder) */}
+            {response && (
               <View style={styles.responseCard}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
