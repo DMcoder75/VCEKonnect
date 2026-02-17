@@ -66,6 +66,7 @@ export function useAI() {
   async function getRecommendations(
     userId: string,
     subjectCode: string,
+    subjectName: string,
     recentStudyMinutes: number,
     lastStudyDate: string,
     currentScore: number,
@@ -78,6 +79,7 @@ export function useAI() {
     const result = await getStudyRecommendations(
       userId,
       subjectCode,
+      subjectName,
       recentStudyMinutes,
       lastStudyDate,
       currentScore,
@@ -98,13 +100,14 @@ export function useAI() {
     userId: string,
     noteTitle: string,
     noteContent: string,
-    subjectCode: string
+    subjectCode: string,
+    subjectName: string
   ) {
     setIsLoading(true);
     setError(null);
     setResponse(null);
 
-    const result = await summarizeNotes(userId, noteTitle, noteContent, subjectCode);
+    const result = await summarizeNotes(userId, noteTitle, noteContent, subjectCode, subjectName);
 
     if (result.error) {
       setError(result.error);
@@ -150,6 +153,7 @@ export function useAI() {
   async function getExamPrep(
     userId: string,
     subjectCode: string,
+    subjectName: string,
     examType: 'SAC' | 'Exam 1' | 'Exam 2',
     daysUntilExam: number
   ) {
@@ -157,7 +161,7 @@ export function useAI() {
     setError(null);
     setResponse(null);
 
-    const result = await getExamTips(userId, subjectCode, examType, daysUntilExam);
+    const result = await getExamTips(userId, subjectCode, subjectName, examType, daysUntilExam);
 
     if (result.error) {
       setError(result.error);

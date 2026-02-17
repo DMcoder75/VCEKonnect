@@ -84,10 +84,10 @@ export default function AIStudyPlanScreen() {
       studyHoursPerWeek: parseFloat(hoursPerWeek),
     });
     
-    // Use short subject codes for concise AI prompt
+    // Pass full subject names and codes
     await createStudyPlan(
       user.id,
-      userSubjects.map(s => ({ code: s.code, name: s.code })), // Use code as name for brevity
+      userSubjects.map(s => ({ code: s.code, name: s.name })),
       parseFloat(targetATAR),
       currentScores,
       parseFloat(hoursPerWeek),

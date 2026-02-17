@@ -37,7 +37,7 @@ export default function AIRecommendationsScreen() {
     setIsLoadingData(false);
   }
 
-  async function handleGetRecommendations(subjectId: string, subjectCode: string) {
+  async function handleGetRecommendations(subjectId: string, subjectCode: string, subjectName: string) {
     if (!user) return;
     
     // Get study time
@@ -57,6 +57,7 @@ export default function AIRecommendationsScreen() {
     const result = await getRecommendations(
       user.id,
       subjectCode,
+      subjectName,
       recentMinutes,
       'Recently',
       Math.round(currentScore),
@@ -115,7 +116,7 @@ export default function AIRecommendationsScreen() {
                     
                     <Pressable
                       style={[styles.generateButton, isLoadingSubject && styles.generateButtonDisabled]}
-                      onPress={() => handleGetRecommendations(subject.id, subject.code)}
+                      onPress={() => handleGetRecommendations(subject.id, subject.code, subject.name)}
                       disabled={isLoadingSubject}
                     >
                       <MaterialIcons 

@@ -139,7 +139,8 @@ export default function NotesScreen() {
       user.id,
       note.title,
       note.content,
-      subject?.code || 'General'
+      subject?.code || 'General',
+      subject?.name || 'General Studies'
     );
     
     if (result.data) {
