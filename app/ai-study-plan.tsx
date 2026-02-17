@@ -117,7 +117,7 @@ export default function AIStudyPlanScreen() {
     speed: 30,
   });
 
-  // Auto-detect incomplete response and request completion
+  // Auto-detect incomplete response and request completion (recursive)
   useEffect(() => {
     async function checkAndComplete() {
       if (!response) {
@@ -167,6 +167,7 @@ export default function AIStudyPlanScreen() {
         !hasAllWeekdays; // Weekly plan must cover all 7 days
       
       console.log('Response completeness check:', {
+        responseLength: trimmed.length,
         lastChar,
         lastTwoChars,
         lastLine,
@@ -193,6 +194,18 @@ export default function AIStudyPlanScreen() {
           // Append continuation to original response
           const combined = response.response + ' ' + result.data.response;
           console.log('✅ Combined response length:', combined.length);
+          
+          // CRITICAL: Update the response object itself so the effect runs again
+          // This allows recursive continuation requests until response is complete
+          setResponse({
+            ...response,
+            response: combined, // Update with combined text
+            metadata: {
+              ...response.metadata,
+              response_length: combined.length,
+            }
+          });
+          
           setFullResponse(combined);
         } else {
           console.log('❌ Continuation failed:', result.error);
@@ -211,7 +224,7 @@ export default function AIStudyPlanScreen() {
     }
     
     checkAndComplete();
-  }, [response]); // Only run when response changes, NOT when isCompleting changes
+  }, [response]); // Effect runs whenever response changes (including after continuation updates)
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
