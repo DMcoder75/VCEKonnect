@@ -49,6 +49,7 @@ export default function AIStudyPlanScreen() {
   const [displayResponse, setDisplayResponse] = useState(''); // What's currently being displayed
   const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
+  const displayedLengthRef = React.useRef(0); // Track how much we've already shown
 
   useEffect(() => {
     if (user) {
@@ -196,18 +197,25 @@ export default function AIStudyPlanScreen() {
   }, [response]);
 
   // THREAD 1: Display Thread (UI rendering)
-  // Picks up fullResponse and displays it with typewriter + fade-in
+  // Only updates display when NEW content arrives (prevents jittery resets)
   useEffect(() => {
     if (!fullResponse) {
+      displayedLengthRef.current = 0;
       setDisplayResponse('');
       setShowFullText(false);
       return;
     }
     
-    console.log('🎨 [Thread 1] Displaying response, length:', fullResponse.length);
-    // Keep placeholder visible - both cards display together
-    setDisplayResponse(fullResponse);
-    setShowFullText(false); // Reset fade-in trigger
+    // Only update if there's truly NEW content (not just re-render)
+    const alreadyDisplayed = displayedLengthRef.current;
+    const hasNewContent = fullResponse.length > alreadyDisplayed;
+    
+    if (hasNewContent) {
+      console.log('🎨 [Thread 1] New content:', fullResponse.length - alreadyDisplayed, 'chars');
+      setDisplayResponse(fullResponse);
+      setShowFullText(false); // Reset fade-in for new content
+      displayedLengthRef.current = fullResponse.length;
+    }
   }, [fullResponse]);
 
   async function handleGeneratePlan() {
@@ -216,6 +224,7 @@ export default function AIStudyPlanScreen() {
     // Start placeholder animation and clear previous response
     setShowPlaceholder(true);
     setFullResponse('');
+    displayedLengthRef.current = 0; // Reset display tracker
     
     // Save preferences for future use
     await updateUserPreferences(user.id, {
