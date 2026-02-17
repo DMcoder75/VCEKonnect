@@ -16,10 +16,11 @@ export default function AIRecommendationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { isLoading, error, getRecommendations } = useAI();
+  const { error, getRecommendations } = useAI();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [recommendations, setRecommendations] = useState<{ [subjectId: string]: any }>({});
+  const [loadingSubjects, setLoadingSubjects] = useState<{ [subjectId: string]: boolean }>({});
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
@@ -40,35 +41,43 @@ export default function AIRecommendationsScreen() {
   async function handleGetRecommendations(subjectId: string, subjectCode: string, subjectName: string) {
     if (!user) return;
     
-    // Get study time
-    const studyTime = await getStudyTimeBySubject(user.id);
-    const recentMinutes = studyTime[subjectId] || 0;
+    // Set loading state for this specific subject
+    setLoadingSubjects(prev => ({ ...prev, [subjectId]: true }));
     
-    // Get current score
-    const scores = await getSubjectScores(user.id);
-    const score = scores.find(s => s.subjectId === subjectId);
-    const currentScore = score ? (score.sacAverage + score.examPrediction) / 2 : 0;
-    
-    // Calculate days until exam (VCE exams typically in November)
-    const examDate = new Date('2026-11-01');
-    const today = new Date();
-    const daysUntilExam = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const result = await getRecommendations(
-      user.id,
-      subjectCode,
-      subjectName,
-      recentMinutes,
-      'Recently',
-      Math.round(currentScore),
-      daysUntilExam
-    );
-    
-    if (result.data) {
-      setRecommendations(prev => ({
-        ...prev,
-        [subjectId]: result.data,
-      }));
+    try {
+      // Get study time
+      const studyTime = await getStudyTimeBySubject(user.id);
+      const recentMinutes = studyTime[subjectId] || 0;
+      
+      // Get current score
+      const scores = await getSubjectScores(user.id);
+      const score = scores.find(s => s.subjectId === subjectId);
+      const currentScore = score ? (score.sacAverage + score.examPrediction) / 2 : 0;
+      
+      // Calculate days until exam (VCE exams typically in November)
+      const examDate = new Date('2026-11-01');
+      const today = new Date();
+      const daysUntilExam = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      const result = await getRecommendations(
+        user.id,
+        subjectCode,
+        subjectName,
+        recentMinutes,
+        'Recently',
+        Math.round(currentScore),
+        daysUntilExam
+      );
+      
+      if (result.data) {
+        setRecommendations(prev => ({
+          ...prev,
+          [subjectId]: result.data,
+        }));
+      }
+    } finally {
+      // Clear loading state for this subject
+      setLoadingSubjects(prev => ({ ...prev, [subjectId]: false }));
     }
   }
 
@@ -104,7 +113,7 @@ export default function AIRecommendationsScreen() {
           <>
             {userSubjects.map(subject => {
               const subjectRec = recommendations[subject.id];
-              const isLoadingSubject = isLoading && !subjectRec;
+              const isLoadingSubject = loadingSubjects[subject.id] || false;
               
               return (
                 <View key={subject.id} style={styles.subjectCard}>
