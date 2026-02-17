@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
+import { useTypewriter } from '@/hooks/useTypewriter';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
@@ -26,6 +27,8 @@ export default function AIStudyPlanScreen() {
   const [hoursPerWeek, setHoursPerWeek] = useState('');
   const [examDate, setExamDate] = useState('2026-11-01'); // Default VCE exam date
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
+  const [placeholderStage, setPlaceholderStage] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -75,8 +78,54 @@ export default function AIStudyPlanScreen() {
     setIsLoadingData(false);
   }
 
+  // Generate placeholder scaffolding text
+  const placeholderStages = useMemo(() => [
+    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.`,
+    
+    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.\n\n🎯 Identifying priority areas...\n\nBased on your current scores, I'm calculating which subjects need more attention to maximize your ATAR potential.`,
+    
+    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.\n\n🎯 Identifying priority areas...\n\nBased on your current scores, I'm calculating which subjects need more attention to maximize your ATAR potential.\n\n📅 Creating your weekly schedule...\n\nOptimizing study time distribution across Monday to Sunday to balance workload and maintain consistency.`,
+    
+    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.\n\n🎯 Identifying priority areas...\n\nBased on your current scores, I'm calculating which subjects need more attention to maximize your ATAR potential.\n\n📅 Creating your weekly schedule...\n\nOptimizing study time distribution across Monday to Sunday to balance workload and maintain consistency.\n\n✨ Personalizing recommendations...\n\nAdding subject-specific strategies and exam preparation tips tailored to your VCE journey.`,
+  ], [targetATAR, userSubjects.length, hoursPerWeek]);
+
+  // Cycle through placeholder stages while loading
+  useEffect(() => {
+    if (!showPlaceholder) {
+      setPlaceholderStage(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setPlaceholderStage(prev => {
+        if (prev < placeholderStages.length - 1) {
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, 1500); // Change stage every 1.5 seconds
+
+    return () => clearInterval(interval);
+  }, [showPlaceholder, placeholderStages.length]);
+
+  // Typewriter for placeholder
+  const placeholderTypewriter = useTypewriter({
+    text: showPlaceholder ? placeholderStages[placeholderStage] : '',
+    speed: 50, // Fast placeholder typing
+  });
+
+  // Typewriter for actual AI response
+  const responseTypewriter = useTypewriter({
+    text: response?.response || '',
+    speed: 40, // Slightly slower for reading comfort
+  });
+
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
+    
+    // Start placeholder animation
+    setShowPlaceholder(true);
+    setPlaceholderStage(0);
     
     // Save preferences for future use
     await updateUserPreferences(user.id, {
@@ -93,6 +142,9 @@ export default function AIStudyPlanScreen() {
       parseFloat(hoursPerWeek),
       examDate
     );
+    
+    // Stop placeholder when response arrives
+    setShowPlaceholder(false);
   }
 
   return (
@@ -197,23 +249,37 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Loading */}
-            {isLoading && (
-              <View style={styles.loadingCard}>
-                <LoadingSpinner message="AI is creating your personalized study plan..." />
-                <Text style={styles.loadingText}>This may take 2-5 seconds</Text>
+            {/* Loading with Placeholder Text */}
+            {isLoading && showPlaceholder && (
+              <View style={styles.placeholderCard}>
+                <View style={styles.placeholderHeader}>
+                  <MaterialIcons name="auto-awesome" size={24} color={colors.primary} />
+                  <Text style={styles.placeholderTitle}>Creating Your Study Plan</Text>
+                  <LoadingSpinner message="" />
+                </View>
+                
+                <Text style={styles.placeholderText}>{placeholderTypewriter.displayedText}</Text>
+                
+                <View style={styles.placeholderFooter}>
+                  <Text style={styles.placeholderFooterText}>Powered by AI • Analyzing...</Text>
+                </View>
               </View>
             )}
 
-            {/* Response */}
-            {response && (
+            {/* Response with Typewriter Effect */}
+            {response && !isLoading && (
               <View style={styles.responseCard}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Your Personalized Study Plan</Text>
+                  {!responseTypewriter.isComplete && (
+                    <Pressable onPress={responseTypewriter.skipToEnd} style={styles.skipButton}>
+                      <Text style={styles.skipText}>Skip</Text>
+                    </Pressable>
+                  )}
                 </View>
                 
-                <Text style={styles.responseText}>{response.response}</Text>
+                <Text style={styles.responseText}>{responseTypewriter.displayedText}</Text>
                 
                 {/* Metadata Info */}
                 <View style={styles.modelInfo}>
@@ -361,17 +427,42 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     lineHeight: 18,
   },
-  loadingCard: {
-    alignItems: 'center',
+  placeholderCard: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginTop: spacing.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.primary,
   },
-  loadingText: {
+  placeholderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  placeholderTitle: {
+    flex: 1,
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  placeholderText: {
+    fontSize: typography.body,
+    color: colors.textPrimary,
+    lineHeight: 24,
+    marginBottom: spacing.md,
+    minHeight: 200,
+  },
+  placeholderFooter: {
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  placeholderFooterText: {
     fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
+    color: colors.primary,
+    fontWeight: typography.semibold,
   },
   responseCard: {
     backgroundColor: colors.surfaceElevated,
@@ -386,6 +477,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.md,
+  },
+  skipButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+  },
+  skipText: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    fontWeight: typography.semibold,
   },
   responseTitle: {
     fontSize: typography.h3,

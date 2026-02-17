@@ -1,6 +1,7 @@
 export { useAuth } from './useAuth';
 export { useATAR } from './useATAR';
 export { useStudyTimer } from './useStudyTimer';
+export { useTypewriter } from './useTypewriter';
 export { useNotes } from './useNotes';
 export { useCalendar } from './useCalendar';
 export { useStudyGoals } from './useStudyGoals';
