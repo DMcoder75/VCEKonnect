@@ -35,7 +35,7 @@ export default function AIStudyPlanScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { isLoading, error, response, createStudyPlan } = useAI();
+  const { isLoading, error, response, setResponse, createStudyPlan } = useAI();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [currentScores, setCurrentScores] = useState<{ [key: string]: number }>({});
@@ -45,7 +45,9 @@ export default function AIStudyPlanScreen() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [fullResponse, setFullResponse] = useState('');
+  const [fullResponse, setFullResponse] = useState(''); // Combined response (original + continuations)
+  const [displayResponse, setDisplayResponse] = useState(''); // What's currently being displayed
+  const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
 
   useEffect(() => {
@@ -111,49 +113,39 @@ export default function AIStudyPlanScreen() {
     slowDownNearEnd: true,
   });
 
-  // Typewriter for actual AI response (normal speed)
+  // Typewriter for actual AI response (normal speed) with fade-in transition
   const responseTypewriter = useTypewriter({
-    text: fullResponse,
-    speed: 30,
+    text: displayResponse,
+    speed: 40,
+    transitionText: 'Here is your complete study plan:',
+    onComplete: () => {
+      // After typewriter completes, trigger fade-in effect to show full text
+      setTimeout(() => {
+        setShowFullText(true);
+      }, 300);
+    },
   });
 
-  // Auto-detect incomplete response and request completion (recursive)
+  // THREAD 2: Completion Thread (runs in background, independent)
+  // Checks for incomplete responses and fetches continuations
   useEffect(() => {
     async function checkAndComplete() {
-      if (!response) {
-        setFullResponse('');
-        return;
-      }
+      if (!response || isCompleting) return;
       
-      // Keep placeholder visible (don't hide it)
-      // AI response will be appended below the placeholder
-      
-      // Don't re-check if already processing completion
-      if (isCompleting) {
-        console.log('Already completing, skipping check');
-        return;
-      }
-      
-      // Check if response is incomplete
       const trimmed = response.response.trim();
-      if (!trimmed) {
-        setFullResponse('');
-        return;
-      }
+      if (!trimmed) return;
       
       // Advanced incomplete detection
       const lastChar = trimmed[trimmed.length - 1];
-      const lastTwoChars = trimmed.slice(-2);
       const lastLine = trimmed.split('\n').pop()?.trim() || '';
       
-      // Check various incomplete patterns
-      const endsWithNumberedList = /\(\d+\.?$/.test(trimmed); // Ends with (1. or (1
-      const endsWithBulletPoint = /^\s*[•\-\*]\s*$/.test(lastLine); // Last line is just a bullet
+      const endsWithNumberedList = /\(\d+\.?$/.test(trimmed);
+      const endsWithBulletPoint = /^\s*[•\-\*]\s*$/.test(lastLine);
       const endsWithIncompleteMarker = ['-', '*', '#', ':', ',', '('].some(char => lastChar === char);
-      const lastLineVeryShort = lastLine.length < 10 && lastLine.length > 0; // Suspiciously short last line
+      const lastLineVeryShort = lastLine.length < 10 && lastLine.length > 0;
       const endsWithProperPunctuation = ['.', '!', '?'].includes(lastChar);
       
-      // For study plans: check if all weekdays are covered
+      // Check if all 7 weekdays are covered
       const weekdayPattern = /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/gi;
       const weekdaysFound = (trimmed.match(weekdayPattern) || []).map(d => d.toLowerCase());
       const uniqueWeekdays = [...new Set(weekdaysFound)];
@@ -164,67 +156,58 @@ export default function AIStudyPlanScreen() {
         endsWithBulletPoint ||
         endsWithIncompleteMarker ||
         (lastLineVeryShort && !endsWithProperPunctuation) ||
-        !hasAllWeekdays; // Weekly plan must cover all 7 days
+        !hasAllWeekdays;
       
-      console.log('Response completeness check:', {
-        responseLength: trimmed.length,
-        lastChar,
-        lastTwoChars,
-        lastLine,
-        endsWithNumberedList,
-        endsWithBulletPoint,
-        endsWithIncompleteMarker,
-        lastLineVeryShort,
-        endsWithProperPunctuation,
-        uniqueWeekdays: uniqueWeekdays.length,
-        hasAllWeekdays,
-        isIncomplete,
-        hasSessionId: !!response.session_id
-      });
+      console.log('🔍 [Thread 2] Checking completeness:', { isIncomplete, weekdays: uniqueWeekdays.length });
       
       if (isIncomplete && response.session_id) {
-        console.log('⚠️ Response is incomplete! Requesting continuation with session:', response.session_id);
+        console.log('⚙️ [Thread 2] Fetching continuation...');
         setIsCompleting(true);
         
         const result = await continueAIResponse(response.session_id, 'short');
         
-        console.log('Continuation result:', result);
-        
         if (result.data) {
-          // Append continuation to original response
           const combined = response.response + ' ' + result.data.response;
-          console.log('✅ Combined response length:', combined.length);
+          console.log('✅ [Thread 2] Continuation received, length:', combined.length);
           
-          // CRITICAL: Update the response object itself so the effect runs again
-          // This allows recursive continuation requests until response is complete
+          // Update response object to trigger recursive check
           setResponse({
             ...response,
-            response: combined, // Update with combined text
-            metadata: {
-              ...response.metadata,
-              response_length: combined.length,
-            }
+            response: combined,
+            metadata: { ...response.metadata, response_length: combined.length }
           });
           
+          // Update fullResponse for Thread 1 to pick up
           setFullResponse(combined);
         } else {
-          console.log('❌ Continuation failed:', result.error);
-          // If continuation failed, just use original
+          console.log('❌ [Thread 2] Continuation failed');
           setFullResponse(response.response);
         }
         
         setIsCompleting(false);
-      } else if (isIncomplete && !response.session_id) {
-        console.log('⚠️ Response incomplete but no session_id available');
-        setFullResponse(response.response);
       } else {
-        console.log('✅ Response is complete');
+        console.log('✅ [Thread 2] Response is complete');
         setFullResponse(response.response);
       }
     }
     
     checkAndComplete();
-  }, [response]); // Effect runs whenever response changes (including after continuation updates)
+  }, [response]);
+
+  // THREAD 1: Display Thread (UI rendering)
+  // Picks up fullResponse and displays it with typewriter + fade-in
+  useEffect(() => {
+    if (!fullResponse) {
+      setDisplayResponse('');
+      setShowFullText(false);
+      return;
+    }
+    
+    console.log('🎨 [Thread 1] Displaying response, length:', fullResponse.length);
+    setShowPlaceholder(false); // Hide placeholder when response starts displaying
+    setDisplayResponse(fullResponse);
+    setShowFullText(false); // Reset fade-in trigger
+  }, [fullResponse]);
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
@@ -374,8 +357,8 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Response with Typewriter Effect (appends below placeholder) */}
-            {response && (
+            {/* Response Display (Thread 1 output) */}
+            {displayResponse && (
               <View style={styles.responseCard}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
@@ -385,19 +368,28 @@ export default function AIStudyPlanScreen() {
                 {isCompleting && (
                   <View style={styles.completingBanner}>
                     <LoadingSpinner message="" size={16} />
-                    <Text style={styles.completingText}>Completing response...</Text>
+                    <Text style={styles.completingText}>Fetching more content...</Text>
                   </View>
                 )}
                 
-                <Text style={styles.responseText}>{formatResponseText(responseTypewriter.displayedText)}</Text>
+                {/* Show either typewriter animation or full text with fade-in */}
+                {showFullText ? (
+                  <View style={[styles.fadeInContainer, { opacity: 1 }]}>
+                    <Text style={styles.responseText}>{formatResponseText(fullResponse)}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.responseText}>{formatResponseText(responseTypewriter.displayedText)}</Text>
+                )}
                 
                 {/* Metadata Info */}
-                <View style={styles.modelInfo}>
-                  <Text style={styles.modelText}>
-                    {new Date(response.timestamp).toLocaleString()} • {response.metadata.response_length} characters
-                    {response.metadata.search_performed && ' • Web search used'}
-                  </Text>
-                </View>
+                {response && (
+                  <View style={styles.modelInfo}>
+                    <Text style={styles.modelText}>
+                      {new Date(response.timestamp).toLocaleString()} • {fullResponse.length} characters
+                      {response.metadata.search_performed && ' • Web search used'}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </>
@@ -617,6 +609,9 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.primary,
     fontWeight: typography.semibold,
+  },
+  fadeInContainer: {
+    opacity: 1,
   },
   modelInfo: {
     paddingTop: spacing.sm,

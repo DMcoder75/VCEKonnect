@@ -15,6 +15,11 @@ export function useAI() {
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<AIResponse | null>(null);
 
+  // Expose setResponse so caller can update response for recursive continuation
+  function updateResponse(newResponse: AIResponse) {
+    setResponse(newResponse);
+  }
+
   async function generate(message: string, mode: AIMode = 'medium', userId?: string) {
     setIsLoading(true);
     setError(null);
@@ -179,6 +184,7 @@ export function useAI() {
     isLoading,
     error,
     response,
+    setResponse: updateResponse, // Export setResponse for manual updates
     generate,
     createStudyPlan,
     getRecommendations,
