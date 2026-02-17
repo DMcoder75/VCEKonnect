@@ -161,7 +161,7 @@ Please provide a clear, day-by-day breakdown that I can follow immediately.`;
   return await generateAIResponse({
     message,
     mode: 'short', // Use short mode for 300 tokens (~2-5 seconds)
-    session_id: sessionId, // Use provided session ID to maintain conversation context
+    session_id: undefined, // Each recommendation is independent, no session needed
     app_id: APP_ID,
   });
 }
@@ -203,7 +203,7 @@ Please focus on practical strategies I can implement immediately.`;
   return await generateAIResponse({
     message,
     mode: 'short', // Use short mode for 300 tokens (~2-5 seconds)
-    session_id: sessionId, // Use provided session ID to maintain conversation context
+    session_id: undefined, // Each recommendation is independent, no session needed
     app_id: APP_ID,
   });
 }
