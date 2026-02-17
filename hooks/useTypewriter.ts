@@ -6,6 +6,7 @@ interface TypewriterOptions {
   onComplete?: () => void;
   slowDownNearEnd?: boolean; // For placeholder: slow down if nearing end
   transitionText?: string; // For response: text to show after completion before revealing all
+  snailPace?: boolean; // For placeholder: very slow typing (10 chars/sec)
 }
 
 export function useTypewriter({ 
@@ -14,6 +15,7 @@ export function useTypewriter({
   onComplete,
   slowDownNearEnd = false,
   transitionText = '',
+  snailPace = false,
 }: TypewriterOptions) {
   const [displayedText, setDisplayedText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
@@ -28,7 +30,8 @@ export function useTypewriter({
     setIsComplete(false);
     setIsTransitioning(false);
     indexRef.current = 0;
-    currentSpeedRef.current = speed;
+    // Use very slow speed for snail pace mode
+    currentSpeedRef.current = snailPace ? 10 : speed;
 
     if (!text) return;
 

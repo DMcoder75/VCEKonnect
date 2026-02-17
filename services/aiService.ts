@@ -28,11 +28,45 @@ export interface AIResponse {
 }
 
 /**
+ * Check if a response appears incomplete (doesn't end with proper punctuation)
+ */
+function isResponseIncomplete(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  
+  // Check if ends with sentence-ending punctuation
+  const lastChar = trimmed[trimmed.length - 1];
+  const endsWithPunctuation = ['.', '!', '?', '"', "'"].includes(lastChar);
+  
+  // Also check if it ends mid-word or with incomplete markdown
+  const endsWithIncompleteMarker = trimmed.endsWith('-') || 
+                                    trimmed.endsWith('*') || 
+                                    trimmed.endsWith('#') ||
+                                    trimmed.endsWith(':');
+  
+  return !endsWithPunctuation || endsWithIncompleteMarker;
+}
+
+/**
+ * Continue an incomplete AI response using session_id
+ */
+export async function continueAIResponse(
+  sessionId: string,
+  mode: AIMode = 'short'
+): Promise<{ data: AIResponse | null; error: string | null }> {
+  return await generateAIResponse({
+    message: 'Please continue and complete your previous response.',
+    mode,
+    session_id: sessionId,
+  });
+}
+
+/**
  * Generate AI response using DalsiChat API
  */
 export async function generateAIResponse(
   request: AIRequest
-): Promise<{ data: AIResponse | null; error: string | null }> {
+): Promise<{ data: AIResponse | null; error: string | null; isIncomplete?: boolean }> {
   try {
     // Direct API call to DalsiChat endpoint
     const response = await fetch(`${DALSI_API_BASE}/dalsichat`, {
@@ -71,7 +105,8 @@ export async function generateAIResponse(
     }
 
     const data: AIResponse = await response.json();
-    return { data, error: null };
+    const isIncomplete = isResponseIncomplete(data.response);
+    return { data, error: null, isIncomplete };
   } catch (err: any) {
     console.error('AI service error:', err);
     return { data: null, error: `Network Error: ${err.message}` };

@@ -7,6 +7,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
 import { useTypewriter } from '@/hooks/useTypewriter';
+import { continueAIResponse } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
@@ -14,6 +15,19 @@ import { VCESubject } from '@/services/vceSubjectsService';
 import { getUserPreferences, updateUserPreferences } from '@/services/userPreferencesService';
 import { getActiveGoals } from '@/services/studyGoalsService';
 import { calculateATAR } from '@/services/atarCalculator';
+
+// Format AI response text (parse markdown-style formatting)
+function formatResponseText(text: string) {
+  if (!text) return '';
+  
+  // Simple formatting: convert **bold** to uppercase, ### headers to larger text
+  // For now, just return cleaned text (proper formatting would need custom Text components)
+  return text
+    .replace(/###\s*/g, '\n') // Remove markdown headers
+    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markers
+    .replace(/^-\s+/gm, '• ') // Convert - to bullets
+    .trim();
+}
 
 export default function AIStudyPlanScreen() {
   const router = useRouter();
@@ -29,6 +43,8 @@ export default function AIStudyPlanScreen() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [placeholderStage, setPlaceholderStage] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [fullResponse, setFullResponse] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -78,16 +94,20 @@ export default function AIStudyPlanScreen() {
     setIsLoadingData(false);
   }
 
-  // Generate placeholder scaffolding text
+  // Generate placeholder scaffolding text (max 6 lines, snail pace)
   const placeholderStages = useMemo(() => [
-    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.`,
+    `📊 Analyzing your current situation...`,
     
-    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.\n\n🎯 Identifying priority areas...\n\nBased on your current scores, I'm calculating which subjects need more attention to maximize your ATAR potential.`,
+    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...`,
     
-    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.\n\n🎯 Identifying priority areas...\n\nBased on your current scores, I'm calculating which subjects need more attention to maximize your ATAR potential.\n\n📅 Creating your weekly schedule...\n\nOptimizing study time distribution across Monday to Sunday to balance workload and maintain consistency.`,
+    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...`,
     
-    `📊 Analyzing your current situation...\n\nYou're aiming for an ATAR of ${targetATAR}, studying ${userSubjects.length} subjects with ${hoursPerWeek} hours available per week.\n\n🎯 Identifying priority areas...\n\nBased on your current scores, I'm calculating which subjects need more attention to maximize your ATAR potential.\n\n📅 Creating your weekly schedule...\n\nOptimizing study time distribution across Monday to Sunday to balance workload and maintain consistency.\n\n✨ Personalizing recommendations...\n\nAdding subject-specific strategies and exam preparation tips tailored to your VCE journey.`,
-  ], [targetATAR, userSubjects.length, hoursPerWeek]);
+    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...`,
+    
+    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...\n🔬 Optimizing time allocation...`,
+    
+    `📊 Analyzing your current situation...\n🎯 Identifying priority areas...\n📅 Creating your weekly schedule...\n✨ Personalizing study strategies...\n🔬 Optimizing time allocation...\n⏱️ Finalizing your plan...`,
+  ], []);
 
   // Cycle through placeholder stages while loading
   useEffect(() => {
@@ -103,24 +123,61 @@ export default function AIStudyPlanScreen() {
         }
         return prev;
       });
-    }, 1500); // Change stage every 1.5 seconds
+    }, 2000); // Change stage every 2 seconds
 
     return () => clearInterval(interval);
   }, [showPlaceholder, placeholderStages.length]);
 
-  // Typewriter for placeholder with dynamic pacing
+  // Typewriter for placeholder with snail pace
   const placeholderTypewriter = useTypewriter({
     text: showPlaceholder ? placeholderStages[placeholderStage] : '',
-    speed: 50,
-    slowDownNearEnd: true, // Slow down if response hasn't arrived yet
+    speed: 10,
+    slowDownNearEnd: true,
+    snailPace: true, // Very slow typing
   });
 
-  // Typewriter for actual AI response with transition
+  // Typewriter for actual AI response (normal speed, no transition)
   const responseTypewriter = useTypewriter({
-    text: response?.response || '',
-    speed: 40,
-    transitionText: 'Here is your complete study plan:', // Smooth transition
+    text: fullResponse,
+    speed: 30,
   });
+
+  // Auto-detect incomplete response and request completion
+  useEffect(() => {
+    async function checkAndComplete() {
+      if (!response || isCompleting || !response.session_id) return;
+      
+      // Check if response is incomplete
+      const trimmed = response.response.trim();
+      const lastChar = trimmed[trimmed.length - 1];
+      const isIncomplete = !(['.', '!', '?'].includes(lastChar)) || 
+                          trimmed.endsWith('-') || 
+                          trimmed.endsWith('*') || 
+                          trimmed.endsWith('#') ||
+                          trimmed.endsWith(':');
+      
+      if (isIncomplete) {
+        console.log('Response is incomplete, requesting continuation...');
+        setIsCompleting(true);
+        
+        const result = await continueAIResponse(response.session_id, 'short');
+        
+        if (result.data) {
+          // Append continuation to original response
+          setFullResponse(response.response + ' ' + result.data.response);
+        } else {
+          // If continuation failed, just use original
+          setFullResponse(response.response);
+        }
+        
+        setIsCompleting(false);
+      } else {
+        setFullResponse(response.response);
+      }
+    }
+    
+    checkAndComplete();
+  }, [response]);
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
@@ -128,6 +185,7 @@ export default function AIStudyPlanScreen() {
     // Start placeholder animation
     setShowPlaceholder(true);
     setPlaceholderStage(0);
+    setFullResponse('');
     
     // Save preferences for future use
     await updateUserPreferences(user.id, {
@@ -145,8 +203,8 @@ export default function AIStudyPlanScreen() {
       examDate
     );
     
-    // Stop placeholder when response arrives
-    setShowPlaceholder(false);
+    // Keep placeholder visible, response will append below
+    // setShowPlaceholder(false); // Don't hide placeholder
   }
 
   return (
@@ -251,32 +309,41 @@ export default function AIStudyPlanScreen() {
               </View>
             )}
 
-            {/* Loading with Placeholder Text */}
-            {isLoading && showPlaceholder && (
+            {/* Placeholder Text (stays visible during and after loading) */}
+            {showPlaceholder && (
               <View style={styles.placeholderCard}>
                 <View style={styles.placeholderHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.primary} />
                   <Text style={styles.placeholderTitle}>Creating Your Study Plan</Text>
-                  <LoadingSpinner message="" />
+                  {isLoading && <LoadingSpinner message="" />}
                 </View>
                 
                 <Text style={styles.placeholderText}>{placeholderTypewriter.displayedText}</Text>
                 
-                <View style={styles.placeholderFooter}>
-                  <Text style={styles.placeholderFooterText}>Powered by AI • Analyzing...</Text>
-                </View>
+                {isLoading && (
+                  <View style={styles.placeholderFooter}>
+                    <Text style={styles.placeholderFooterText}>Powered by AI • Analyzing...</Text>
+                  </View>
+                )}
               </View>
             )}
 
-            {/* Response with Typewriter Effect */}
-            {response && !isLoading && (
+            {/* Response with Typewriter Effect (appended below placeholder) */}
+            {response && (
               <View style={styles.responseCard}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Your Personalized Study Plan</Text>
                 </View>
                 
-                <Text style={styles.responseText}>{responseTypewriter.displayedText}</Text>
+                {isCompleting && (
+                  <View style={styles.completingBanner}>
+                    <MaterialIcons name="hourglass-empty" size={16} color={colors.primary} />
+                    <Text style={styles.completingText}>Completing response...</Text>
+                  </View>
+                )}
+                
+                <Text style={styles.responseText}>{formatResponseText(responseTypewriter.displayedText)}</Text>
                 
                 {/* Metadata Info */}
                 <View style={styles.modelInfo}>
@@ -446,10 +513,10 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: typography.body,
-    color: colors.textPrimary,
-    lineHeight: 24,
+    color: colors.primary,
+    lineHeight: 28,
     marginBottom: spacing.md,
-    minHeight: 200,
+    fontWeight: typography.semibold,
   },
   placeholderFooter: {
     paddingTop: spacing.sm,
@@ -475,7 +542,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-
   responseTitle: {
     fontSize: typography.h3,
     fontWeight: typography.semibold,
@@ -484,8 +550,23 @@ const styles = StyleSheet.create({
   responseText: {
     fontSize: typography.body,
     color: colors.textPrimary,
-    lineHeight: 24,
+    lineHeight: 26,
     marginBottom: spacing.md,
+    marginTop: spacing.md,
+  },
+  completingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  completingText: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    fontWeight: typography.semibold,
   },
   modelInfo: {
     paddingTop: spacing.sm,
