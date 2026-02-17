@@ -128,7 +128,11 @@ export default function AIStudyPlanScreen() {
       // Keep placeholder visible (don't hide it)
       // AI response will be appended below the placeholder
       
-      if (isCompleting) return; // Already completing
+      // Don't re-check if already processing completion
+      if (isCompleting) {
+        console.log('Already completing, skipping check');
+        return;
+      }
       
       // Check if response is incomplete
       const trimmed = response.response.trim();
@@ -207,7 +211,7 @@ export default function AIStudyPlanScreen() {
     }
     
     checkAndComplete();
-  }, [response, isCompleting]);
+  }, [response]); // Only run when response changes, NOT when isCompleting changes
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
@@ -367,7 +371,7 @@ export default function AIStudyPlanScreen() {
                 
                 {isCompleting && (
                   <View style={styles.completingBanner}>
-                    <MaterialIcons name="hourglass-empty" size={16} color={colors.primary} />
+                    <LoadingSpinner message="" size={16} />
                     <Text style={styles.completingText}>Completing response...</Text>
                   </View>
                 )}
@@ -589,14 +593,15 @@ const styles = StyleSheet.create({
   completingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.sm,
-    padding: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
   completingText: {
-    fontSize: typography.caption,
+    fontSize: typography.body,
     color: colors.primary,
     fontWeight: typography.semibold,
   },
