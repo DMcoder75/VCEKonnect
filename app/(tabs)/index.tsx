@@ -541,6 +541,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000', // Black background while image loads
   },
   scrollView: {
     flex: 1,

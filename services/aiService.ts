@@ -88,6 +88,8 @@ export async function generateAIResponse(
       body: JSON.stringify({
         message: request.message,
         mode: request.mode || 'medium',
+        model: 'auto', // Automatic model selection
+        FEtype: 'mobile', // Mobile optimization
         session_id: request.session_id || undefined,
         app_id: request.app_id || APP_ID,
       }),
