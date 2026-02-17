@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
+
+// Format AI response text (preserve structure, clean markdown)
+function formatResponseText(text: string) {
+  if (!text) return '';
+  
+  return text
+    .replace(/### /g, '\n')
+    .replace(/## /g, '\n')
+    .replace(/# /g, '\n')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^- /gm, '  • ')
+    .replace(/^\* /gm, '  • ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -443,7 +458,7 @@ export default function NotesScreen() {
                         <MaterialIcons name="auto-awesome" size={16} color={colors.success} />
                         <Text style={styles.summaryTitle}>AI Summary</Text>
                       </View>
-                      <Text style={styles.summaryText}>{noteSummaries[note.id]}</Text>
+                      <Text style={styles.summaryText}>{formatResponseText(noteSummaries[note.id])}</Text>
                       <Pressable 
                         onPress={() => setNoteSummaries(prev => {
                           const newSummaries = { ...prev };

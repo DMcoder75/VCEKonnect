@@ -1,14 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
+import { useTypewriter } from '@/hooks/useTypewriter';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
+
+// Format AI response text (preserve structure, clean markdown)
+function formatResponseText(text: string) {
+  if (!text) return '';
+  
+  return text
+    .replace(/### /g, '\n')
+    .replace(/## /g, '\n')
+    .replace(/# /g, '\n')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^- /gm, '  • ')
+    .replace(/^\* /gm, '  • ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 export default function AIQuestionsScreen() {
   const router = useRouter();
@@ -22,6 +38,9 @@ export default function AIQuestionsScreen() {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [questionCount, setQuestionCount] = useState('3');
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
+  const [showFullText, setShowFullText] = useState(false);
+  const fadeAnim = useState(new Animated.Value(0.3))[0];
 
   useEffect(() => {
     if (user) {
@@ -41,8 +60,33 @@ export default function AIQuestionsScreen() {
     setIsLoadingData(false);
   }
 
+  // Placeholder text for loading state
+  const placeholderText = useMemo(() => `🎯 Analyzing topic complexity...\n📚 Consulting VCE study design...\n✍️ Crafting ${questionCount} practice questions...\n📊 Setting difficulty level...\n✅ Adding solutions and marking criteria...`, [questionCount]);
+
+  const placeholderTypewriter = useTypewriter({
+    text: showPlaceholder ? placeholderText : '',
+    speed: 5,
+    slowDownNearEnd: true,
+  });
+
+  // Fade-in effect when response arrives
+  useEffect(() => {
+    if (showFullText) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0.3);
+    }
+  }, [showFullText]);
+
   async function handleGenerateQuestions() {
     if (!user || !selectedSubject || !topic) return;
+    
+    setShowPlaceholder(true);
+    setShowFullText(false);
     
     await generateQuestions(
       user.id,
@@ -52,6 +96,9 @@ export default function AIQuestionsScreen() {
       difficulty,
       parseInt(questionCount) || 3
     );
+    
+    setShowPlaceholder(false);
+    setTimeout(() => setShowFullText(true), 100);
   }
 
   return (
@@ -179,23 +226,34 @@ export default function AIQuestionsScreen() {
               </View>
             )}
 
-            {/* Loading */}
-            {isLoading && (
-              <View style={styles.loadingCard}>
-                <LoadingSpinner message="AI is generating practice questions..." />
-                <Text style={styles.loadingText}>This may take 10-20 seconds</Text>
+            {/* Placeholder Text */}
+            {showPlaceholder && (
+              <View style={styles.placeholderCard}>
+                <View style={styles.placeholderHeader}>
+                  <MaterialIcons name="auto-awesome" size={24} color={colors.primary} />
+                  <Text style={styles.placeholderTitle}>Generating Practice Questions</Text>
+                </View>
+                
+                <Text style={styles.placeholderText}>{placeholderTypewriter.displayedText}</Text>
+                
+                {isLoading && (
+                  <View style={styles.placeholderFooter}>
+                    <LoadingSpinner message="" />
+                    <Text style={styles.placeholderFooterText}>Powered by AI • Creating VCE-style questions...</Text>
+                  </View>
+                )}
               </View>
             )}
 
             {/* Response */}
             {response && (
-              <View style={styles.responseCard}>
+              <Animated.View style={[styles.responseCard, { opacity: fadeAnim }]}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="quiz" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Practice Questions</Text>
                 </View>
                 
-                <Text style={styles.responseText}>{response.response}</Text>
+                <Text style={styles.responseText}>{formatResponseText(response.response)}</Text>
                 
                 {/* Metadata Info */}
                 <View style={styles.modelInfo}>
@@ -212,7 +270,7 @@ export default function AIQuestionsScreen() {
                     Practice these questions under timed conditions to simulate real exam pressure!
                   </Text>
                 </View>
-              </View>
+              </Animated.View>
             )}
           </>
         )}
@@ -368,17 +426,46 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     lineHeight: 18,
   },
-  loadingCard: {
-    alignItems: 'center',
+  placeholderCard: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginTop: spacing.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.primary,
   },
-  loadingText: {
+  placeholderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  placeholderTitle: {
+    flex: 1,
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  placeholderText: {
+    fontSize: typography.body,
+    color: colors.primary,
+    lineHeight: 22,
+    marginBottom: spacing.sm,
+    fontWeight: typography.semibold,
+  },
+  placeholderFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  placeholderFooterText: {
+    flex: 1,
     fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
+    color: colors.primary,
+    fontWeight: typography.semibold,
   },
   responseCard: {
     backgroundColor: colors.surfaceElevated,
@@ -403,6 +490,7 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.textPrimary,
     lineHeight: 24,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
   modelInfo: {
