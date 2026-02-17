@@ -108,16 +108,18 @@ export default function AIStudyPlanScreen() {
     return () => clearInterval(interval);
   }, [showPlaceholder, placeholderStages.length]);
 
-  // Typewriter for placeholder
+  // Typewriter for placeholder with dynamic pacing
   const placeholderTypewriter = useTypewriter({
     text: showPlaceholder ? placeholderStages[placeholderStage] : '',
-    speed: 50, // Fast placeholder typing
+    speed: 50,
+    slowDownNearEnd: true, // Slow down if response hasn't arrived yet
   });
 
-  // Typewriter for actual AI response
+  // Typewriter for actual AI response with transition
   const responseTypewriter = useTypewriter({
     text: response?.response || '',
-    speed: 40, // Slightly slower for reading comfort
+    speed: 40,
+    transitionText: 'Here is your complete study plan:', // Smooth transition
   });
 
   async function handleGeneratePlan() {
@@ -272,11 +274,6 @@ export default function AIStudyPlanScreen() {
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="auto-awesome" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Your Personalized Study Plan</Text>
-                  {!responseTypewriter.isComplete && (
-                    <Pressable onPress={responseTypewriter.skipToEnd} style={styles.skipButton}>
-                      <Text style={styles.skipText}>Skip</Text>
-                    </Pressable>
-                  )}
                 </View>
                 
                 <Text style={styles.responseText}>{responseTypewriter.displayedText}</Text>
@@ -478,17 +475,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  skipButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.sm,
-  },
-  skipText: {
-    fontSize: typography.caption,
-    color: colors.primary,
-    fontWeight: typography.semibold,
-  },
+
   responseTitle: {
     fontSize: typography.h3,
     fontWeight: typography.semibold,
