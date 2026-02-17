@@ -49,7 +49,7 @@ export default function AIStudyPlanScreen() {
   const [displayResponse, setDisplayResponse] = useState(''); // What's currently being displayed
   const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
-  const displayedLengthRef = React.useRef(0); // Track how much we've already shown
+  const accumulatedResponseRef = React.useRef(''); // Thread 2's working buffer (not visible to Thread 1)
 
   useEffect(() => {
     if (user) {
@@ -128,95 +128,101 @@ export default function AIStudyPlanScreen() {
     },
   });
 
-  // THREAD 2: Completion Thread (runs in background, independent)
-  // Checks for incomplete responses and fetches continuations
+  // THREAD 2: Completion Thread (runs in background, silently accumulates ALL continuations)
+  // Only updates fullResponse ONCE when completely done
   useEffect(() => {
     async function checkAndComplete() {
       if (!response || isCompleting) return;
       
-      const trimmed = response.response.trim();
-      if (!trimmed) return;
+      console.log('🔄 [Thread 2] Starting completion check...');
+      setIsCompleting(true);
       
-      // Advanced incomplete detection
-      const lastChar = trimmed[trimmed.length - 1];
-      const lastLine = trimmed.split('\n').pop()?.trim() || '';
+      // Start with original response
+      let currentText = response.response;
+      accumulatedResponseRef.current = currentText;
+      let sessionId = response.session_id;
+      let continuesFetched = 0;
+      const maxContinuations = 10; // Safety limit
       
-      const endsWithNumberedList = /\(\d+\.?$/.test(trimmed);
-      const endsWithBulletPoint = /^\s*[•\-\*]\s*$/.test(lastLine);
-      const endsWithIncompleteMarker = ['-', '*', '#', ':', ',', '('].some(char => lastChar === char);
-      const lastLineVeryShort = lastLine.length < 10 && lastLine.length > 0;
-      const endsWithProperPunctuation = ['.', '!', '?'].includes(lastChar);
-      
-      // Check if all 7 weekdays are covered
-      const weekdayPattern = /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/gi;
-      const weekdaysFound = (trimmed.match(weekdayPattern) || []).map(d => d.toLowerCase());
-      const uniqueWeekdays = [...new Set(weekdaysFound)];
-      const hasAllWeekdays = uniqueWeekdays.length >= 7;
-      
-      const isIncomplete = 
-        endsWithNumberedList ||
-        endsWithBulletPoint ||
-        endsWithIncompleteMarker ||
-        (lastLineVeryShort && !endsWithProperPunctuation) ||
-        !hasAllWeekdays;
-      
-      console.log('🔍 [Thread 2] Checking completeness:', { isIncomplete, weekdays: uniqueWeekdays.length });
-      
-      if (isIncomplete && response.session_id) {
-        console.log('⚙️ [Thread 2] Fetching continuation...');
-        setIsCompleting(true);
+      // Keep fetching until complete or max limit reached
+      while (continuesFetched < maxContinuations) {
+        const trimmed = currentText.trim();
+        if (!trimmed) break;
         
-        const result = await continueAIResponse(response.session_id, 'short');
+        // Advanced incomplete detection
+        const lastChar = trimmed[trimmed.length - 1];
+        const lastLine = trimmed.split('\n').pop()?.trim() || '';
         
-        if (result.data) {
-          const combined = response.response + ' ' + result.data.response;
-          console.log('✅ [Thread 2] Continuation received, length:', combined.length);
-          
-          // Update response object to trigger recursive check
-          setResponse({
-            ...response,
-            response: combined,
-            metadata: { ...response.metadata, response_length: combined.length }
-          });
-          
-          // Update fullResponse for Thread 1 to pick up
-          setFullResponse(combined);
-        } else {
-          console.log('❌ [Thread 2] Continuation failed');
-          setFullResponse(response.response);
+        const endsWithNumberedList = /\(\d+\.?$/.test(trimmed);
+        const endsWithBulletPoint = /^\s*[•\-\*]\s*$/.test(lastLine);
+        const endsWithIncompleteMarker = ['-', '*', '#', ':', ',', '('].some(char => lastChar === char);
+        const lastLineVeryShort = lastLine.length < 10 && lastLine.length > 0;
+        const endsWithProperPunctuation = ['.', '!', '?'].includes(lastChar);
+        
+        // Check if all 7 weekdays are covered
+        const weekdayPattern = /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/gi;
+        const weekdaysFound = (trimmed.match(weekdayPattern) || []).map(d => d.toLowerCase());
+        const uniqueWeekdays = [...new Set(weekdaysFound)];
+        const hasAllWeekdays = uniqueWeekdays.length >= 7;
+        
+        const isIncomplete = 
+          endsWithNumberedList ||
+          endsWithBulletPoint ||
+          endsWithIncompleteMarker ||
+          (lastLineVeryShort && !endsWithProperPunctuation) ||
+          !hasAllWeekdays;
+        
+        console.log(`🔍 [Thread 2 - Round ${continuesFetched + 1}] Incomplete:`, isIncomplete, 'Weekdays:', uniqueWeekdays.length);
+        
+        if (!isIncomplete || !sessionId) {
+          console.log('✅ [Thread 2] Response is complete!');
+          break;
         }
         
-        setIsCompleting(false);
-      } else {
-        console.log('✅ [Thread 2] Response is complete');
-        setFullResponse(response.response);
+        // Fetch next continuation
+        console.log(`⚙️ [Thread 2] Fetching continuation ${continuesFetched + 1}...`);
+        const result = await continueAIResponse(sessionId, 'short');
+        
+        if (result.data) {
+          currentText = currentText + ' ' + result.data.response;
+          accumulatedResponseRef.current = currentText;
+          continuesFetched++;
+          console.log(`✅ [Thread 2] Continuation ${continuesFetched} received, total length:`, currentText.length);
+        } else {
+          console.log('❌ [Thread 2] Continuation failed, stopping');
+          break;
+        }
       }
+      
+      // ALL continuations fetched - now update fullResponse ONCE
+      console.log(`🎉 [Thread 2] COMPLETE! Total continuations: ${continuesFetched}, final length: ${currentText.length}`);
+      setFullResponse(currentText);
+      setIsCompleting(false);
     }
     
     checkAndComplete();
   }, [response]);
 
   // THREAD 1: Display Thread (UI rendering)
-  // Only updates display when NEW content arrives (prevents jittery resets)
+  // ONLY updates when Thread 2 is completely done (prevents jittery resets)
   useEffect(() => {
+    // Don't update display while Thread 2 is working
+    if (isCompleting) {
+      console.log('⏸️ [Thread 1] Waiting for Thread 2 to finish...');
+      return;
+    }
+    
     if (!fullResponse) {
-      displayedLengthRef.current = 0;
       setDisplayResponse('');
       setShowFullText(false);
       return;
     }
     
-    // Only update if there's truly NEW content (not just re-render)
-    const alreadyDisplayed = displayedLengthRef.current;
-    const hasNewContent = fullResponse.length > alreadyDisplayed;
-    
-    if (hasNewContent) {
-      console.log('🎨 [Thread 1] New content:', fullResponse.length - alreadyDisplayed, 'chars');
-      setDisplayResponse(fullResponse);
-      setShowFullText(false); // Reset fade-in for new content
-      displayedLengthRef.current = fullResponse.length;
-    }
-  }, [fullResponse]);
+    // Thread 2 is done - update display with final complete response
+    console.log('🎨 [Thread 1] Displaying final response, length:', fullResponse.length);
+    setDisplayResponse(fullResponse);
+    setShowFullText(false); // Trigger typewriter animation
+  }, [fullResponse, isCompleting]);
 
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
@@ -224,7 +230,7 @@ export default function AIStudyPlanScreen() {
     // Start placeholder animation and clear previous response
     setShowPlaceholder(true);
     setFullResponse('');
-    displayedLengthRef.current = 0; // Reset display tracker
+    accumulatedResponseRef.current = ''; // Reset accumulator
     
     // Save preferences for future use
     await updateUserPreferences(user.id, {
