@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Note } from '@/types';
+import { Note, NoteAttachment } from '@/types';
 
 // Get all notes for a user
 export async function getNotes(userId: string, subjectId?: string): Promise<Note[]> {
@@ -26,12 +26,66 @@ export async function getNotes(userId: string, subjectId?: string): Promise<Note
       subjectId: row.subject_id,
       title: row.title,
       content: row.content || '',
+      contentFormat: row.content_format || 'plain',
       tags: row.tags || [],
+      attachments: row.attachments || [],
+      isShared: row.is_shared || false,
+      shareToken: row.share_token,
+      isVoiceNote: row.is_voice_note || false,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
   } catch (err) {
     console.error('Error fetching notes:', err);
+    return [];
+  }
+}
+
+// Advanced search for notes
+export async function searchNotes(
+  userId: string,
+  filters: {
+    searchQuery?: string;
+    subjectId?: string;
+    tags?: string[];
+    startDate?: string;
+    endDate?: string;
+    isVoiceNote?: boolean;
+    contentFormat?: 'plain' | 'markdown' | 'html';
+  }
+): Promise<Note[]> {
+  try {
+    const { data, error } = await supabase.rpc('search_notes', {
+      p_user_id: userId,
+      p_search_query: filters.searchQuery || null,
+      p_subject_id: filters.subjectId || null,
+      p_tags: filters.tags || null,
+      p_start_date: filters.startDate || null,
+      p_end_date: filters.endDate || null,
+      p_is_voice_note: filters.isVoiceNote ?? null,
+      p_content_format: filters.contentFormat || null,
+    });
+
+    if (error) {
+      console.error('Failed to search notes:', error);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      subjectId: row.subject_id,
+      title: row.title,
+      content: row.content || '',
+      contentFormat: row.content_format || 'plain',
+      tags: row.tags || [],
+      attachments: row.attachments || [],
+      isShared: row.is_shared || false,
+      isVoiceNote: row.is_voice_note || false,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  } catch (err) {
+    console.error('Error searching notes:', err);
     return [];
   }
 }
@@ -47,7 +101,10 @@ export async function saveNote(
       subject_id: note.subjectId,
       title: note.title,
       content: note.content,
+      content_format: note.contentFormat || 'plain',
       tags: note.tags,
+      attachments: note.attachments || [],
+      is_voice_note: note.isVoiceNote || false,
     };
 
     // Only include ID if editing existing note (valid UUID)
@@ -72,6 +129,24 @@ export async function deleteNote(
   noteId: string
 ): Promise<{ error: string | null }> {
   try {
+    // First, get note to delete its attachments
+    const { data: note } = await supabase
+      .from('vk_notes')
+      .select('attachments')
+      .eq('id', noteId)
+      .eq('user_id', userId)
+      .single();
+
+    // Delete attachments from storage
+    if (note?.attachments && Array.isArray(note.attachments)) {
+      for (const attachment of note.attachments) {
+        await supabase.storage
+          .from('note-attachments')
+          .remove([attachment.file_path]);
+      }
+    }
+
+    // Delete note
     const { error } = await supabase
       .from('vk_notes')
       .delete()
@@ -83,4 +158,151 @@ export async function deleteNote(
   } catch (err: any) {
     return { error: err.message || 'Failed to delete note' };
   }
+}
+
+// Upload note attachment
+export async function uploadAttachment(
+  file: { uri: string; name: string; type: string }
+): Promise<{ data: NoteAttachment | null; error: string | null }> {
+  try {
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `attachments/${fileName}`;
+
+    // Convert file URI to blob for upload
+    const response = await fetch(file.uri);
+    const blob = await response.blob();
+
+    const { error: uploadError } = await supabase.storage
+      .from('note-attachments')
+      .upload(filePath, blob, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { data: null, error: uploadError.message };
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('note-attachments')
+      .getPublicUrl(filePath);
+
+    const attachment: NoteAttachment = {
+      file_path: filePath,
+      file_name: file.name,
+      file_type: file.type,
+      file_size: blob.size,
+      uploaded_at: new Date().toISOString(),
+      url: publicUrl,
+    };
+
+    return { data: attachment, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Failed to upload attachment' };
+  }
+}
+
+// Delete attachment
+export async function deleteAttachment(
+  filePath: string
+): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.storage
+      .from('note-attachments')
+      .remove([filePath]);
+
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to delete attachment' };
+  }
+}
+
+// Share note
+export async function shareNote(
+  noteId: string,
+  shouldShare: boolean
+): Promise<{ data: { shareToken?: string; sharedAt?: string } | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc('share_note', {
+      note_id: noteId,
+      should_share: shouldShare,
+    });
+
+    if (error) return { data: null, error: error.message };
+    return { data: data || null, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Failed to share note' };
+  }
+}
+
+// Get shared note by token (public access)
+export async function getSharedNote(
+  token: string
+): Promise<{ data: Note | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.rpc('get_shared_note', {
+      token,
+    });
+
+    if (error) return { data: null, error: error.message };
+    if (!data || data.length === 0) {
+      return { data: null, error: 'Note not found or not shared' };
+    }
+
+    const row = data[0];
+    const note: Note = {
+      id: row.id,
+      subjectId: row.subject_id,
+      title: row.title,
+      content: row.content || '',
+      contentFormat: row.content_format || 'plain',
+      tags: row.tags || [],
+      attachments: row.attachments || [],
+      isShared: true,
+      createdAt: row.created_at,
+      updatedAt: row.created_at,
+    };
+
+    return { data: note, error: null };
+  } catch (err: any) {
+    return { data: null, error: err.message || 'Failed to get shared note' };
+  }
+}
+
+// Mark note as accessed
+export async function markNoteAccessed(
+  noteId: string
+): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.rpc('mark_note_accessed', {
+      note_id: noteId,
+    });
+
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to mark note as accessed' };
+  }
+}
+
+// Export note as text
+export function exportNoteAsText(note: Note): string {
+  let text = `${note.title}\n`;
+  text += `${'='.repeat(note.title.length)}\n\n`;
+  text += `Subject: ${note.subjectId}\n`;
+  text += `Created: ${new Date(note.createdAt).toLocaleString()}\n`;
+  if (note.tags && note.tags.length > 0) {
+    text += `Tags: ${note.tags.join(', ')}\n`;
+  }
+  text += `\n${note.content}\n`;
+  
+  if (note.attachments && note.attachments.length > 0) {
+    text += `\n\nAttachments:\n`;
+    note.attachments.forEach((att: NoteAttachment) => {
+      text += `- ${att.file_name} (${att.file_type})\n`;
+    });
+  }
+  
+  return text;
 }

@@ -27,12 +27,26 @@ export interface StudySession {
   date: string;
 }
 
+export interface NoteAttachment {
+  file_path: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  uploaded_at: string;
+  url?: string;
+}
+
 export interface Note {
   id: string;
   subjectId: string;
   title: string;
   content: string;
+  contentFormat?: 'plain' | 'markdown' | 'html';
   tags: string[];
+  attachments?: NoteAttachment[];
+  isShared?: boolean;
+  shareToken?: string;
+  isVoiceNote?: boolean;
   createdAt: string;
   updatedAt: string;
 }
