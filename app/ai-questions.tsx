@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Animated } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
 import { useTypewriter } from '@/hooks/useTypewriter';
+import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -16,6 +17,20 @@ function formatResponseText(text: string) {
   if (!text) return '';
   
   return text
+    // Convert LaTeX chemical formulas and math to Unicode
+    .replace(/\^\{circ\}/g, '°')
+    .replace(/\^circ/g, '°')
+    .replace(/\^\{-1\}/g, '⁻¹')
+    .replace(/\^\{-2\}/g, '⁻²')
+    .replace(/\^\{-3\}/g, '⁻³')
+    .replace(/\^\{([0-9])\}/g, (_, n) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[parseInt(n)])
+    .replace(/_\{([0-9])\}/g, (_, n) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(n)])
+    .replace(/_(\d)/g, (_, n) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(n)])
+    // Greek letters
+    .replace(/\\Delta/g, 'Δ')
+    .replace(/Delta/g, 'Δ')
+    .replace(/\\rightarrow/g, '→')
+    .replace(/rightarrow/g, '→')
     // Remove LaTeX delimiters
     .replace(/\\\(\s*/g, '')
     .replace(/\s*\\\)/g, '')
@@ -26,21 +41,22 @@ function formatResponseText(text: string) {
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1/$2)')
     .replace(/\\quad/g, ' ')
     .replace(/\\,/g, '')
-    .replace(/\\/g, '')
-    // Clean markdown headers and add spacing for questions
-    .replace(/###\s*Question\s*(\d+)/gi, '\n\n━━━ QUESTION $1 ━━━\n')
+    .replace(/mol\^\{-1\}/g, 'mol⁻¹')
+    .replace(/kJ\\s*mol/g, 'kJ/mol')
+    // Clean markdown headers - make Question headers bold inline
+    .replace(/###\s*Question\s*(\d+)\s*:/gi, '\n\n**Question $1:**')
+    .replace(/^Question\s*(\d+)\s*:/gmi, '\n\n**Question $1:**')
     .replace(/###\s*/g, '\n\n')
     .replace(/##\s*/g, '\n\n')
     .replace(/#\s*/g, '\n\n')
-    // Bold text
-    .replace(/\*\*(.+?)\*\*/g, '$1')
+    // Keep bold markers for React Native Text (can't render markdown, will style separately)
     // Bullet points with proper indentation
     .replace(/^\s*-\s+/gm, '  • ')
     .replace(/^\s*\*\s+/gm, '  • ')
-    // Question patterns without ### prefix
-    .replace(/^Question\s*(\d+):/gmi, '\n\n━━━ QUESTION $1 ━━━\n')
     // Clean excessive newlines (max 2)
     .replace(/\n{3,}/g, '\n\n')
+    // Remove remaining backslashes
+    .replace(/\\/g, '')
     .trim();
 }
 
@@ -57,11 +73,18 @@ export default function AIQuestionsScreen() {
   const [questionCount, setQuestionCount] = useState('3');
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
+  const [fullResponse, setFullResponse] = useState('');
   const [showFullText, setShowFullText] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0.3))[0];
+  const [sessionId, setSessionId] = useState<string>('');
+  
+  // Background completion tracking (no state updates, no re-renders)
+  const completionInProgress = React.useRef(false);
 
   useEffect(() => {
     if (user) {
+      // Generate unique session ID for this conversation
+      const newSessionId = generateUniqueSessionId(user.id);
+      setSessionId(newSessionId);
       loadUserData();
     }
   }, [user]);
@@ -87,25 +110,79 @@ export default function AIQuestionsScreen() {
     slowDownNearEnd: true,
   });
 
-  // Fade-in effect when response arrives
+  // Background completion checker - ensure all questions are complete
   useEffect(() => {
-    if (showFullText) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      fadeAnim.setValue(0.3);
+    async function checkAndComplete() {
+      if (!response || completionInProgress.current) return;
+      
+      completionInProgress.current = true;
+      
+      // Start with original response
+      let currentText = response.response;
+      let currentSessionId = response.session_id;
+      let continuesFetched = 0;
+      const maxContinuations = 10;
+      const expectedQuestions = parseInt(questionCount) || 3;
+      
+      // Silent background loop - accumulate all continuations
+      while (continuesFetched < maxContinuations) {
+        const trimmed = currentText.trim();
+        if (!trimmed) break;
+        
+        // Check if we have all questions
+        const questionMatches = trimmed.match(/Question\s*(\d+)/gi) || [];
+        const questionNumbers = questionMatches.map(m => {
+          const match = m.match(/\d+/);
+          return match ? parseInt(match[0]) : 0;
+        });
+        const maxQuestionFound = Math.max(0, ...questionNumbers);
+        const hasAllQuestions = maxQuestionFound >= expectedQuestions;
+        
+        // Check if response seems incomplete
+        const lastChar = trimmed[trimmed.length - 1];
+        const endsWithProperPunctuation = ['.', '!', '?', ')'].includes(lastChar);
+        const endsWithIncompleteMarker = ['-', '*', '#', ':', ',', '('].some(char => lastChar === char);
+        
+        const isIncomplete = !hasAllQuestions || endsWithIncompleteMarker || !endsWithProperPunctuation;
+        
+        if (!isIncomplete || !currentSessionId) break;
+        
+        // Fetch continuation silently
+        const result = await continueAIResponse(currentSessionId, 'short');
+        
+        if (result.data) {
+          currentText = currentText + ' ' + result.data.response;
+          continuesFetched++;
+        } else {
+          break;
+        }
+      }
+      
+      // Update UI with final complete text
+      setFullResponse(currentText);
+      setShowPlaceholder(false);
+      
+      // Trigger fade-in animation after brief delay
+      setTimeout(() => {
+        setShowFullText(true);
+      }, 100);
+      
+      completionInProgress.current = false;
     }
-  }, [showFullText]);
+    
+    checkAndComplete();
+  }, [response, questionCount]);
 
   async function handleGenerateQuestions() {
     if (!user || !selectedSubject || !topic) return;
     
+    // Reset state
     setShowPlaceholder(true);
+    setFullResponse('');
     setShowFullText(false);
+    completionInProgress.current = false;
     
+    // Pass session ID for continuation support
     await generateQuestions(
       user.id,
       selectedSubject.code,
@@ -115,8 +192,7 @@ export default function AIQuestionsScreen() {
       parseInt(questionCount) || 3
     );
     
-    setShowPlaceholder(false);
-    setTimeout(() => setShowFullText(true), 100);
+    // Placeholder will hide automatically when response arrives
   }
 
   return (
@@ -263,23 +339,25 @@ export default function AIQuestionsScreen() {
               </View>
             )}
 
-            {/* Response */}
-            {response && (
-              <Animated.View style={[styles.responseCard, { opacity: fadeAnim }]}>
+            {/* Response Display */}
+            {fullResponse && (
+              <View style={[styles.responseCard, showFullText && styles.fadeInCard]}>
                 <View style={styles.responseHeader}>
                   <MaterialIcons name="quiz" size={24} color={colors.success} />
                   <Text style={styles.responseTitle}>Practice Questions</Text>
                 </View>
                 
-                <Text style={styles.responseText}>{formatResponseText(response.response)}</Text>
+                <Text style={styles.responseText}>{formatResponseText(fullResponse)}</Text>
                 
                 {/* Metadata Info */}
-                <View style={styles.modelInfo}>
-                  <Text style={styles.modelText}>
-                    {new Date(response.timestamp).toLocaleString()} • {response.metadata.response_length} characters
-                    {response.metadata.search_performed && ' • Web search used'}
-                  </Text>
-                </View>
+                {response && (
+                  <View style={styles.modelInfo}>
+                    <Text style={styles.modelText}>
+                      {new Date(response.timestamp).toLocaleString()} • {fullResponse.length} characters
+                      {response.metadata.search_performed && ' • Web search used'}
+                    </Text>
+                  </View>
+                )}
                 
                 {/* Tips */}
                 <View style={styles.tipsCard}>
@@ -288,7 +366,7 @@ export default function AIQuestionsScreen() {
                     Practice these questions under timed conditions to simulate real exam pressure!
                   </Text>
                 </View>
-              </Animated.View>
+              </View>
             )}
           </>
         )}
@@ -492,6 +570,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     borderWidth: 2,
     borderColor: colors.success,
+    opacity: 0.3,
+  },
+  fadeInCard: {
+    opacity: 1,
   },
   responseHeader: {
     flexDirection: 'row',
