@@ -100,6 +100,13 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
           },
         ]}
       >
+        {/* Background Image */}
+        <Image
+          source={require('@/assets/panel-background.png')}
+          style={styles.backgroundImage}
+          contentFit="cover"
+          transition={200}
+        />
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -185,7 +192,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: DRAWER_WIDTH,
-    backgroundColor: colors.surface,
+    backgroundColor: '#000000',
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
@@ -268,5 +275,14 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textTertiary,
     marginBottom: spacing.xs,
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: DRAWER_WIDTH,
+    height: '100%',
   },
 });
