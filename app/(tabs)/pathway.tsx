@@ -28,6 +28,7 @@ export default function PathwayScreen() {
   const [pathway, setPathway] = useState<any>(null);
   const [backups, setBackups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   
   const prediction = getPrediction();
@@ -49,21 +50,29 @@ export default function PathwayScreen() {
   );
 
   async function loadPathwayData() {
-    setIsLoading(true);
+    // Only show loading spinner on initial load, not on subsequent refreshes
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
     
-    // Fetch all career paths from external Supabase
-    const careers = await getAllCareerPaths();
-    setCareerPaths(careers);
-
-    // Fetch pathway suggestions from external Supabase
-    const pathwayData = await getPathwaySuggestions(targetCareer, prediction.atar);
-    setPathway(pathwayData);
-
-    // Fetch backup career suggestions from external Supabase
-    const backupData = await getBackupCareerSuggestions(prediction.atar, [targetCareer]);
-    setBackups(backupData);
-
-    setIsLoading(false);
+    try {
+      // Fetch all data in parallel to minimize loading time
+      const [careers, pathwayData, backupData] = await Promise.all([
+        getAllCareerPaths(),
+        getPathwaySuggestions(targetCareer, prediction.atar),
+        getBackupCareerSuggestions(prediction.atar, [targetCareer])
+      ]);
+      
+      // Update all state in one batch to prevent multiple re-renders
+      setCareerPaths(careers);
+      setPathway(pathwayData);
+      setBackups(backupData);
+    } catch (error) {
+      console.error('Failed to load pathway data:', error);
+    } finally {
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    }
   }
 
   function handleSelectCareer(careerId: string) {
@@ -170,10 +179,8 @@ export default function PathwayScreen() {
               </>
             )}
           </View>
-        ) : (authLoading || isLoading) ? (
-          <LoadingSpinner 
-            message={authLoading ? 'Loading your profile...' : 'Loading your pathway...'} 
-          />
+        ) : (isLoading && isInitialLoad) ? (
+          <LoadingSpinner message="Loading your pathway..." />
         ) : (
           <>
             {/* Career Target */}
