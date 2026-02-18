@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -101,9 +102,13 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Quick Access</Text>
-            <Text style={styles.subtitle}>FairPrep by Dalsi Academy</Text>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('@/assets/fairprep-logo.png')}
+              style={styles.logo}
+              contentFit="contain"
+              transition={200}
+            />
           </View>
           <Pressable onPress={onClose} style={styles.closeButton}>
             <MaterialIcons name="close" size={24} color={colors.textSecondary} />
@@ -191,21 +196,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  title: {
-    fontSize: typography.h2,
-    fontWeight: typography.bold,
-    color: colors.textPrimary,
+  logoContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingRight: spacing.md,
   },
-  subtitle: {
-    fontSize: typography.caption,
-    color: colors.textTertiary,
-    marginTop: spacing.xs,
+  logo: {
+    width: 160,
+    height: 80,
   },
   closeButton: {
     padding: spacing.xs,
