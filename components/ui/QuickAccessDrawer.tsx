@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     paddingRight: spacing.md,
   },
   logo: {
-    width: 160,
-    height: 80,
+    width: 208,
+    height: 104,
   },
   closeButton: {
     padding: spacing.xs,
