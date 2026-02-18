@@ -136,7 +136,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
               onPress={() => handleNavigate(item.route)}
             >
               <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-                <MaterialIcons name={item.icon} size={29} color={item.color} />
+                <MaterialIcons name={item.icon} size={24} color={item.color} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
@@ -158,7 +158,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
               onPress={() => handleNavigate(item.route)}
             >
               <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-                <MaterialIcons name={item.icon} size={29} color={item.color} />
+                <MaterialIcons name={item.icon} size={24} color={item.color} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     paddingRight: spacing.md,
   },
   logo: {
-    width: 208,
-    height: 104,
+    width: 250,
+    height: 125,
   },
   closeButton: {
     padding: spacing.xs,
@@ -233,27 +233,27 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginVertical: spacing.sm,
+    marginVertical: spacing.xs,
     marginHorizontal: spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   menuItemPressed: {
     backgroundColor: colors.surfaceElevated,
   },
   iconContainer: {
-    width: 58,
-    height: 58,
+    width: 48,
+    height: 48,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
