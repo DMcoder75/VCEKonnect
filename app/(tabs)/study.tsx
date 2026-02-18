@@ -74,7 +74,7 @@ export default function StudyScreen() {
         {isLoading ? (
           <LoadingSpinner message="Loading study tracker..." />
         ) : (
-          <> {/* Added a Fragment here to wrap the conditional content */}
+          <>
             {/* All Time Summary */}
             <View style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>Total Study Time (All Time)</Text>
@@ -120,7 +120,7 @@ export default function StudyScreen() {
               </>
             )}
           </>
-        )} {/* Closing bracket for the ternary operator */}
+        )}
       </ScrollView>
     </View>
   );
