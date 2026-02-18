@@ -257,7 +257,8 @@ export async function generatePracticeQuestions(
   subjectName: string,
   topic: string,
   difficultyLevel: 'easy' | 'medium' | 'hard',
-  questionCount: number
+  questionCount: number,
+  sessionId?: string
 ): Promise<{ data: AIResponse | null; error: string | null }> {
   // Map difficulty to simple descriptors for fast queries
   const difficultyWord = difficultyLevel === 'easy' 
@@ -273,7 +274,7 @@ export async function generatePracticeQuestions(
     message,
     mode: 'short', // Use short mode for fast response (~10-15 seconds)
     model: 'accurate', // Use accurate model for complex subject content
-    session_id: undefined,
+    session_id: sessionId,
     app_id: APP_ID,
   });
 }

@@ -132,7 +132,8 @@ export function useAI() {
     subjectName: string,
     topic: string,
     difficultyLevel: 'easy' | 'medium' | 'hard',
-    questionCount: number
+    questionCount: number,
+    sessionId?: string
   ) {
     setIsLoading(true);
     setError(null);
@@ -144,7 +145,8 @@ export function useAI() {
       subjectName,
       topic,
       difficultyLevel,
-      questionCount
+      questionCount,
+      sessionId
     );
 
     if (result.error) {

@@ -189,7 +189,8 @@ export default function AIQuestionsScreen() {
       selectedSubject.name,
       topic,
       difficulty,
-      parseInt(questionCount) || 3
+      parseInt(questionCount) || 3,
+      sessionId // Pass session ID to enable continuation
     );
     
     // Placeholder will hide automatically when response arrives
