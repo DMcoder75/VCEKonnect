@@ -136,7 +136,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
               onPress={() => handleNavigate(item.route)}
             >
               <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-                <MaterialIcons name={item.icon} size={38} color={item.color} />
+                <MaterialIcons name={item.icon} size={29} color={item.color} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
@@ -158,7 +158,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
               onPress={() => handleNavigate(item.route)}
             >
               <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-                <MaterialIcons name={item.icon} size={38} color={item.color} />
+                <MaterialIcons name={item.icon} size={29} color={item.color} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
   },
   iconContainer: {
-    width: 75,
-    height: 75,
+    width: 58,
+    height: 58,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
