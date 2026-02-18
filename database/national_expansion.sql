@@ -437,11 +437,24 @@ select public.migrate_vic_users_to_states();
 -- STEP 15: Update Pathway Data for National Unis
 -- =====================================================
 
--- Add state_id to pathway courses
-alter table public.vk_pathway_courses
-add column if not exists state_requirements jsonb default '{}'::jsonb;
-
-comment on column public.vk_pathway_courses.state_requirements is 'State-specific entry requirements: {vic: {atar: 95}, nsw: {atar: 94}}';
+-- Add state_requirements to university courses (if table exists)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables 
+    where table_schema = 'public' 
+    and table_name = 'vk_university_courses'
+  ) then
+    alter table public.vk_university_courses
+    add column if not exists state_requirements jsonb default '{}'::jsonb;
+    
+    comment on column public.vk_university_courses.state_requirements is 'State-specific entry requirements: {vic: {atar: 95}, nsw: {atar: 94}}';
+    
+    raise notice 'Added state_requirements column to vk_university_courses';
+  else
+    raise notice 'Skipping: vk_university_courses table does not exist yet';
+  end if;
+end $$;
 
 -- =====================================================
 -- END OF MIGRATION
