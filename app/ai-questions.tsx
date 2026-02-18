@@ -12,18 +12,36 @@ import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 
-// Format AI response text (preserve structure, clean markdown)
+// Format AI response text (preserve structure, clean markdown & LaTeX)
 function formatResponseText(text: string) {
   if (!text) return '';
   
   return text
-    .replace(/### /g, '\n') // Keep headers, remove ### marker
-    .replace(/## /g, '\n') // Keep subheaders
-    .replace(/# /g, '\n') // Keep main headers
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markers
-    .replace(/^- /gm, '  • ') // Convert - to indented bullets
-    .replace(/^\* /gm, '  • ') // Convert * to indented bullets
-    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+    // Remove LaTeX delimiters
+    .replace(/\\\[\s*/g, '') // Remove \[
+    .replace(/\s*\\\]/g, '') // Remove \]
+    .replace(/\\\(\s*/g, '') // Remove \(
+    .replace(/\s*\\\)/g, '') // Remove \)
+    .replace(/\$\$/g, '') // Remove $$
+    .replace(/\$/g, '') // Remove single $
+    // Clean LaTeX commands
+    .replace(/\\text\{([^}]+)\}/g, '$1') // \text{...} → ...
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1/$2)') // \frac{a}{b} → (a/b)
+    .replace(/\\quad/g, ' ') // \quad → space
+    .replace(/\\,/g, '') // \, → remove
+    .replace(/\\\\/g, '') // Remove remaining backslashes
+    // Clean markdown with proper spacing
+    .replace(/###\s*Question\s*(\d+)/gi, '\n\nQuestion $1') // Question headers
+    .replace(/###\s*/g, '\n\n') // Other headers
+    .replace(/##\s*/g, '\n\n')
+    .replace(/#\s*/g, '\n\n')
+    // Bold text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    // Bullet points with proper indentation
+    .replace(/^\s*-\s+/gm, '  • ')
+    .replace(/^\s*\*\s+/gm, '  • ')
+    // Clean excessive newlines (max 2)
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
