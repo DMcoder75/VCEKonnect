@@ -284,5 +284,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: DRAWER_WIDTH,
     height: '100%',
+    opacity: 0.4,
   },
 });
