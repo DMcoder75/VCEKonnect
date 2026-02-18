@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
-import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
+import { getSubjectsByState, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 
 export default function SubjectsScreen() {
@@ -30,8 +30,11 @@ export default function SubjectsScreen() {
     if (!user) return;
     
     setIsLoading(true);
+    // Get user's state from profile (default to 'vic' for backward compatibility)
+    const userState = (user as any).state_id || 'vic';
+    
     const [subjects, userSubjectIds] = await Promise.all([
-      getAllVCESubjects(),
+      getSubjectsByState(userState),
       getUserSubjectIds(user.id)
     ]);
     setAllSubjects(subjects);
@@ -101,7 +104,7 @@ export default function SubjectsScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>My VCE Subjects</Text>
+        <Text style={styles.headerTitle}>My Subjects</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -122,7 +125,7 @@ export default function SubjectsScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.infoTitle}>Select Your Subjects</Text>
                 <Text style={styles.infoDesc}>
-                  Choose all VCE subjects you're currently studying. This helps us track your ATAR prediction and study progress.
+                  Choose all subjects you're currently studying. This helps us track your score prediction and study progress.
                 </Text>
               </View>
             </View>

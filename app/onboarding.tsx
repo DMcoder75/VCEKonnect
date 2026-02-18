@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { CAREER_PATHS } from '@/constants/vceData';
-import { getAllVCESubjects, getSubjectCategories, VCESubject } from '@/services/vceSubjectsService';
+import { getAllStates, getSubjectsByState, VCESubject, AustralianState } from '@/services/vceSubjectsService';
 import { updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
@@ -16,19 +16,35 @@ export default function OnboardingScreen() {
   const { user, updateProfile } = useAuth();
   
   const [step, setStep] = useState(1);
+  const [selectedState, setSelectedState] = useState<string>('');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>('');
   const [yearLevel, setYearLevel] = useState<11 | 12>(12);
+  const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadSubjects();
+    loadStates();
   }, []);
 
-  async function loadSubjects() {
+  useEffect(() => {
+    if (selectedState) {
+      loadSubjects();
+    }
+  }, [selectedState]);
+
+  async function loadStates() {
     setIsLoading(true);
-    const subjects = await getAllVCESubjects();
+    const states = await getAllStates();
+    setAllStates(states);
+    setIsLoading(false);
+  }
+
+  async function loadSubjects() {
+    if (!selectedState) return;
+    setIsLoading(true);
+    const subjects = await getSubjectsByState(selectedState);
     setAllSubjects(subjects);
     setIsLoading(false);
   }
@@ -47,8 +63,9 @@ export default function OnboardingScreen() {
     // Update user subjects in database
     await updateUserSubjects(user.id, selectedSubjects);
     
-    // Update user profile
+    // Update user profile with state_id, career, and year level
     await updateProfile({
+      state_id: selectedState,
       targetCareer,
       yearLevel,
     });
@@ -66,9 +83,9 @@ export default function OnboardingScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${(step / 3) * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${(step / 4) * 100}%` }]} />
         </View>
-        <Text style={styles.stepText}>Step {step} of 3</Text>
+        <Text style={styles.stepText}>Step {step} of 4</Text>
       </View>
 
       <ScrollView
@@ -77,6 +94,62 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={false}
       >
         {step === 1 && (
+          <View>
+            <Text style={styles.title}>Select your state</Text>
+            <Text style={styles.description}>Choose your Australian state or territory</Text>
+            
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <MaterialIcons name="hourglass-empty" size={48} color={colors.textTertiary} />
+                <Text style={styles.loadingText}>Loading states...</Text>
+              </View>
+            ) : (
+              <View style={styles.stateGrid}>
+                {allStates.map(state => (
+                  <Pressable
+                    key={state.id}
+                    style={[
+                      styles.stateCard,
+                      selectedState === state.id && styles.stateCardSelected,
+                    ]}
+                    onPress={() => setSelectedState(state.id)}
+                  >
+                    {selectedState === state.id && (
+                      <MaterialIcons
+                        name="check-circle"
+                        size={24}
+                        color={colors.success}
+                        style={styles.stateCheckIcon}
+                      />
+                    )}
+                    <Text style={[
+                      styles.stateAbbr,
+                      selectedState === state.id && styles.stateAbbrSelected,
+                    ]}>
+                      {state.abbreviation}
+                    </Text>
+                    <Text style={[
+                      styles.stateName,
+                      selectedState === state.id && styles.stateNameSelected,
+                    ]}>
+                      {state.name}
+                    </Text>
+                    <Text style={styles.stateSystem}>{state.educationSystem}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            
+            <Button
+              title="Next"
+              onPress={() => setStep(2)}
+              fullWidth
+              disabled={!selectedState}
+            />
+          </View>
+        )}
+
+        {step === 2 && (
           <View>
             <Text style={styles.title}>What year level are you?</Text>
             <Text style={styles.description}>This helps us personalise your experience</Text>
@@ -100,15 +173,15 @@ export default function OnboardingScreen() {
               </Pressable>
             </View>
             
-            <Button title="Next" onPress={() => setStep(2)} fullWidth />
+            <Button title="Next" onPress={() => setStep(3)} fullWidth />
           </View>
         )}
 
-        {step === 2 && (
+        {step === 4 && (
           <View>
-            <Text style={styles.title}>Select your VCE subjects</Text>
+            <Text style={styles.title}>Select your subjects</Text>
             <Text style={styles.description}>
-              Choose all subjects you're currently studying
+              Choose all {allStates.find(s => s.id === selectedState)?.educationSystem || ''} subjects you're currently studying
             </Text>
             
             {Object.entries(subjectsByCategory).map(([category, subjects]) => (
@@ -146,17 +219,17 @@ export default function OnboardingScreen() {
             ))}
             
             <View style={styles.buttonRow}>
-              <Button title="Back" onPress={() => setStep(1)} variant="outline" />
+              <Button title="Back" onPress={() => setStep(3)} variant="outline" />
               <Button
                 title="Next"
-                onPress={() => setStep(3)}
+                onPress={() => setStep(4)}
                 disabled={selectedSubjects.length === 0}
               />
             </View>
           </View>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <View>
             <Text style={styles.title}>What's your dream career?</Text>
             <Text style={styles.description}>
@@ -192,7 +265,7 @@ export default function OnboardingScreen() {
             ))}
             
             <View style={styles.buttonRow}>
-              <Button title="Back" onPress={() => setStep(2)} variant="outline" />
+              <Button title="Back" onPress={() => setStep(3)} variant="outline" />
               <Button
                 title="Get Started"
                 onPress={handleComplete}
@@ -273,6 +346,66 @@ const styles = StyleSheet.create({
   },
   yearTextSelected: {
     color: colors.primary,
+  },
+  stateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  stateCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    minWidth: '47%',
+    maxWidth: '48%',
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  stateCardSelected: {
+    borderColor: colors.success,
+    backgroundColor: colors.surface,
+  },
+  stateCheckIcon: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+  },
+  stateAbbr: {
+    fontSize: 28,
+    fontWeight: typography.bold,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  stateAbbrSelected: {
+    color: colors.success,
+  },
+  stateName: {
+    fontSize: typography.bodySmall,
+    color: colors.textPrimary,
+    fontWeight: typography.semibold,
+    textAlign: 'center',
+    marginBottom: spacing.xxs,
+  },
+  stateNameSelected: {
+    color: colors.textPrimary,
+  },
+  stateSystem: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: typography.body,
+    color: colors.textTertiary,
   },
   categorySection: {
     marginBottom: spacing.lg,
