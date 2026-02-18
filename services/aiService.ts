@@ -259,33 +259,19 @@ export async function generatePracticeQuestions(
   difficultyLevel: 'easy' | 'medium' | 'hard',
   questionCount: number
 ): Promise<{ data: AIResponse | null; error: string | null }> {
-  const difficultyDescription = difficultyLevel === 'easy' 
-    ? 'introductory level, suitable for building foundational understanding'
+  // Map difficulty to simple descriptors for fast queries
+  const difficultyWord = difficultyLevel === 'easy' 
+    ? 'easy'
     : difficultyLevel === 'medium'
-    ? 'moderate difficulty, similar to typical SAC questions'
-    : 'challenging level, comparable to difficult exam questions';
+    ? 'medium complex'
+    : 'challenging';
 
-  const message = `I'm a VCE student preparing for my ${subjectName} exam, and I need practice questions to test my understanding and improve my exam technique.
-
-Please generate ${questionCount} practice questions on the following topic:
-
-Topic: ${topic}
-Subject: ${subjectName}
-Difficulty Level: ${difficultyLevel} (${difficultyDescription})
-
-I need these questions to follow the official VCE exam format and standards. For each question, please provide:
-
-1. A clear, well-formatted question that matches the style and structure of actual VCE ${subjectName} SAC and exam questions
-2. The complete answer or solution
-3. Detailed step-by-step working and reasoning that explains how to arrive at the answer
-4. A list of the key concepts being tested in that question
-5. Mark allocation (how many marks this question would be worth in a real exam)
-
-The questions should help me practice both my knowledge and my exam technique. Please ensure they cover different aspects of the topic where possible.`;
+  // Short, efficient prompt pattern for fast response
+  const message = `I am VCE Year 12 student, share in short ${questionCount} ${difficultyWord} questions for ${subjectName} topic ${topic}`;
 
   return await generateAIResponse({
     message,
-    mode: 'long', // Use long mode for 1500 tokens (~10-20 seconds)
+    mode: 'short', // Use short mode for fast response (~10-15 seconds)
     model: 'accurate', // Use accurate model for complex subject content
     session_id: undefined,
     app_id: APP_ID,
