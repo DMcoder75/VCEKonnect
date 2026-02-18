@@ -11,17 +11,35 @@ import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 
-// Format AI response text (preserve structure, clean markdown)
+// Format AI response text for practice questions
 function formatResponseText(text: string) {
   if (!text) return '';
   
   return text
-    .replace(/### /g, '\n')
-    .replace(/## /g, '\n')
-    .replace(/# /g, '\n')
+    // Remove LaTeX delimiters
+    .replace(/\\\(\s*/g, '')
+    .replace(/\s*\\\)/g, '')
+    .replace(/\$\$/g, '')
+    .replace(/\$/g, '')
+    // Clean LaTeX commands
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1/$2)')
+    .replace(/\\quad/g, ' ')
+    .replace(/\\,/g, '')
+    .replace(/\\/g, '')
+    // Clean markdown headers and add spacing for questions
+    .replace(/###\s*Question\s*(\d+)/gi, '\n\n━━━ QUESTION $1 ━━━\n')
+    .replace(/###\s*/g, '\n\n')
+    .replace(/##\s*/g, '\n\n')
+    .replace(/#\s*/g, '\n\n')
+    // Bold text
     .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/^- /gm, '  • ')
-    .replace(/^\* /gm, '  • ')
+    // Bullet points with proper indentation
+    .replace(/^\s*-\s+/gm, '  • ')
+    .replace(/^\s*\*\s+/gm, '  • ')
+    // Question patterns without ### prefix
+    .replace(/^Question\s*(\d+):/gmi, '\n\n━━━ QUESTION $1 ━━━\n')
+    // Clean excessive newlines (max 2)
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
