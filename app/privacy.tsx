@@ -42,7 +42,7 @@ export default function PrivacyPolicyScreen() {
         {/* 1. Introduction */}
         <Text style={styles.sectionTitle}>1. Introduction</Text>
         <Text style={styles.paragraph}>
-          Dalsi Firm ("we", "us", "our") operates FairPrep by Dalsi Academy ("App", "Services"), a study planning platform for Australian Year 12 students. This Privacy Policy explains how we collect, use, store, share, and protect your information when you use our Services.
+          Dalsi Firm ("we", "us", "our") operates FairPrep by Dalsi Academy ("App", "Services"), a study planning platform for Australian Year 11-12 students across all states and territories (NSW, VIC, QLD, WA, SA, TAS, ACT, NT). This Privacy Policy explains how we collect, use, store, share, and protect your information when you use our Services.
         </Text>
         <Text style={styles.paragraph}>
           We are committed to protecting your privacy in accordance with the Australian Privacy Principles (APPs) under the Privacy Act 1988 (Cth).
@@ -95,7 +95,7 @@ export default function PrivacyPolicyScreen() {
           <Text style={styles.bullet}>• SAC/practice exam scores (user-entered)</Text>
           <Text style={styles.bullet}>• Assessment calendar events</Text>
           <Text style={styles.bullet}>• Goal targets (weekly/monthly/term)</Text>
-          <Text style={styles.bullet}>• ATAR/HSC/QCE/WACE predictions generated</Text>
+          <Text style={styles.bullet}>• ATAR/Score predictions generated (VTAC/UAC/QTAC/TISC/SATAC/TASC)</Text>
         </View>
         <Text style={styles.note}>Note: Study data belongs to you. We only store it for App functionality.</Text>
 

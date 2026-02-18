@@ -16,12 +16,12 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'General',
     question: 'What is FairPrep?',
-    answer: 'FairPrep is a comprehensive study companion app designed specifically for Victorian Certificate of Education (VCE) students in Years 11-12. It helps you track academic progress, predict ATAR scores, manage study time, take notes, and plan your university pathway—all in one place.',
+    answer: 'FairPrep is a comprehensive study companion app designed for Australian Year 11-12 students across all states and territories (NSW HSC, VIC VCE, QLD QCE, WA WACE, SA SACE, TAS TCE, ACT, NT NTCET). It helps you track academic progress, predict ATAR/state-based scores, manage study time, take notes, and plan your university pathway—all in one place.',
   },
   {
     category: 'General',
     question: 'How do I get started?',
-    answer: 'After signing up, complete the onboarding quiz to select your VCE subjects. Then explore the Dashboard to see your study overview, set study goals, start timers, and track your progress towards your ATAR target.',
+    answer: 'After signing up, select your state/territory (NSW, VIC, QLD, WA, SA, TAS, ACT, or NT), choose your year level (11 or 12), and select your subjects. Then explore the Dashboard to see your study overview, set study goals, start timers, and track your progress towards your ATAR/score target.',
   },
   {
     category: 'General',
@@ -50,7 +50,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'ATAR Predictor',
     question: 'How accurate is the ATAR prediction?',
-    answer: 'Our ATAR calculator uses the official 2024 VTAC scaling formulas based on historical VCE subject scaling data. While predictions are highly accurate, your actual ATAR depends on your final exam performance and state-wide subject scaling each year.',
+    answer: 'Our ATAR calculator uses state-specific scaling formulas (VTAC for VIC, UAC for NSW/ACT, TISC for WA, SATAC for SA, QTAC for QLD) based on historical subject scaling data. While predictions are highly accurate, your actual ATAR depends on your final exam performance and state-wide subject scaling each year.',
   },
   {
     category: 'ATAR Predictor',
@@ -60,7 +60,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'ATAR Predictor',
     question: 'Can I enter scores for English/EAL?',
-    answer: 'Yes! The app automatically recognizes both English (EN) and English as an Additional Language (EAL) and applies the correct scaling. English/EAL is mandatory and always included in your aggregate calculation.',
+    answer: 'Yes! The app automatically recognizes state-specific English courses (e.g., VIC English/EAL, NSW English Advanced/Standard/EAL/D) and applies the correct scaling for your state. English is mandatory in most states and always included in your aggregate calculation.',
   },
   {
     category: 'ATAR Predictor',
@@ -104,7 +104,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Study Goals',
     question: 'What does "Weekly × 4.3 → Monthly" mean?',
-    answer: 'This quick action multiplies your weekly hours by 4.3 to auto-fill monthly hours. Why 4.3? Most months have approximately 4.3 weeks (30 days ÷ 7 days = 4.28 weeks). This ensures your monthly goals are realistic and consistent with your weekly targets. Example: If Biology has 5 weekly hours, the button sets it to 21.5 monthly hours (5 × 4.3).',
+    answer: 'This quick action multiplies your weekly hours by 4.3 to auto-fill monthly hours. Why 4.3? Most months have approximately 4.3 weeks (30 days ÷ 7 days = 4.28 weeks). This ensures your monthly goals are realistic and consistent with your weekly targets. Example: If your selected subject has 5 weekly hours, the button sets it to 21.5 monthly hours (5 × 4.3).',
   },
   {
     category: 'Study Goals',
@@ -131,7 +131,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Calendar',
     question: 'How do I add a SAC or exam?',
-    answer: 'Tap the "+" button on the Calendar tab. Select the subject, event type (SAC or Exam), date, and title. Optionally add notes and duration. Events are automatically numbered (e.g., "SAC #1", "SAC #2") per subject for easy tracking.',
+    answer: 'Tap the "+" button on the Calendar tab. Select the subject, event type (SAC/Assessment Task or Exam), date, and title. Optionally add notes and duration. Events are automatically numbered (e.g., "SAC #1", "Assessment #1") per subject for easy tracking. Note: SAC terminology is VIC-specific; other states use "Assessment Tasks" or "School-based Assessments".',
   },
   {
     category: 'Calendar',
@@ -141,7 +141,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Calendar',
     question: 'How do I record my SAC/exam scores?',
-    answer: 'When you complete an assessment, tap the event and mark it as "Complete". Enter your achieved score and total possible score (e.g., 45/50). The app calculates the percentage automatically and uses this data for ATAR predictions and subject tracking.',
+    answer: 'When you complete an assessment, tap the event and mark it as "Complete". Enter your achieved score and total possible score (e.g., 45/50). The app calculates the percentage automatically and uses this data for ATAR/score predictions and subject tracking.',
   },
   {
     category: 'Calendar',
@@ -175,7 +175,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Pathway',
     question: 'How do I find courses that match my subjects?',
-    answer: 'The app can filter university courses based on your selected VCE subjects and predicted ATAR. This helps you discover which degrees you\'re eligible for and what ATAR scores you need to aim for.',
+    answer: 'The app can filter university courses based on your selected subjects (for your state) and predicted ATAR/score. This helps you discover which degrees you\'re eligible for and what ATAR/entry scores you need to aim for. Prerequisites may vary by state and university.',
   },
 
   // Premium

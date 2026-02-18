@@ -67,11 +67,11 @@ export default function TermsAndConditionsScreen() {
         
         <Text style={styles.subsectionTitle}>2.1 What FairPrep Provides</Text>
         <Text style={styles.paragraph}>
-          FairPrep by Dalsi Academy offers professional study planning tools for Australian Year 12 students across all states/territories:
+          FairPrep by Dalsi Academy offers professional study planning tools for Australian Year 11-12 students across all 8 states/territories (NSW, VIC, QLD, WA, SA, TAS, ACT, NT):
         </Text>
         
         <View style={styles.bulletList}>
-          <Text style={styles.bullet}>• ATAR/HSC/QCE/WACE/SACE predictions - Mathematical estimates based on user input</Text>
+          <Text style={styles.bullet}>• ATAR/Score predictions - Mathematical estimates based on user input (VTAC, UAC, QTAC, TISC, SATAC, TASC)</Text>
           <Text style={styles.bullet}>• Multi-period goal tracking - Weekly/monthly/term study targets</Text>
           <Text style={styles.bullet}>• SAC/Exam calendars - State-specific assessment schedules</Text>
           <Text style={styles.bullet}>• Study time tracking - Timer integration with auto-goal updates</Text>
@@ -90,9 +90,9 @@ export default function TermsAndConditionsScreen() {
           <Text style={styles.warningText}>• Career counseling</Text>
         </View>
 
-        <Text style={styles.subsectionTitle}>2.3 Supported Certificates</Text>
+        <Text style={styles.subsectionTitle}>2.3 Supported State Education Systems</Text>
         <Text style={styles.paragraph}>
-          HSC (NSW) • VCE (VIC) • QCE (QLD) • WACE (WA) • SACE (SA) • TCE (TAS) • NTCET (NT) • ACT Senior Secondary
+          HSC (NSW - NESA) • VCE (VIC - VCAA) • QCE (QLD - QCAA) • WACE (WA - SCSA) • SACE (SA) • TCE (TAS - TASC) • NTCET (NT) • ACT Senior Secondary (BSSS)
         </Text>
 
         {/* 3. User Eligibility & Accounts */}
@@ -164,18 +164,21 @@ export default function TermsAndConditionsScreen() {
         <Text style={styles.paragraph}>Predictions WILL DIFFER from official results due to:</Text>
         <View style={styles.bulletList}>
           <Text style={styles.bullet}>• Exam performance variation (High Impact)</Text>
-          <Text style={styles.bullet}>• Annual scaling methodology changes (High Impact)</Text>
-          <Text style={styles.bullet}>• Cohort performance shifts (High Impact)</Text>
+          <Text style={styles.bullet}>• Annual scaling methodology changes by state authorities (High Impact)</Text>
+          <Text style={styles.bullet}>• State-wide cohort performance shifts (High Impact)</Text>
           <Text style={styles.bullet}>• Input data inaccuracies (High Impact)</Text>
-          <Text style={styles.bullet}>• Different calculation methods (Medium Impact)</Text>
+          <Text style={styles.bullet}>• Different calculation methods across states (Medium Impact)</Text>
         </View>
 
         <Text style={styles.subsectionTitle}>5.3 No Official Affiliation</Text>
         <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>FairPrep by Dalsi Academy is COMPLETELY INDEPENDENT from:</Text>
-          <Text style={styles.warningText}>• VCAA ✓ VTAC ✓ NESA ✓ UAC</Text>
-          <Text style={styles.warningText}>• QCAA ✓ SCSA ✓ TISC ✓ SACE Board</Text>
-          <Text style={styles.warningText}>• TASC ✓ BSSS ✓ NTBOS</Text>
+          <Text style={styles.warningTitle}>FairPrep by Dalsi Academy is COMPLETELY INDEPENDENT from all state education authorities:</Text>
+          <Text style={styles.warningText}>• NSW: NESA, UAC</Text>
+          <Text style={styles.warningText}>• VIC: VCAA, VTAC</Text>
+          <Text style={styles.warningText}>• QLD: QCAA, QTAC</Text>
+          <Text style={styles.warningText}>• WA: SCSA, TISC</Text>
+          <Text style={styles.warningText}>• SA: SACE Board, SATAC</Text>
+          <Text style={styles.warningText}>• TAS: TASC • ACT: BSSS • NT: NT Dept Education</Text>
         </View>
 
         <Text style={styles.subsectionTitle}>5.4 Prohibited Uses</Text>
@@ -390,10 +393,10 @@ export default function TermsAndConditionsScreen() {
         <Text style={styles.sectionTitle}>16. USER ACKNOWLEDGMENT (MANDATORY)</Text>
         <View style={styles.acknowledgmentBox}>
           <Text style={styles.acknowledgmentTitle}>BY USING FAIRPREP BY DALSI ACADEMY, YOU ACKNOWLEDGE:</Text>
-          <Text style={styles.acknowledgmentText}>✅ Predictions are ESTIMATES ONLY - not guaranteed</Text>
+          <Text style={styles.acknowledgmentText}>✅ Predictions are ESTIMATES ONLY - not guaranteed across any state</Text>
           <Text style={styles.acknowledgmentText}>✅ Dalsi Firm has ZERO LIABILITY for academic results</Text>
           <Text style={styles.acknowledgmentText}>✅ All entered data is YOUR responsibility</Text>
-          <Text style={styles.acknowledgmentText}>✅ You will VERIFY predictions with official authorities</Text>
+          <Text style={styles.acknowledgmentText}>✅ You will VERIFY predictions with official state authorities (VCAA, NESA, QCAA, etc.)</Text>
           <Text style={styles.acknowledgmentText}>✅ You accept these Terms voluntarily and knowingly</Text>
         </View>
 
