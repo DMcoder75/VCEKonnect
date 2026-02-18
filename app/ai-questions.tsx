@@ -12,51 +12,18 @@ import { LoadingSpinner, Button } from '@/components/ui';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 
-// Format AI response text for practice questions
+// Format AI response text (preserve structure, clean markdown)
 function formatResponseText(text: string) {
   if (!text) return '';
   
   return text
-    // Convert LaTeX chemical formulas and math to Unicode
-    .replace(/\^\{circ\}/g, '°')
-    .replace(/\^circ/g, '°')
-    .replace(/\^\{-1\}/g, '⁻¹')
-    .replace(/\^\{-2\}/g, '⁻²')
-    .replace(/\^\{-3\}/g, '⁻³')
-    .replace(/\^\{([0-9])\}/g, (_, n) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[parseInt(n)])
-    .replace(/_\{([0-9])\}/g, (_, n) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(n)])
-    .replace(/_(\d)/g, (_, n) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(n)])
-    // Greek letters
-    .replace(/\\Delta/g, 'Δ')
-    .replace(/Delta/g, 'Δ')
-    .replace(/\\rightarrow/g, '→')
-    .replace(/rightarrow/g, '→')
-    // Remove LaTeX delimiters
-    .replace(/\\\(\s*/g, '')
-    .replace(/\s*\\\)/g, '')
-    .replace(/\$\$/g, '')
-    .replace(/\$/g, '')
-    // Clean LaTeX commands
-    .replace(/\\text\{([^}]+)\}/g, '$1')
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1/$2)')
-    .replace(/\\quad/g, ' ')
-    .replace(/\\,/g, '')
-    .replace(/mol\^\{-1\}/g, 'mol⁻¹')
-    .replace(/kJ\\s*mol/g, 'kJ/mol')
-    // Clean markdown headers - make Question headers bold inline
-    .replace(/###\s*Question\s*(\d+)\s*:/gi, '\n\n**Question $1:**')
-    .replace(/^Question\s*(\d+)\s*:/gmi, '\n\n**Question $1:**')
-    .replace(/###\s*/g, '\n\n')
-    .replace(/##\s*/g, '\n\n')
-    .replace(/#\s*/g, '\n\n')
-    // Keep bold markers for React Native Text (can't render markdown, will style separately)
-    // Bullet points with proper indentation
-    .replace(/^\s*-\s+/gm, '  • ')
-    .replace(/^\s*\*\s+/gm, '  • ')
-    // Clean excessive newlines (max 2)
-    .replace(/\n{3,}/g, '\n\n')
-    // Remove remaining backslashes
-    .replace(/\\/g, '')
+    .replace(/### /g, '\n') // Keep headers, remove ### marker
+    .replace(/## /g, '\n') // Keep subheaders
+    .replace(/# /g, '\n') // Keep main headers
+    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold markers
+    .replace(/^- /gm, '  • ') // Convert - to indented bullets
+    .replace(/^\* /gm, '  • ') // Convert * to indented bullets
+    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
     .trim();
 }
 
