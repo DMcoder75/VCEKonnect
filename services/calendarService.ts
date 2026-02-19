@@ -136,7 +136,7 @@ export async function createEvent(
       .select(
         `
         *,
-        vk_vce_subjects!inner (
+        vk_subjects!inner (
           code,
           name
         )
@@ -152,8 +152,8 @@ export async function createEvent(
     const transformedData: CalendarEvent = {
       id: data.id,
       subject_id: data.subject_id,
-      subject_code: data.vk_vce_subjects?.code,
-      subject_name: data.vk_vce_subjects?.name,
+      subject_code: data.vk_subjects?.code,
+      subject_name: data.vk_subjects?.name,
       event_date: data.event_date,
       event_type: data.event_type,
       title: data.title,
@@ -191,7 +191,7 @@ export async function updateEvent(
       .select(
         `
         *,
-        vk_vce_subjects!inner (
+        vk_subjects!inner (
           code,
           name
         )
@@ -206,8 +206,8 @@ export async function updateEvent(
     const transformedData: CalendarEvent = {
       id: data.id,
       subject_id: data.subject_id,
-      subject_code: data.vk_vce_subjects?.code,
-      subject_name: data.vk_vce_subjects?.name,
+      subject_code: data.vk_subjects?.code,
+      subject_name: data.vk_subjects?.name,
       event_date: data.event_date,
       event_type: data.event_type,
       title: data.title,

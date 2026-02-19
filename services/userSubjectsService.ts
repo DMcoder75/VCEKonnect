@@ -38,21 +38,21 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
     const subjectIds = userSubjectsData.map(row => row.subject_id);
     console.log('🔍 Step 2: Fetching subject details for IDs:', subjectIds);
 
-    // Step 2: Get full subject details from catalog
+    // Step 2: Get full subject details from unified catalog
     const { data: subjectsData, error: subjectsError } = await supabase
-      .from('vk_vce_subjects')
+      .from('vk_subjects')
       .select('*')
       .in('id', subjectIds);
 
     if (subjectsError) {
-      console.error('❌ Error fetching VCE subjects:', subjectsError);
+      console.error('❌ Error fetching subjects:', subjectsError);
       return [];
     }
 
-    console.log('📦 VCE subjects data:', subjectsData);
+    console.log('📦 Subjects data:', subjectsData);
 
     if (!subjectsData || subjectsData.length === 0) {
-      console.warn('⚠️ No matching subjects found in vk_vce_subjects table for IDs:', subjectIds);
+      console.warn('⚠️ No matching subjects found in vk_subjects table for IDs:', subjectIds);
       return [];
     }
 
@@ -64,6 +64,7 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
       category: row.category,
       scaledMean: row.scaled_mean,
       scaledStdDev: row.scaled_std_dev,
+      stateId: row.state_id,
       createdAt: row.created_at,
     }));
 
