@@ -102,21 +102,13 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
       >
         {/* Background Image */}
         <Image
-          source={require('@/assets/panel-background.png')}
+          source={require('@/assets/panel-background-v3.png')}
           style={styles.backgroundImage}
           contentFit="cover"
           transition={200}
         />
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={require('@/assets/fairprep-logo.png')}
-              style={styles.logo}
-              contentFit="contain"
-              transition={200}
-            />
-          </View>
           <Pressable onPress={onClose} style={styles.closeButton}>
             <MaterialIcons name="close" size={24} color={colors.textSecondary} />
           </Pressable>
@@ -202,25 +194,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  logoContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingRight: spacing.md,
-  },
-  logo: {
-    width: 250,
-    height: 125,
+    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
   },
   closeButton: {
     padding: spacing.xs,
+    backgroundColor: colors.surface + '80',
+    borderRadius: borderRadius.full,
   },
   menuList: {
     flex: 1,
@@ -284,6 +267,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: DRAWER_WIDTH,
     height: '100%',
-    opacity: 0.4,
+    opacity: 1,
   },
 });
