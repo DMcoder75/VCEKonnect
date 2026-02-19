@@ -221,6 +221,66 @@ export default function AchievementsScreen() {
 
 
 
+          {/* Subject Achievements 🎉 */}
+          {achievements.filter(a => a.achievementType.startsWith('subject_')).length > 0 && (
+            <View style={styles.achievementsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="emoji-events" size={24} color={colors.success} />
+                <Text style={styles.sectionTitle}>Subject Achievements 🎉</Text>
+              </View>
+              
+              <View style={styles.achievementsGrid}>
+                {achievements
+                  .filter(a => a.achievementType.startsWith('subject_'))
+                  .map(achievement => (
+                    <View key={achievement.id} style={styles.achievementCard}>
+                      <MaterialIcons
+                        name={achievement.iconName as any}
+                        size={40}
+                        color={getAchievementColor(achievement.achievementType)}
+                      />
+                      <Text style={styles.achievementName}>{achievement.achievementName}</Text>
+                      <Text style={styles.achievementDesc}>{achievement.achievementDescription}</Text>
+                      <Text style={styles.achievementDate}>
+                        {new Date(achievement.earnedAt).toLocaleDateString('en-AU', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            </View>
+          )}
+
+          {/* Subject Streaks 🔥 */}
+          {subjectStreaks.length > 0 && (
+            <View style={styles.achievementsSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
+                <Text style={styles.sectionTitle}>Subject Streaks 🔥</Text>
+              </View>
+              
+              {subjectStreaks.map(streak => (
+                <View key={streak.id} style={styles.subjectStreakCard}>
+                  <View style={styles.subjectStreakInfo}>
+                    <Text style={styles.subjectStreakName}>
+                      {getSubjectName(streak.subjectId)}
+                    </Text>
+                    <Text style={styles.subjectStreakDesc}>
+                      {streak.streakType === 'weekly' ? 'Weekly' : 'Monthly'} Study Streak
+                    </Text>
+                  </View>
+                  <View style={styles.subjectStreakBadge}>
+                    <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
+                    <Text style={styles.subjectStreakNumber}>{streak.currentStreak}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Current Active Goals */}
           {activeGoals?.weekly && (
             <View style={styles.activeGoalsSection}>
