@@ -217,6 +217,10 @@ export default function AchievementsScreen() {
             </View>
           </View>
 
+
+
+
+
           {/* Current Active Goals */}
           {activeGoals?.weekly && (
             <View style={styles.activeGoalsSection}>
@@ -290,43 +294,7 @@ export default function AchievementsScreen() {
             </View>
           )}
 
-          {/* Subject Achievements (Cookie, Pizza, Ice Cream rewards!) */}
-          {achievements.filter(a => a.achievementType.startsWith('subject_')).length > 0 && (
-            <View style={styles.achievementsSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="emoji-events" size={24} color={colors.premium} />
-                <Text style={styles.sectionTitle}>Subject Achievements 🎉</Text>
-              </View>
-              
-              {achievements
-                .filter(a => a.achievementType.startsWith('subject_'))
-                .map(achievement => {
-                  // Extract reward message from description
-                  const reward = achievement.achievementDescription.includes('cookie')
-                    ? 'Treat yourself with a cookie!'
-                    : achievement.achievementDescription.includes('pizza')
-                    ? 'Pizza party time!'
-                    : achievement.achievementDescription.includes('ice cream')
-                    ? 'Ice cream reward!'
-                    : achievement.achievementDescription.includes('chocolate')
-                    ? 'You deserve chocolate!'
-                    : achievement.achievementDescription.includes('Anything you want')
-                    ? 'EPIC! Anything you want!'
-                    : undefined;
 
-                  return (
-                    <SubjectAchievementCard
-                      key={achievement.id}
-                      name={achievement.achievementName}
-                      description={achievement.achievementDescription}
-                      icon={achievement.iconName}
-                      earnedAt={achievement.earnedAt}
-                      reward={reward}
-                    />
-                  );
-                })}
-            </View>
-          )}
 
           {/* Period Achievements (Weekly/Monthly/Term streaks) */}
           {achievements.filter(a => !a.achievementType.startsWith('subject_')).length > 0 && (
@@ -361,34 +329,7 @@ export default function AchievementsScreen() {
             </View>
           )}
 
-          {/* Subject Streaks */}
-          {subjectStreaks.filter(s => s.currentStreak > 0).length > 0 && (
-            <View style={styles.achievementsSection}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
-                <Text style={styles.sectionTitle}>Subject Streaks 🔥</Text>
-              </View>
-              
-              {subjectStreaks
-                .filter(s => s.currentStreak > 0)
-                .map(streak => (
-                  <View key={streak.id} style={styles.subjectStreakCard}>
-                    <View style={styles.subjectStreakInfo}>
-                      <Text style={styles.subjectStreakName}>
-                        {getSubjectName(streak.subjectId)}
-                      </Text>
-                      <Text style={styles.subjectStreakDesc}>
-                        {streak.currentStreak} consecutive week{streak.currentStreak !== 1 ? 's' : ''} at 100%+
-                      </Text>
-                    </View>
-                    <View style={styles.subjectStreakBadge}>
-                      <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
-                      <Text style={styles.subjectStreakNumber}>{streak.currentStreak}</Text>
-                    </View>
-                  </View>
-                ))}
-            </View>
-          )}
+
 
           {/* Weekly History */}
           {weeklyHistory.length > 0 && (
