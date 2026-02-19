@@ -22,17 +22,11 @@ export interface AustralianState {
   scalingSystem: string;
 }
 
-// State to table mapping
-const STATE_TABLE_MAP: Record<string, string> = {
-  'vic': 'vk_subjects_vic',
-  'nsw': 'vk_subjects_nsw',
-  'qld': 'vk_subjects_qld',
-  'wa': 'vk_subjects_wa',
-  'sa': 'vk_subjects_sa',
-  'tas': 'vk_subjects_tas',
-  'act': 'vk_subjects_act',
-  'nt': 'vk_subjects_nt',
-};
+// =====================================================
+// UNIFIED TABLE: All states now use vk_subjects
+// =====================================================
+// Legacy state-specific tables (vk_subjects_vic, vk_subjects_nsw, etc.)
+// have been migrated to single unified vk_subjects table with state_id column
 
 /**
  * Get all Australian states/territories
@@ -66,19 +60,14 @@ export async function getAllStates(): Promise<AustralianState[]> {
 }
 
 /**
- * Get all subjects for a specific state
+ * Get all subjects for a specific state from unified vk_subjects table
  */
 export async function getSubjectsByState(stateId: string): Promise<VCESubject[]> {
   try {
-    const tableName = STATE_TABLE_MAP[stateId.toLowerCase()];
-    if (!tableName) {
-      console.error('Invalid state ID:', stateId);
-      return [];
-    }
-
     const { data, error } = await supabase
-      .from(tableName)
+      .from('vk_subjects')
       .select('*')
+      .eq('state_id', stateId.toLowerCase())
       .order('category', { ascending: true })
       .order('name', { ascending: true });
 
@@ -94,7 +83,7 @@ export async function getSubjectsByState(stateId: string): Promise<VCESubject[]>
       category: row.category,
       scaledMean: row.scaled_mean,
       scaledStdDev: row.scaled_std_dev,
-      stateId: row.state_id || stateId,
+      stateId: row.state_id,
       createdAt: row.created_at,
     }));
   } catch (err) {
@@ -112,19 +101,14 @@ export async function getAllVCESubjects(): Promise<VCESubject[]> {
 }
 
 /**
- * Get subjects by category for a specific state
+ * Get subjects by category for a specific state from unified vk_subjects table
  */
 export async function getSubjectsByCategory(category: string, stateId: string = 'vic'): Promise<VCESubject[]> {
   try {
-    const tableName = STATE_TABLE_MAP[stateId.toLowerCase()];
-    if (!tableName) {
-      console.error('Invalid state ID:', stateId);
-      return [];
-    }
-
     const { data, error } = await supabase
-      .from(tableName)
+      .from('vk_subjects')
       .select('*')
+      .eq('state_id', stateId.toLowerCase())
       .eq('category', category)
       .order('name', { ascending: true });
 
@@ -140,7 +124,7 @@ export async function getSubjectsByCategory(category: string, stateId: string = 
       category: row.category,
       scaledMean: row.scaled_mean,
       scaledStdDev: row.scaled_std_dev,
-      stateId: row.state_id || stateId,
+      stateId: row.state_id,
       createdAt: row.created_at,
     }));
   } catch (err) {
@@ -150,19 +134,14 @@ export async function getSubjectsByCategory(category: string, stateId: string = 
 }
 
 /**
- * Get all unique categories for a specific state
+ * Get all unique categories for a specific state from unified vk_subjects table
  */
 export async function getSubjectCategories(stateId: string = 'vic'): Promise<string[]> {
   try {
-    const tableName = STATE_TABLE_MAP[stateId.toLowerCase()];
-    if (!tableName) {
-      console.error('Invalid state ID:', stateId);
-      return [];
-    }
-
     const { data, error } = await supabase
-      .from(tableName)
+      .from('vk_subjects')
       .select('category')
+      .eq('state_id', stateId.toLowerCase())
       .order('category', { ascending: true });
 
     if (error) {
@@ -180,21 +159,16 @@ export async function getSubjectCategories(stateId: string = 'vic'): Promise<str
 }
 
 /**
- * Search subjects by name or code for a specific state
+ * Search subjects by name or code for a specific state from unified vk_subjects table
  */
 export async function searchSubjects(query: string, stateId: string = 'vic'): Promise<VCESubject[]> {
   try {
-    const tableName = STATE_TABLE_MAP[stateId.toLowerCase()];
-    if (!tableName) {
-      console.error('Invalid state ID:', stateId);
-      return [];
-    }
-
     const searchTerm = `%${query.toLowerCase()}%`;
     
     const { data, error } = await supabase
-      .from(tableName)
+      .from('vk_subjects')
       .select('*')
+      .eq('state_id', stateId.toLowerCase())
       .or(`name.ilike.${searchTerm},code.ilike.${searchTerm}`)
       .order('name', { ascending: true });
 
@@ -210,7 +184,7 @@ export async function searchSubjects(query: string, stateId: string = 'vic'): Pr
       category: row.category,
       scaledMean: row.scaled_mean,
       scaledStdDev: row.scaled_std_dev,
-      stateId: row.state_id || stateId,
+      stateId: row.state_id,
       createdAt: row.created_at,
     }));
   } catch (err) {
