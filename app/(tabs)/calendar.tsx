@@ -388,6 +388,45 @@ export default function CalendarScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* ========== TEMPORARY DEBUG SECTION (REMOVE LATER) ========== */}
+        <View style={styles.debugSection}>
+          <Text style={styles.debugTitle}>🔍 DEBUG INFO (Temporary)</Text>
+          <Text style={styles.debugText}>User ID: {user?.id || 'NOT LOGGED IN'}</Text>
+          <Text style={styles.debugText}>Today: {formatDateForDB(new Date())}</Text>
+          <Text style={styles.debugText}>Time Filter: {timeFilter}</Text>
+          <Text style={styles.debugText}>View Mode: {view}</Text>
+          <Text style={styles.debugText}>Loading: {loading ? 'YES' : 'NO'}</Text>
+          <Text style={styles.debugText}>Initial Loading: {initialLoading ? 'YES' : 'NO'}</Text>
+          <Text style={styles.debugText}>Total Events Loaded: {upcomingEvents.length}</Text>
+          <Text style={styles.debugText}>Filtered Events: {filteredEventsByTime.length}</Text>
+          <Text style={styles.debugText}>Pending: {pendingEvents.length}</Text>
+          <Text style={styles.debugText}>Completed: {completedEvents.length}</Text>
+          
+          {upcomingEvents.length > 0 && (
+            <View style={styles.debugEventsContainer}>
+              <Text style={styles.debugSubtitle}>First 3 Raw Events:</Text>
+              {upcomingEvents.slice(0, 3).map((event, idx) => (
+                <View key={event.id} style={styles.debugEvent}>
+                  <Text style={styles.debugEventText}>#{idx + 1}</Text>
+                  <Text style={styles.debugEventText}>ID: {event.id.substring(0, 8)}...</Text>
+                  <Text style={styles.debugEventText}>Subject: {event.subject_id} ({event.subject_code || 'NO CODE'})</Text>
+                  <Text style={styles.debugEventText}>Date: {event.event_date}</Text>
+                  <Text style={styles.debugEventText}>Type: {event.event_type}</Text>
+                  <Text style={styles.debugEventText}>Title: {event.title}</Text>
+                  <Text style={styles.debugEventText}>Completed: {event.is_completed ? 'YES' : 'NO'}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {error && (
+            <View style={styles.debugError}>
+              <Text style={styles.debugErrorText}>❌ Error: {error}</Text>
+            </View>
+          )}
+        </View>
+        {/* ========== END DEBUG SECTION ========== */}
+
         {(initialLoading && view === 'list') ? (
           <LoadingSpinner message="Loading calendar..." />
         ) : view === 'list' && (
@@ -1074,5 +1113,66 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
+  },
+  // DEBUG SECTION STYLES (TEMPORARY - REMOVE LATER)
+  debugSection: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 2,
+    borderColor: '#FFD60A',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  debugTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: '#FFD60A',
+    marginBottom: spacing.sm,
+  },
+  debugText: {
+    fontSize: typography.bodySmall,
+    color: '#FFFFFF',
+    marginBottom: spacing.xs,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  debugSubtitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: '#FFD60A',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  debugEventsContainer: {
+    marginTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#FFD60A40',
+    paddingTop: spacing.sm,
+  },
+  debugEvent: {
+    backgroundColor: '#0f0f1e',
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FFD60A',
+  },
+  debugEventText: {
+    fontSize: 11,
+    color: '#CCCCCC',
+    marginBottom: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  debugError: {
+    backgroundColor: '#330000',
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  debugErrorText: {
+    fontSize: typography.bodySmall,
+    color: colors.error,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
