@@ -15,6 +15,7 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { upcomingEvents, loading, completeEvent, updateScore, loadUpcomingEvents, loadEventsByWeek } = useCalendar(user?.id);
+  const [timeFilter, setTimeFilter] = useState<'current' | 'past'>('current');
   const [view, setView] = useState<'list' | 'week' | 'month'>('list');
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
@@ -263,8 +264,18 @@ export default function CalendarScreen() {
     });
   }
 
-  const pendingEvents = upcomingEvents.filter(e => !e.is_completed);
-  const completedEvents = upcomingEvents.filter(e => e.is_completed);
+  // Filter events based on time filter
+  const today = formatDateForDB(new Date());
+  const filteredEventsByTime = upcomingEvents.filter(event => {
+    if (timeFilter === 'current') {
+      return event.event_date >= today;
+    } else {
+      return event.event_date < today;
+    }
+  });
+
+  const pendingEvents = filteredEventsByTime.filter(e => !e.is_completed);
+  const completedEvents = filteredEventsByTime.filter(e => e.is_completed);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -273,7 +284,7 @@ export default function CalendarScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.title}>SAC & Exam Calendar</Text>
           <Text style={styles.subtitle}>
-            {pendingEvents.length} upcoming · {completedEvents.length} completed
+            {upcomingEvents.length} total events ({pendingEvents.length} {timeFilter})
           </Text>
         </View>
         <Pressable 
@@ -281,6 +292,36 @@ export default function CalendarScreen() {
           onPress={() => router.push('/add-event')}
         >
           <MaterialIcons name="add" size={24} color={colors.textPrimary} />
+        </Pressable>
+      </View>
+
+      {/* Time Filter (Past / Current) */}
+      <View style={styles.timeFilter}>
+        <Pressable
+          style={[styles.timeFilterButton, timeFilter === 'current' && styles.timeFilterButtonActive]}
+          onPress={() => setTimeFilter('current')}
+        >
+          <Text
+            style={[
+              styles.timeFilterText,
+              timeFilter === 'current' && styles.timeFilterTextActive,
+            ]}
+          >
+            Current
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.timeFilterButton, timeFilter === 'past' && styles.timeFilterButtonActive]}
+          onPress={() => setTimeFilter('past')}
+        >
+          <Text
+            style={[
+              styles.timeFilterText,
+              timeFilter === 'past' && styles.timeFilterTextActive,
+            ]}
+          >
+            Past
+          </Text>
         </Pressable>
       </View>
 
@@ -385,20 +426,26 @@ export default function CalendarScreen() {
               </View>
             )}
 
-            {upcomingEvents.length === 0 && (
+            {filteredEventsByTime.length === 0 && (
               <View style={styles.emptyState}>
                 <MaterialIcons name="event" size={64} color={colors.textTertiary} />
-                <Text style={styles.emptyTitle}>No Events Yet</Text>
-                <Text style={styles.emptySubtitle}>
-                  Add your SACs and exams to start tracking
+                <Text style={styles.emptyTitle}>
+                  {timeFilter === 'current' ? 'No Upcoming Events' : 'No Past Events'}
                 </Text>
-                <Pressable 
-                  style={styles.emptyButton}
-                  onPress={() => router.push('/add-event')}
-                >
-                  <MaterialIcons name="add" size={20} color={colors.textPrimary} />
-                  <Text style={styles.emptyButtonText}>Add First Event</Text>
-                </Pressable>
+                <Text style={styles.emptySubtitle}>
+                  {timeFilter === 'current'
+                    ? 'Add your SACs and exams to start tracking'
+                    : 'Your completed events will appear here'}
+                </Text>
+                {timeFilter === 'current' && (
+                  <Pressable 
+                    style={styles.emptyButton}
+                    onPress={() => router.push('/add-event')}
+                  >
+                    <MaterialIcons name="add" size={20} color={colors.textPrimary} />
+                    <Text style={styles.emptyButtonText}>Add First Event</Text>
+                  </Pressable>
+                )}
               </View>
             )}
           </>
@@ -481,9 +528,7 @@ export default function CalendarScreen() {
                                 styles.weekEventCard,
                                 event.is_completed && styles.weekEventCardCompleted,
                               ]}
-                              onPress={() => {
-                                // Could open event details modal
-                              }}
+                              onPress={() => handleEventPress(event)}
                             >
                               <View style={styles.weekEventHeader}>
                                 <Text style={styles.weekEventCode} numberOfLines={1}>
@@ -655,7 +700,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
   headerContent: {
     alignItems: 'center',
@@ -682,6 +727,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'flex-end',
     marginTop: spacing.xs,
+  },
+  timeFilter: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  timeFilterButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  timeFilterButtonActive: {
+    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+  },
+  timeFilterText: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: colors.textSecondary,
+  },
+  timeFilterTextActive: {
+    color: colors.primary,
   },
   viewSwitcher: {
     flexDirection: 'row',
@@ -761,16 +833,6 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
-  },
-  comingSoon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  comingSoonText: {
-    fontSize: typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
   },
   weekNav: {
     flexDirection: 'row',
@@ -910,16 +972,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: typography.semibold,
     color: colors.success,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxl,
-    gap: spacing.md,
-  },
-  loadingText: {
-    fontSize: typography.body,
-    color: colors.textSecondary,
   },
   monthNav: {
     flexDirection: 'row',

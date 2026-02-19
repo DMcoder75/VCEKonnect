@@ -19,7 +19,7 @@ export function useCalendar(userId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
 
   const loadUpcomingEvents = useCallback(
-    async (limit: number = 10) => {
+    async (limit: number = 100) => {
       if (!userId) {
         setUpcomingEvents([]);
         setLoading(false);
@@ -32,9 +32,11 @@ export function useCalendar(userId: string | undefined) {
       const { data, error: err } = await getUpcomingEvents(userId, limit);
 
       if (err) {
+        console.error('Error loading events:', err);
         setError(err);
         setUpcomingEvents([]);
       } else {
+        console.log('Loaded events:', data?.length || 0);
         setUpcomingEvents(data || []);
       }
 
