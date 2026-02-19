@@ -267,10 +267,13 @@ export default function CalendarScreen() {
   // Filter events based on time filter
   const today = formatDateForDB(new Date());
   const filteredEventsByTime = upcomingEvents.filter(event => {
+    const eventDate = event.event_date || '';
     if (timeFilter === 'current') {
-      return event.event_date >= today;
+      // Current: today and future events
+      return eventDate >= today;
     } else {
-      return event.event_date < today;
+      // Past: events before today
+      return eventDate < today;
     }
   });
 
@@ -284,7 +287,7 @@ export default function CalendarScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.title}>SAC & Exam Calendar</Text>
           <Text style={styles.subtitle}>
-            {upcomingEvents.length} total events ({pendingEvents.length} {timeFilter})
+            {filteredEventsByTime.length} {timeFilter === 'current' ? 'upcoming' : 'past'} events ({pendingEvents.length} pending, {completedEvents.length} completed)
           </Text>
         </View>
         <Pressable 
