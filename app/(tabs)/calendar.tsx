@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -9,6 +9,13 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { UpcomingAssessmentCard } from '@/components/feature';
 import { LoadingSpinner } from '@/components/ui';
 import { CalendarEvent } from '@/services/calendarService';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CALENDAR_PADDING = spacing.md * 2; // Left + right padding
+const GRID_GAP = 2;
+const DAYS_PER_WEEK = 7;
+const TOTAL_GAPS = (DAYS_PER_WEEK - 1) * GRID_GAP;
+const DAY_CELL_WIDTH = (SCREEN_WIDTH - CALENDAR_PADDING - TOTAL_GAPS) / DAYS_PER_WEEK;
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
@@ -1024,11 +1031,11 @@ const styles = StyleSheet.create({
   monthGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 2,
+    gap: GRID_GAP,
   },
   monthDayCell: {
-    width: 'calc((100% - 12px) / 7)',
-    aspectRatio: 1,
+    width: DAY_CELL_WIDTH,
+    height: DAY_CELL_WIDTH,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.sm,
     padding: spacing.xs,
