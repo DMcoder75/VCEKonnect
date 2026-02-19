@@ -230,7 +230,7 @@ export default function CalendarScreen() {
   }
 
   function getEventsForDay(date: string): CalendarEvent[] {
-    return weekEvents.filter(event => event.event_date === date);
+    return filteredWeekEvents.filter(event => event.event_date === date);
   }
 
   function getWeekRangeText(): string {
@@ -266,16 +266,25 @@ export default function CalendarScreen() {
 
   // Filter events based on time filter
   const today = formatDateForDB(new Date());
-  const filteredEventsByTime = upcomingEvents.filter(event => {
-    const eventDate = event.event_date || '';
-    if (timeFilter === 'current') {
-      // Current: today and future events
-      return eventDate >= today;
-    } else {
-      // Past: events before today
-      return eventDate < today;
-    }
-  });
+  
+  // Helper function to filter events by time
+  const filterEventsByTime = (events: CalendarEvent[]) => {
+    return events.filter(event => {
+      const eventDate = event.event_date || '';
+      if (timeFilter === 'current') {
+        // Current: today and future events
+        return eventDate >= today;
+      } else {
+        // Past: events before today
+        return eventDate < today;
+      }
+    });
+  };
+
+  // Apply time filter to all views
+  const filteredEventsByTime = filterEventsByTime(upcomingEvents);
+  const filteredWeekEvents = filterEventsByTime(weekEvents);
+  const filteredMonthEvents = filterEventsByTime(monthEvents);
 
   const pendingEvents = filteredEventsByTime.filter(e => !e.is_completed);
   const completedEvents = filteredEventsByTime.filter(e => e.is_completed);
@@ -624,7 +633,7 @@ export default function CalendarScreen() {
                 {/* Month Grid */}
                 <View style={styles.monthGrid}>
                   {getMonthDays().map((day, index) => {
-                    const dayEvents = monthEvents.filter(e => e.event_date === day.date);
+                    const dayEvents = filteredMonthEvents.filter(e => e.event_date === day.date);
                     return (
                       <View
                         key={`${day.date}-${index}`}
