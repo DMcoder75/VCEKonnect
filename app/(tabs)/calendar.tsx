@@ -14,7 +14,7 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { upcomingEvents, loading, completeEvent, updateScore, loadUpcomingEvents, loadEventsByWeek } = useCalendar(user?.id);
+  const { upcomingEvents, loading, error, completeEvent, updateScore, loadUpcomingEvents, loadEventsByWeek } = useCalendar(user?.id);
   const [timeFilter, setTimeFilter] = useState<'current' | 'past'>('current');
   const [view, setView] = useState<'list' | 'week' | 'month'>('list');
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
