@@ -1,12 +1,19 @@
-# Quick Deployment Instructions
+# Quick Deployment Instructions (v2 Cloud Functions)
 
-## Step 1: Get Gmail App Password (if not already done)
+## Prerequisites
 
-1. Go to: https://myaccount.google.com/apppasswords
-2. Create app password for "Mail"
-3. Copy the 16-character password
+1. **Firebase CLI** installed:
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
 
-## Step 2: Deploy the Function
+2. **Gmail App Password** (16 characters):
+   - Get it from: https://myaccount.google.com/apppasswords
+
+---
+
+## Deploy Steps
 
 ### Option A: Using the Deploy Script (Recommended)
 
@@ -16,8 +23,6 @@ chmod +x DEPLOY.sh
 ./DEPLOY.sh
 ```
 
-When prompted, replace `YOUR_GMAIL_APP_PASSWORD_HERE` with your actual app password.
-
 ### Option B: Manual Deployment
 
 ```bash
@@ -26,14 +31,20 @@ cd firebase-functions
 # Install dependencies
 npm install
 
-# Set Gmail credentials (replace with your app password)
-firebase functions:config:set email.user="studentkonnectnoreply@gmail.com" email.pass="your-16-char-app-password"
+# Set Gmail credentials in Secret Manager (v2 API)
+firebase functions:secrets:set EMAIL_USER
+# When prompted, enter: studentkonnectnoreply@gmail.com
 
-# Deploy
+firebase functions:secrets:set EMAIL_PASS
+# When prompted, enter: your-16-character-app-password
+
+# Deploy with secrets
 firebase deploy --only functions:Fairprep_email
 ```
 
-## Step 3: Update App Configuration
+---
+
+## Update App Configuration
 
 After deployment, add to your `.env` file:
 
@@ -41,25 +52,49 @@ After deployment, add to your `.env` file:
 EXPO_PUBLIC_FIREBASE_EMAIL_FUNCTION_URL=https://us-central1-studentkonnectcom.cloudfunctions.net/Fairprep_email
 ```
 
-## Step 4: Test
+---
 
-Test signup in your app - users should receive emails from studentkonnectnoreply@gmail.com
+## Test
+
+Test signup in your app - users should receive emails from `studentkonnectnoreply@gmail.com`
 
 ---
 
 ## Troubleshooting
 
-**"Configuration not found"**
-- Run: `firebase functions:config:get` to verify config is set
-- Re-run the config:set command
+**View secrets:**
+```bash
+firebase functions:secrets:access EMAIL_USER
+firebase functions:secrets:access EMAIL_PASS
+```
 
-**"Invalid login"**
-- Ensure you're using the app password, not your regular Gmail password
-- Verify 2-Step Verification is enabled on the Google account
+**Update credentials:**
+```bash
+firebase functions:secrets:set EMAIL_USER
+firebase functions:secrets:set EMAIL_PASS
+firebase deploy --only functions:Fairprep_email
+```
 
 **View logs:**
 ```bash
-firebase functions:log
+firebase functions:log --only Fairprep_email
 ```
 
 Or: https://console.firebase.google.com/u/0/project/studentkonnectcom/functions/logs
+
+---
+
+## What's Different (v2 vs v1)?
+
+**Old (v1, DEPRECATED):**
+```bash
+firebase functions:config:set email.user="..." email.pass="..."
+```
+
+**New (v2, SECURE):**
+```bash
+firebase functions:secrets:set EMAIL_USER
+firebase functions:secrets:set EMAIL_PASS
+```
+
+✅ **Benefits**: Encrypted storage, IAM access control, no deprecation warnings

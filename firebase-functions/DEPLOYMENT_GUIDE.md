@@ -1,182 +1,214 @@
-# Firebase Function Deployment Guide for FairPrep Email
+# Firebase Function Deployment Guide (v2 Cloud Functions)
 
-## 🚨 SECURITY WARNING
+## ✨ What Changed?
 
-**The service account credentials you shared are now PUBLIC. You MUST rotate them immediately after deployment:**
-
-1. Go to: https://console.firebase.google.com/u/0/project/studentkonnectcom/settings/serviceaccounts/adminsdk
-2. Delete the current service account key
-3. Generate a new one
-4. Never share credentials in chat/public channels again
+This function now uses **Firebase Functions v2** with **Secret Manager** for secure credential storage. The old `functions.config()` approach is deprecated and has been removed.
 
 ---
 
-## Prerequisites
+## 🚀 Quick Deploy
 
-1. Install Firebase CLI:
-```bash
-npm install -g firebase-tools
-```
+### Option 1: Automated Script (Recommended)
 
-2. Login to Firebase:
-```bash
-firebase login
-```
-
----
-
-## Setup Gmail SMTP (Recommended)
-
-### Option A: Gmail App Password (Recommended)
-
-1. Go to your Google Account: https://myaccount.google.com/security
-2. Enable 2-Step Verification (required for app passwords)
-3. Go to App Passwords: https://myaccount.google.com/apppasswords
-4. Generate a new app password for "Mail"
-5. Copy the 16-character password (no spaces)
-
-### Option B: SendGrid (Alternative)
-
-If you prefer SendGrid instead of Gmail:
-1. Sign up at https://sendgrid.com
-2. Get your API key
-3. Modify `index.js` to use SendGrid transport
-
----
-
-## Deployment Steps
-
-### 1. Navigate to functions directory
 ```bash
 cd firebase-functions
+chmod +x DEPLOY.sh
+./DEPLOY.sh
 ```
 
-### 2. Install dependencies
+The script will:
+1. Install dependencies
+2. Prompt for Gmail credentials
+3. Store them securely in Secret Manager
+4. Deploy the function
+
+### Option 2: Manual Deployment
+
 ```bash
+cd firebase-functions
+
+# Install dependencies
 npm install
-```
 
-### 3. Set environment variables (Gmail credentials)
+# Set Gmail credentials in Secret Manager
+firebase functions:secrets:set EMAIL_USER
+# Enter: studentkonnectnoreply@gmail.com
 
-**IMPORTANT**: Replace with your actual Gmail and app password:
+firebase functions:secrets:set EMAIL_PASS
+# Enter: your-16-character-app-password
 
-```bash
-firebase functions:config:set email.user="your-email@gmail.com" email.pass="your-16-char-app-password"
-```
-
-Example:
-```bash
-firebase functions:config:set email.user="fairprep@dalsi.academy" email.pass="abcd efgh ijkl mnop"
-```
-
-### 4. Deploy the function
-```bash
+# Deploy with secrets
 firebase deploy --only functions:Fairprep_email
 ```
 
-### 5. Get the function URL
+---
 
-After deployment, Firebase will show the function URL:
-```
-https://us-central1-studentkonnectcom.cloudfunctions.net/Fairprep_email
+## 📋 Prerequisites
+
+### 1. Firebase CLI Installed
+
+```bash
+# Install globally
+npm install -g firebase-tools
+
+# Login
+firebase login
 ```
 
-**Copy this URL** - you'll need it for the app configuration.
+**OR** use `npx` (no installation):
+
+```bash
+npx firebase-tools login
+```
+
+### 2. Gmail App Password
+
+1. Enable 2-Step Verification: https://myaccount.google.com/security
+2. Generate App Password: https://myaccount.google.com/apppasswords
+3. Select "Mail" as app type
+4. Copy the 16-character password (e.g., `abcd efgh ijkl mnop`)
 
 ---
 
-## Update App Configuration
+## 🔐 Security Advantages (v2 with Secret Manager)
 
-After deployment, update the Firebase function URL in your app:
+**Old Way (DEPRECATED):**
+```bash
+firebase functions:config:set email.user="..." email.pass="..."
+```
+❌ Runtime config is deprecated  
+❌ Credentials stored in plain text  
+❌ Not encrypted at rest
 
-1. Open `.env` file
-2. Add:
+**New Way (v2 Secret Manager):**
+```bash
+firebase functions:secrets:set EMAIL_USER
+firebase functions:secrets:set EMAIL_PASS
+```
+✅ Stored in Google Secret Manager  
+✅ Encrypted at rest  
+✅ Access controlled via IAM  
+✅ Automatic rotation support  
+✅ No deprecation warnings
+
+---
+
+## 🔧 After Deployment
+
+### Update App Configuration
+
+Add the function URL to your `.env` file:
+
 ```
 EXPO_PUBLIC_FIREBASE_EMAIL_FUNCTION_URL=https://us-central1-studentkonnectcom.cloudfunctions.net/Fairprep_email
 ```
 
-The app will automatically use this URL to send emails.
+### Test the Function
+
+1. Try signing up in the FairPrep app
+2. Check your email inbox (and spam folder)
+3. You should receive a professional verification email from `studentkonnectnoreply@gmail.com`
 
 ---
 
-## Testing
+## 🛠 Troubleshooting
 
-Test the function manually using curl:
+### "Secret not found" Error
+
+Make sure secrets are set:
+```bash
+firebase functions:secrets:access EMAIL_USER
+firebase functions:secrets:access EMAIL_PASS
+```
+
+### View Secret Values (Admin Only)
 
 ```bash
-curl -X POST https://us-central1-studentkonnectcom.cloudfunctions.net/Fairprep_email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "code": "1234567",
-    "purpose": "signup",
-    "name": "Test User"
-  }'
+firebase functions:secrets:get EMAIL_USER
 ```
 
-Expected response:
-```json
-{
-  "success": true,
-  "message": "Verification email sent successfully"
-}
-```
+### Update Credentials
 
----
-
-## Monitoring & Logs
-
-View function logs:
 ```bash
-firebase functions:log
+firebase functions:secrets:set EMAIL_USER
+# Enter new email
+
+firebase functions:secrets:set EMAIL_PASS
+# Enter new password
+
+firebase deploy --only functions:Fairprep_email
 ```
 
-Or in Firebase Console:
+### View Function Logs
+
+```bash
+firebase functions:log --only Fairprep_email
+```
+
+Or in Firebase Console:  
 https://console.firebase.google.com/u/0/project/studentkonnectcom/functions/logs
 
----
+### "Invalid login" Error
 
-## Troubleshooting
-
-### Error: "Invalid login"
-- Check that you're using an app password, not your regular Gmail password
-- Ensure 2-Step Verification is enabled on your Google account
-
-### Error: "Configuration not found"
-- Run `firebase functions:config:get` to verify config is set
-- Re-run the `firebase functions:config:set` command
-
-### Function not deploying
-- Check Node.js version: `node --version` (should be 18.x)
-- Check Firebase CLI: `firebase --version`
-- Try: `firebase deploy --only functions --force`
+- Verify you're using the **app password**, not your regular Gmail password
+- Ensure **2-Step Verification** is enabled on the Google account
+- Check that the app password is exactly 16 characters (no spaces)
 
 ---
 
-## Cost Estimate
+## 📊 Cost & Billing
 
-Firebase Cloud Functions pricing:
-- First 2 million invocations/month: **FREE**
-- After that: $0.40 per million
+**Cloud Functions v2** pricing:
+- **Invocations**: First 2 million/month free
+- **Compute**: First 400,000 GB-seconds free
+- **Secret Manager**: First 6 secret versions free
 
-For email verification, even with 10,000 signups/month, you'll stay within the free tier.
-
----
-
-## Next Steps After Deployment
-
-1. ✅ Rotate service account credentials (CRITICAL)
-2. ✅ Test with real email address
-3. ✅ Update app `.env` with function URL
-4. ✅ Test signup flow in app
-5. ✅ Monitor logs for first few days
+For FairPrep's email verification use case, you'll likely stay within the free tier.
 
 ---
 
-## Support
+## 🔄 Migration from v1 Config (If Applicable)
 
-If you encounter issues:
-- Check Firebase Console logs
-- Verify Gmail app password is correct
-- Ensure environment variables are set correctly
-- Test function directly with curl before testing in app
+If you previously used `functions.config()`:
+
+### 1. Export Old Config (Optional Backup)
+
+```bash
+firebase functions:config:get > old-config-backup.json
+```
+
+### 2. Migrate to Secret Manager
+
+```bash
+# Set new secrets
+firebase functions:secrets:set EMAIL_USER
+firebase functions:secrets:set EMAIL_PASS
+
+# Deploy v2 function
+firebase deploy --only functions:Fairprep_email
+
+# Delete old config (optional cleanup)
+firebase functions:config:unset email
+```
+
+---
+
+## 📖 Additional Resources
+
+- [Firebase Functions v2 Docs](https://firebase.google.com/docs/functions/2nd-gen)
+- [Secret Manager Guide](https://firebase.google.com/docs/functions/config-env#secret-manager)
+- [Gmail App Passwords](https://support.google.com/accounts/answer/185833)
+
+---
+
+## ✅ Success Checklist
+
+- [ ] Firebase CLI installed and authenticated
+- [ ] Gmail app password generated (16 characters)
+- [ ] Secrets set in Secret Manager (`EMAIL_USER`, `EMAIL_PASS`)
+- [ ] Function deployed successfully
+- [ ] `.env` file updated with function URL
+- [ ] Test signup flow working
+- [ ] Verification emails received
+
+🎉 **Ready to send professional verification emails!**

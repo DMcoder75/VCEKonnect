@@ -1,4 +1,5 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 const cors = require('cors')({ origin: true });
@@ -6,8 +7,12 @@ const cors = require('cors')({ origin: true });
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Define secrets for Gmail SMTP credentials
+const emailUser = defineSecret('EMAIL_USER');
+const emailPass = defineSecret('EMAIL_PASS');
+
 /**
- * Fairprep_email - Sends verification emails for FairPrep app
+ * Fairprep_email - Sends verification emails for FairPrep app (v2 Cloud Function)
  * 
  * Request body:
  * {
@@ -17,8 +22,12 @@ admin.initializeApp();
  *   name?: string (optional, for personalization)
  * }
  */
-exports.Fairprep_email = functions.https.onRequest((req, res) => {
-  return cors(req, res, async () => {
+exports.Fairprep_email = onRequest(
+  {
+    secrets: [emailUser, emailPass],
+    cors: true,
+  },
+  async (req, res) => {
     // Only accept POST requests
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed. Use POST.' });
@@ -47,14 +56,12 @@ exports.Fairprep_email = functions.https.onRequest((req, res) => {
         });
       }
 
-      // Configure email transporter
-      // IMPORTANT: Set these environment variables in Firebase Console
-      // firebase functions:config:set email.user="your-email@gmail.com" email.pass="your-app-password"
+      // Configure email transporter with Secret Manager credentials
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: functions.config().email?.user || process.env.EMAIL_USER,
-          pass: functions.config().email?.pass || process.env.EMAIL_PASSWORD,
+          user: emailUser.value(),
+          pass: emailPass.value(),
         },
       });
 
@@ -86,8 +93,8 @@ exports.Fairprep_email = functions.https.onRequest((req, res) => {
         details: error.message
       });
     }
-  });
-});
+  }
+);
 
 /**
  * Generate email content based on purpose
