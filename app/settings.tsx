@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { CAREER_PATHS } from '@/constants/vceData';
-import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
+import { getAllStates, getSubjectsByState, VCESubject, AustralianState } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -17,10 +17,12 @@ export default function SettingsScreen() {
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   
+  const [selectedState, setSelectedState] = useState<string>(user?.state_id || '');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
   const [yearLevel, setYearLevel] = useState<11 | 12>(user?.yearLevel || 12);
   const [hasChanges, setHasChanges] = useState(false);
+  const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,12 +33,32 @@ export default function SettingsScreen() {
   async function loadData() {
     if (!user) return;
     setIsLoading(true);
-    const [subjects, userSubjectIds] = await Promise.all([
-      getAllVCESubjects(),
+    const [states, userSubjectIds] = await Promise.all([
+      getAllStates(),
       getUserSubjectIds(user.id)
     ]);
-    setAllSubjects(subjects);
+    setAllStates(states);
     setSelectedSubjects(userSubjectIds);
+    
+    // Load subjects for user's state
+    if (user.state_id) {
+      const subjects = await getSubjectsByState(user.state_id);
+      setAllSubjects(subjects);
+    }
+    setIsLoading(false);
+  }
+
+  async function handleStateChange(stateId: string) {
+    setSelectedState(stateId);
+    setHasChanges(true);
+    
+    // Clear selected subjects when state changes
+    setSelectedSubjects([]);
+    
+    // Load subjects for new state
+    setIsLoading(true);
+    const subjects = await getSubjectsByState(stateId);
+    setAllSubjects(subjects);
     setIsLoading(false);
   }
 
@@ -57,6 +79,7 @@ export default function SettingsScreen() {
     
     // Update user profile
     await updateProfile({
+      state_id: selectedState,
       targetCareer,
       yearLevel,
     });
@@ -94,6 +117,47 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* State Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>State/Territory</Text>
+          <Text style={styles.sectionDesc}>Your Australian state or territory</Text>
+          
+          <View style={styles.stateGrid}>
+            {allStates.map(state => (
+              <Pressable
+                key={state.id}
+                style={[
+                  styles.stateCard,
+                  selectedState === state.id && styles.stateCardSelected,
+                ]}
+                onPress={() => handleStateChange(state.id)}
+              >
+                {selectedState === state.id && (
+                  <MaterialIcons
+                    name="check-circle"
+                    size={20}
+                    color={colors.success}
+                    style={styles.stateCheckIcon}
+                  />
+                )}
+                <Text style={[
+                  styles.stateAbbr,
+                  selectedState === state.id && styles.stateAbbrSelected,
+                ]}>
+                  {state.abbreviation}
+                </Text>
+                <Text style={[
+                  styles.stateName,
+                  selectedState === state.id && styles.stateNameSelected,
+                ]}>
+                  {state.name}
+                </Text>
+                <Text style={styles.stateSystem}>{state.educationSystem}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         {/* Profile Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profile</Text>
@@ -132,8 +196,10 @@ export default function SettingsScreen() {
 
         {/* Subjects Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My VCE Subjects</Text>
-          <Text style={styles.sectionDesc}>Select all subjects you're studying</Text>
+          <Text style={styles.sectionTitle}>My Subjects</Text>
+          <Text style={styles.sectionDesc}>
+            {selectedState ? `Select all ${allStates.find(s => s.id === selectedState)?.educationSystem || ''} subjects you're studying` : 'Select your state first'}
+          </Text>
           
           {Object.entries(subjectsByCategory).map(([category, subjects]) => (
             <View key={category} style={styles.categorySection}>
@@ -528,6 +594,55 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.primary,
     fontWeight: typography.medium,
+  },
+  stateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  stateCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    minWidth: '30%',
+    maxWidth: '31%',
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  stateCardSelected: {
+    borderColor: colors.success,
+    backgroundColor: colors.surface,
+  },
+  stateCheckIcon: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
+  stateAbbr: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  stateAbbrSelected: {
+    color: colors.success,
+  },
+  stateName: {
+    fontSize: typography.caption,
+    color: colors.textPrimary,
+    fontWeight: typography.medium,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  stateNameSelected: {
+    color: colors.textPrimary,
+  },
+  stateSystem: {
+    fontSize: 10,
+    color: colors.textTertiary,
+    textAlign: 'center',
   },
   notificationCard: {
     backgroundColor: colors.surfaceElevated,

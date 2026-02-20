@@ -16,6 +16,7 @@ export default function OnboardingScreen() {
   const { user, updateProfile } = useAuth();
   
   const [step, setStep] = useState(1);
+  const totalSteps = 4;
   const [selectedState, setSelectedState] = useState<string>('');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>('');
@@ -83,9 +84,9 @@ export default function OnboardingScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${(step / 4) * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${(step / totalSteps) * 100}%` }]} />
         </View>
-        <Text style={styles.stepText}>Step {step} of 4</Text>
+        <Text style={styles.stepText}>Step {step} of {totalSteps}</Text>
       </View>
 
       <ScrollView
@@ -177,7 +178,7 @@ export default function OnboardingScreen() {
           </View>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <View>
             <Text style={styles.title}>Select your subjects</Text>
             <Text style={styles.description}>
@@ -219,7 +220,7 @@ export default function OnboardingScreen() {
             ))}
             
             <View style={styles.buttonRow}>
-              <Button title="Back" onPress={() => setStep(3)} variant="outline" />
+              <Button title="Back" onPress={() => setStep(2)} variant="outline" />
               <Button
                 title="Next"
                 onPress={() => setStep(4)}
