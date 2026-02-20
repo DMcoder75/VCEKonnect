@@ -223,6 +223,51 @@ export default function ATARScreen() {
   const roadmap = calculateRoadmap();
   const recommendations = getSubjectRecommendations();
 
+  // Get state-specific warning message
+  function getStateWarning(state: StateID): string | null {
+    const warnings: Record<StateID, string | null> = {
+      VIC: null, // No warning - most comprehensive data
+      NSW: 'NSW HSC uses UAC scaling. Predictions based on 2-unit subject equivalents.',
+      ACT: 'ACT uses UAC scaling (same as NSW). Limited local scaling data available.',
+      QLD: 'QLD uses QTAC with credit points system. Predictions are approximate conversions to ATAR scale.',
+      WA: 'WA uses TISC scaling. Best 4 subjects counted. Predictions based on scaled scores.',
+      SA: 'SA uses SATAC scaling. Best 5 subjects counted (or 4.5 with Research Project).',
+      TAS: '⚠️ Limited scaling data for Tasmania. Predictions may be less accurate than mainland states.',
+      NT: '⚠️ Very small cohort. Limited subject offerings. Predictions may not reflect actual ATAR outcomes.',
+    };
+    return warnings[state];
+  }
+
+  // Get calculation description for each state
+  function getCalculationDescription(state: StateID): string {
+    const descriptions: Record<StateID, string> = {
+      VIC: 'VTAC uses your best 4 subjects (including English) plus 10% of your next 2 subjects. VCE subjects are scaled based on cohort performance.',
+      NSW: 'UAC uses your best 10 units (usually 5 subjects including English). HSC marks are scaled based on student performance across all courses.',
+      ACT: 'UAC uses your best 10 units (usually 5 subjects including English). ACT subjects follow NSW HSC scaling methodology.',
+      QLD: 'QTAC uses your best 5 subjects including English. QCE subjects use credit points and scaled subject results rather than traditional study scores.',
+      WA: 'TISC uses your best 4 subjects including an English course. WACE scaled scores are calculated differently from eastern states.',
+      SA: 'SATAC uses your best 5 subjects (or 4.5 if including Research Project). SACE subjects are scaled based on cohort performance.',
+      TAS: 'TASC uses your best 5 subjects including English. TCE scaling follows similar principles to other states but with a smaller cohort.',
+      NT: 'NTBOS uses your best 5 subjects including English. Limited scaling data due to small cohort size means predictions are less reliable.',
+    };
+    return descriptions[state];
+  }
+
+  // Get subject count description
+  function getSubjectCountDescription(state: StateID): string {
+    const counts: Record<StateID, string> = {
+      VIC: 'Best 4 subjects + 10% of next 2',
+      NSW: 'Best 10 units (≈5 subjects)',
+      ACT: 'Best 10 units (≈5 subjects)',
+      QLD: 'Best 5 subjects',
+      WA: 'Best 4 subjects',
+      SA: 'Best 5 subjects',
+      TAS: 'Best 5 subjects',
+      NT: 'Best 5 subjects',
+    };
+    return counts[state];
+  }
+
   useEffect(() => {
     loadSubjects();
   }, [user]);
@@ -288,6 +333,21 @@ export default function ATARScreen() {
             {stateConfig.stateName} ({stateConfig.scalingAuthority})
           </Text>
         </View>
+
+        {/* State-Specific Warnings */}
+        {getStateWarning(stateId) && (
+          <View style={[
+            styles.stateWarningCard,
+            stateId === 'TAS' || stateId === 'NT' ? styles.stateWarningCardHigh : styles.stateWarningCardMedium
+          ]}>
+            <MaterialIcons 
+              name={stateId === 'TAS' || stateId === 'NT' ? 'warning' : 'info'} 
+              size={20} 
+              color={stateId === 'TAS' || stateId === 'NT' ? colors.warning : colors.primary} 
+            />
+            <Text style={styles.stateWarningText}>{getStateWarning(stateId)}</Text>
+          </View>
+        )}
 
         {isLoading ? (
           <LoadingSpinner message="Loading your ATAR data..." />
@@ -761,12 +821,45 @@ export default function ATARScreen() {
               </View>
             )}
 
-            {/* Info Card */}
+            {/* State-Specific Calculation Info */}
+            <View style={styles.calculationInfoCard}>
+              <View style={styles.calculationInfoHeader}>
+                <MaterialIcons name="calculate" size={20} color={colors.primary} />
+                <Text style={styles.calculationInfoTitle}>
+                  {stateConfig.stateName} ATAR Calculation
+                </Text>
+              </View>
+              <Text style={styles.calculationInfoText}>
+                {getCalculationDescription(stateId)}
+              </Text>
+              <View style={styles.calculationDetailsList}>
+                <View style={styles.calculationDetail}>
+                  <MaterialIcons name="check-circle" size={16} color={colors.success} />
+                  <Text style={styles.calculationDetailText}>
+                    {stateConfig.requiresEnglish ? 'English required' : 'English optional'}
+                  </Text>
+                </View>
+                <View style={styles.calculationDetail}>
+                  <MaterialIcons name="check-circle" size={16} color={colors.success} />
+                  <Text style={styles.calculationDetailText}>
+                    {getSubjectCountDescription(stateId)}
+                  </Text>
+                </View>
+                <View style={styles.calculationDetail}>
+                  <MaterialIcons name="check-circle" size={16} color={colors.success} />
+                  <Text style={styles.calculationDetailText}>
+                    Calculated by {stateConfig.scalingAuthority}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* General Disclaimer */}
             <View style={styles.infoCard}>
               <MaterialIcons name="info-outline" size={20} color={colors.primary} />
               <Text style={styles.infoText}>
                 This ATAR prediction uses {stateConfig.scalingAuthority} scaling formulas for {stateConfig.stateName}. 
-                Actual ATAR may vary based on cohort performance and official scaling.
+                Actual ATAR may vary based on cohort performance and official scaling. This is an estimate only.
               </Text>
             </View>
           </>
@@ -923,6 +1016,66 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  stateWarningCard: {
+    flexDirection: 'row',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+  },
+  stateWarningCardMedium: {
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
+  },
+  stateWarningCardHigh: {
+    backgroundColor: colors.surface,
+    borderColor: colors.warning,
+  },
+  stateWarningText: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    color: colors.textPrimary,
+    lineHeight: 20,
+  },
+  calculationInfoCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  calculationInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  calculationInfoTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  calculationInfoText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+  calculationDetailsList: {
+    gap: spacing.sm,
+  },
+  calculationDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  calculationDetailText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
   },
   stateBadge: {
     fontSize: typography.caption,
