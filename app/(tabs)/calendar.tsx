@@ -15,7 +15,7 @@ const CALENDAR_PADDING = spacing.md * 2; // Left + right padding
 const GRID_GAP = 2;
 const DAYS_PER_WEEK = 7;
 const TOTAL_GAPS = (DAYS_PER_WEEK - 1) * GRID_GAP;
-const DAY_CELL_WIDTH = (SCREEN_WIDTH - CALENDAR_PADDING - TOTAL_GAPS) / DAYS_PER_WEEK;
+const DAY_CELL_WIDTH = Math.floor((SCREEN_WIDTH - CALENDAR_PADDING - TOTAL_GAPS) / DAYS_PER_WEEK);
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
