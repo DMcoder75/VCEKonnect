@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSupabaseClient } from '@/template';
 
 export interface VerificationResponse {
   success: boolean;
@@ -7,7 +7,15 @@ export interface VerificationResponse {
 }
 
 /**
+ * Generate 7-digit verification code
+ */
+function generateVerificationCode(): string {
+  return Math.floor(1000000 + Math.random() * 9000000).toString();
+}
+
+/**
  * Request a verification code to be sent to the email
+ * LOCAL MODE: Stores code in database, returns code for display (no actual email sent)
  * @param email - User's email address
  * @param purpose - 'signup' or 'password_reset'
  */
@@ -16,25 +24,36 @@ export async function sendVerificationCode(
   purpose: 'signup' | 'password_reset'
 ): Promise<VerificationResponse> {
   try {
-    // Call Edge Function to send verification email
-    const { data, error } = await supabase.functions.invoke('send-verification-email', {
-      body: { email: email.toLowerCase(), purpose },
-    });
+    const supabase = getSupabaseClient();
+    
+    // Generate 7-digit code
+    const code = generateVerificationCode();
+    
+    // Store code in database (expires in 10 minutes)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    
+    const { error } = await supabase
+      .from('vk_email_verifications')
+      .insert({
+        email: email.toLowerCase(),
+        code,
+        purpose,
+        expires_at: expiresAt,
+      });
 
     if (error) {
-      console.error('Edge function error:', error);
-      return { success: false, error: error.message || 'Failed to send verification code' };
+      console.error('Database error:', error);
+      return { success: false, error: 'Failed to store verification code' };
     }
 
-    if (!data || !data.success) {
-      return { success: false, error: data?.message || 'Failed to send verification code' };
-    }
-
-    // In demo mode, return the code for testing
+    // LOCAL MODE: Return the code for display
+    // In production with email service, remove demoCode and send via email
+    console.log(`Verification code for ${email}: ${code}`);
+    
     return {
       success: true,
       error: null,
-      demoCode: data.demo_code, // Remove in production
+      demoCode: code, // Remove when email service is integrated
     };
   } catch (err: any) {
     console.error('Send verification code error:', err);
@@ -54,6 +73,8 @@ export async function verifyCode(
   purpose: 'signup' | 'password_reset'
 ): Promise<VerificationResponse> {
   try {
+    const supabase = getSupabaseClient();
+    
     // Find matching verification code
     const { data, error } = await supabase
       .from('vk_email_verifications')
@@ -97,6 +118,8 @@ export async function verifyCode(
  */
 export async function isEmailVerified(email: string): Promise<boolean> {
   try {
+    const supabase = getSupabaseClient();
+    
     const { data, error } = await supabase
       .from('vk_email_verifications')
       .select('id')
