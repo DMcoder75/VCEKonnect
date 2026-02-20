@@ -179,19 +179,21 @@ export default function SignupScreen() {
               </Text>
             </View>
 
-            {/* Demo Mode Notice - Always shows code locally */}
-            <View style={styles.demoNotice}>
-              <MaterialIcons name="info-outline" size={20} color={colors.success} />
-              <View style={styles.demoNoticeContent}>
-                <Text style={styles.demoNoticeTitle}>LOCAL EMAIL VERIFICATION</Text>
-                <Text style={styles.demoNoticeText}>
-                  Your verification code: <Text style={styles.demoCode}>{demoCode}</Text>
-                </Text>
-                <Text style={styles.demoNoticeSubtext}>
-                  Copy this code and enter it below to verify your email
-                </Text>
+            {/* Demo Mode Notice */}
+            {demoCode && (
+              <View style={styles.demoNotice}>
+                <MaterialIcons name="info-outline" size={20} color={colors.warning} />
+                <View style={styles.demoNoticeContent}>
+                  <Text style={styles.demoNoticeTitle}>DEMO MODE</Text>
+                  <Text style={styles.demoNoticeText}>
+                    Your verification code: <Text style={styles.demoCode}>{demoCode}</Text>
+                  </Text>
+                  <Text style={styles.demoNoticeSubtext}>
+                    (In production, this would be sent via email)
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
             
             <Input
               label="Verification Code"
@@ -321,7 +323,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.success,
+    borderColor: colors.warning,
     gap: spacing.sm,
   },
   demoNoticeContent: {
@@ -330,7 +332,7 @@ const styles = StyleSheet.create({
   demoNoticeTitle: {
     fontSize: typography.caption,
     fontWeight: typography.bold,
-    color: colors.success,
+    color: colors.warning,
     marginBottom: 4,
   },
   demoNoticeText: {

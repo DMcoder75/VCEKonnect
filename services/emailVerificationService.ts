@@ -7,15 +7,7 @@ export interface VerificationResponse {
 }
 
 /**
- * Generate a random 7-digit verification code
- */
-function generateVerificationCode(): string {
-  return Math.floor(1000000 + Math.random() * 9000000).toString();
-}
-
-/**
  * Request a verification code to be sent to the email
- * LOCAL MODE: Generates code and stores in database, displays in app
  * @param email - User's email address
  * @param purpose - 'signup' or 'password_reset'
  */
@@ -24,32 +16,25 @@ export async function sendVerificationCode(
   purpose: 'signup' | 'password_reset'
 ): Promise<VerificationResponse> {
   try {
-    const normalizedEmail = email.toLowerCase();
-    const code = generateVerificationCode();
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+    // Call Edge Function to send verification email
+    const { data, error } = await supabase.functions.invoke('send-verification-email', {
+      body: { email: email.toLowerCase(), purpose },
+    });
 
-    // Store verification code in database
-    const { error: insertError } = await supabase
-      .from('vk_email_verifications')
-      .insert({
-        email: normalizedEmail,
-        code,
-        purpose,
-        expires_at: expiresAt.toISOString(),
-        is_used: false,
-      });
-
-    if (insertError) {
-      console.error('Failed to store verification code:', insertError);
-      return { success: false, error: 'Failed to generate verification code' };
+    if (error) {
+      console.error('Edge function error:', error);
+      return { success: false, error: error.message || 'Failed to send verification code' };
     }
 
-    // Return code for local display (no email sent)
+    if (!data || !data.success) {
+      return { success: false, error: data?.message || 'Failed to send verification code' };
+    }
+
+    // In demo mode, return the code for testing
     return {
       success: true,
       error: null,
-      demoCode: code,
+      demoCode: data.demo_code, // Remove in production
     };
   } catch (err: any) {
     console.error('Send verification code error:', err);
