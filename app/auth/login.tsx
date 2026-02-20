@@ -35,11 +35,13 @@ export default function LoginScreen() {
   }
 
   return (
-    <ImageBackground
-      source={require('@/assets/login-background.png')}
-      style={[styles.container, { paddingTop: insets.top }]}
-      resizeMode="cover"
-    >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ImageBackground
+        source={require('@/assets/login-background.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+        imageStyle={styles.backgroundImageStyle}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -112,7 +114,7 @@ export default function LoginScreen() {
           <Text style={styles.demoText}>Password: 123456</Text>
         </View>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -120,6 +122,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  backgroundImageStyle: {
+    opacity: 0.5,
   },
   scrollContent: {
     flexGrow: 1,
