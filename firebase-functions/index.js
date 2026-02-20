@@ -63,7 +63,7 @@ exports.Fairprep_email = functions.https.onRequest((req, res) => {
 
       // Send email
       const mailOptions = {
-        from: `FairPrep by Dalsi Academy <${functions.config().email?.user || process.env.EMAIL_USER}>`,
+        from: `FairPrep by Dalsi Academy <studentkonnectnoreply@gmail.com>`,
         to: email,
         subject: emailContent.subject,
         html: emailContent.html,
