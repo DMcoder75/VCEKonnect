@@ -1,9 +1,9 @@
 import { getSupabaseClient } from '@/template';
+import Constants from 'expo-constants';
 
 export interface VerificationResponse {
   success: boolean;
   error: string | null;
-  demoCode?: string; // Only in demo mode
 }
 
 /**
@@ -15,13 +15,15 @@ function generateVerificationCode(): string {
 
 /**
  * Request a verification code to be sent to the email
- * LOCAL MODE: Stores code in database, returns code for display (no actual email sent)
+ * Stores code in database and sends email via Firebase Cloud Function
  * @param email - User's email address
  * @param purpose - 'signup' or 'password_reset'
+ * @param name - Optional user name for email personalization
  */
 export async function sendVerificationCode(
   email: string,
-  purpose: 'signup' | 'password_reset'
+  purpose: 'signup' | 'password_reset',
+  name?: string
 ): Promise<VerificationResponse> {
   try {
     const supabase = getSupabaseClient();
@@ -32,7 +34,7 @@ export async function sendVerificationCode(
     // Store code in database (expires in 10 minutes)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     
-    const { error } = await supabase
+    const { error: dbError } = await supabase
       .from('vk_email_verifications')
       .insert({
         email: email.toLowerCase(),
@@ -41,23 +43,57 @@ export async function sendVerificationCode(
         expires_at: expiresAt,
       });
 
-    if (error) {
-      console.error('Database error:', error);
+    if (dbError) {
+      console.error('Database error:', dbError);
       return { success: false, error: 'Failed to store verification code' };
     }
 
-    // LOCAL MODE: Return the code for display
-    // In production with email service, remove demoCode and send via email
-    console.log(`Verification code for ${email}: ${code}`);
+    // Send email via Firebase Cloud Function
+    const firebaseUrl = Constants.expoConfig?.extra?.firebaseEmailFunctionUrl || 
+                        process.env.EXPO_PUBLIC_FIREBASE_EMAIL_FUNCTION_URL;
+
+    if (!firebaseUrl) {
+      console.error('Firebase email function URL not configured');
+      return { 
+        success: false, 
+        error: 'Email service not configured. Please contact support.' 
+      };
+    }
+
+    const emailResponse = await fetch(firebaseUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.toLowerCase(),
+        code,
+        purpose,
+        name,
+      }),
+    });
+
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json();
+      console.error('Email sending failed:', errorData);
+      return { 
+        success: false, 
+        error: errorData.error || 'Failed to send verification email' 
+      };
+    }
+
+    console.log(`Verification email sent to ${email} for ${purpose}`);
     
     return {
       success: true,
       error: null,
-      demoCode: code, // Remove when email service is integrated
     };
   } catch (err: any) {
     console.error('Send verification code error:', err);
-    return { success: false, error: err.message || 'Failed to send verification code' };
+    return { 
+      success: false, 
+      error: err.message || 'Failed to send verification code' 
+    };
   }
 }
 

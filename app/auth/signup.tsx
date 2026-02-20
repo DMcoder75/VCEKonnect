@@ -22,7 +22,6 @@ export default function SignupScreen() {
   // Verification state
   const [step, setStep] = useState<'details' | 'verify'>('details');
   const [verificationCode, setVerificationCode] = useState('');
-  const [demoCode, setDemoCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
 
@@ -50,7 +49,7 @@ export default function SignupScreen() {
     }
     
     setIsSendingCode(true);
-    const result = await sendVerificationCode(email, 'signup');
+    const result = await sendVerificationCode(email, 'signup', name);
     setIsSendingCode(false);
     
     if (result.error) {
@@ -58,9 +57,8 @@ export default function SignupScreen() {
       return;
     }
     
-    // Store demo code (remove in production)
-    setDemoCode(result.demoCode || null);
     setStep('verify');
+    alert('Verification code sent to your email!');
   }
 
   async function handleVerifyAndSignup() {
@@ -89,19 +87,17 @@ export default function SignupScreen() {
   function handleBackToDetails() {
     setStep('details');
     setVerificationCode('');
-    setDemoCode(null);
   }
 
   async function handleResendCode() {
     setIsSendingCode(true);
-    const result = await sendVerificationCode(email, 'signup');
+    const result = await sendVerificationCode(email, 'signup', name);
     setIsSendingCode(false);
     
     if (result.error) {
       alert(result.error);
     } else {
-      setDemoCode(result.demoCode || null);
-      alert('Verification code sent!');
+      alert('New verification code sent to your email!');
     }
   }
 
@@ -177,23 +173,10 @@ export default function SignupScreen() {
                 We've sent a 7-digit verification code to{' \n'}
                 <Text style={styles.verifyEmail}>{email}</Text>
               </Text>
+              <Text style={[styles.verifyDesc, { marginTop: spacing.sm, fontSize: typography.caption }]}>
+                Check your inbox (and spam folder) for an email from FairPrep
+              </Text>
             </View>
-
-            {/* Demo Mode Notice */}
-            {demoCode && (
-              <View style={styles.demoNotice}>
-                <MaterialIcons name="info-outline" size={20} color={colors.warning} />
-                <View style={styles.demoNoticeContent}>
-                  <Text style={styles.demoNoticeTitle}>DEMO MODE</Text>
-                  <Text style={styles.demoNoticeText}>
-                    Your verification code: <Text style={styles.demoCode}>{demoCode}</Text>
-                  </Text>
-                  <Text style={styles.demoNoticeSubtext}>
-                    (In production, this would be sent via email)
-                  </Text>
-                </View>
-              </View>
-            )}
             
             <Input
               label="Verification Code"
@@ -316,41 +299,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.semibold,
   },
-  demoNotice: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.warning,
-    gap: spacing.sm,
-  },
-  demoNoticeContent: {
-    flex: 1,
-  },
-  demoNoticeTitle: {
-    fontSize: typography.caption,
-    fontWeight: typography.bold,
-    color: colors.warning,
-    marginBottom: 4,
-  },
-  demoNoticeText: {
-    fontSize: typography.bodySmall,
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  demoCode: {
-    fontSize: typography.h3,
-    fontWeight: typography.bold,
-    color: colors.success,
-    fontFamily: 'monospace',
-  },
-  demoNoticeSubtext: {
-    fontSize: typography.caption,
-    color: colors.textTertiary,
-    fontStyle: 'italic',
-  },
+
   resendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
