@@ -6,6 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
+import { getStateConfig } from '@/services/atarCalculator';
 import { ATARDisplay, Input, Button, LoadingSpinner } from '@/components';
 import { SubjectScoreCard } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -17,6 +18,10 @@ export default function ATARScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { subjectScores, updateScore, getScenarios, getPrediction, reloadScores } = useATAR();
+  
+  // Get state configuration
+  const stateId = (user?.stateId || 'VIC') as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
+  const stateConfig = getStateConfig(stateId);
   
   const [editingSubject, setEditingSubject] = useState<string | null>(null);
   const [sacInput, setSacInput] = useState('');
@@ -279,6 +284,9 @@ export default function ATARScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>ATAR Predictor</Text>
+          <Text style={styles.stateBadge}>
+            {stateConfig.stateName} ({stateConfig.scalingAuthority})
+          </Text>
         </View>
 
         {isLoading ? (
@@ -757,7 +765,7 @@ export default function ATARScreen() {
             <View style={styles.infoCard}>
               <MaterialIcons name="info-outline" size={20} color={colors.primary} />
               <Text style={styles.infoText}>
-                This ATAR prediction uses simplified VTAC scaling formulas. 
+                This ATAR prediction uses {stateConfig.scalingAuthority} scaling formulas for {stateConfig.stateName}. 
                 Actual ATAR may vary based on cohort performance and official scaling.
               </Text>
             </View>
@@ -915,6 +923,15 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  stateBadge: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.xs,
   },
   whatIfToggle: {
     flexDirection: 'row',

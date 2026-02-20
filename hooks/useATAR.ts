@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { getSubjectScores, saveSubjectScore } from '@/services/scoresService';
 import { getUserSubjects } from '@/services/userSubjectsService';
-import { calculateStudyScore, calculateATAR, calculateATARScenarios } from '@/services/atarCalculator';
+import { calculateStudyScore, calculateATAR, calculateATARScenarios, StateID } from '@/services/atarCalculator';
 import { SubjectScore } from '@/types';
 import { VCESubject } from '@/services/vceSubjectsService';
 
@@ -117,11 +117,14 @@ export function useATAR() {
   }
 
   function getPrediction() {
-    return calculateATAR(subjectScores);
+    // Get user's state ID from user object (default to VIC if not set)
+    const stateId = (user?.stateId || 'VIC') as StateID;
+    return calculateATAR(subjectScores, stateId);
   }
 
   function getScenarios() {
-    return calculateATARScenarios(subjectScores);
+    const stateId = (user?.stateId || 'VIC') as StateID;
+    return calculateATARScenarios(subjectScores, stateId);
   }
 
   function getScoreForSubject(subjectId: string): SubjectScore | undefined {
