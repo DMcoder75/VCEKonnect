@@ -16,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
+import { useNotifications } from '@/hooks/useNotifications';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { supabase as supabaseClient } from '@/services/supabase.web';
@@ -25,6 +26,7 @@ export default function AddEventScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { addEvent } = useCalendar(user?.id);
+  const { permissionGranted, scheduleExam } = useNotifications();
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,8 @@ export default function AddEventScreen() {
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [duration, setDuration] = useState('');
+  const [enableReminder, setEnableReminder] = useState(true);
+  const [reminderHours, setReminderHours] = useState('24');
 
 
 
@@ -171,6 +175,17 @@ export default function AddEventScreen() {
       if (error) {
         Alert.alert('Error', error);
       } else if (data) {
+        // Schedule notification if enabled and permissions granted
+        if (enableReminder && permissionGranted) {
+          const eventDateObj = new Date(eventDate + 'T00:00:00');
+          const hours = parseInt(reminderHours) || 24;
+          await scheduleExam(
+            title || `${userSubjects.find(s => s.id === selectedSubject)?.code} ${eventType}`,
+            eventDateObj,
+            hours,
+            { eventId: data.id }
+          );
+        }
         router.back();
       }
     } catch (err) {
@@ -338,6 +353,49 @@ export default function AddEventScreen() {
             onChangeText={setNotes}
           />
         </View>
+
+        {/* Reminder */}
+        {permissionGranted && (
+          <View style={styles.section}>
+            <View style={styles.reminderHeader}>
+              <MaterialIcons 
+                name={enableReminder ? 'notifications-active' : 'notifications-off'} 
+                size={20} 
+                color={enableReminder ? colors.primary : colors.textTertiary} 
+              />
+              <Text style={styles.label}>Reminder</Text>
+              <Pressable
+                style={[styles.reminderToggle, enableReminder && styles.reminderToggleActive]}
+                onPress={() => setEnableReminder(!enableReminder)}
+              >
+                <View style={[styles.reminderToggleKnob, enableReminder && styles.reminderToggleKnobActive]} />
+              </Pressable>
+            </View>
+            {enableReminder && (
+              <View style={styles.reminderOptions}>
+                {[1, 3, 6, 12, 24, 48].map(hours => (
+                  <Pressable
+                    key={hours}
+                    style={[
+                      styles.reminderOption,
+                      reminderHours === hours.toString() && styles.reminderOptionActive,
+                    ]}
+                    onPress={() => setReminderHours(hours.toString())}
+                  >
+                    <Text
+                      style={[
+                        styles.reminderOptionText,
+                        reminderHours === hours.toString() && styles.reminderOptionTextActive,
+                      ]}
+                    >
+                      {hours}h before
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Submit Button */}
         <Pressable
@@ -675,6 +733,62 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     fontSize: typography.body,
     fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  reminderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  reminderToggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+    padding: 2,
+    justifyContent: 'center',
+    marginLeft: 'auto',
+  },
+  reminderToggleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  reminderToggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.textTertiary,
+  },
+  reminderToggleKnobActive: {
+    backgroundColor: colors.textPrimary,
+    alignSelf: 'flex-end',
+  },
+  reminderOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  reminderOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  reminderOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  reminderOptionText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  reminderOptionTextActive: {
     color: colors.textPrimary,
   },
 });

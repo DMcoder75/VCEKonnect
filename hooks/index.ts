@@ -6,4 +6,5 @@ export { useNotes } from './useNotes';
 export { useCalendar } from './useCalendar';
 export { useStudyGoals } from './useStudyGoals';
 export { useAchievements } from './useAchievements';
+export { useNotifications } from './useNotifications';
 export { useAI } from './useAI';

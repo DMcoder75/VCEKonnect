@@ -8,12 +8,14 @@ import { CAREER_PATHS } from '@/constants/vceData';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, updateProfile, logout } = useAuth();
+  const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
@@ -200,6 +202,64 @@ export default function SettingsScreen() {
               <Text style={styles.careerAtar}>Typical ATAR: {career.typicalATAR}+</Text>
             </Pressable>
           ))}
+        </View>
+
+        {/* Notifications Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          
+          {/* Permission Status */}
+          <View style={styles.notificationCard}>
+            <View style={styles.notificationRow}>
+              <View style={styles.notificationLeft}>
+                <MaterialIcons 
+                  name={permissionGranted ? 'notifications-active' : 'notifications-off'} 
+                  size={24} 
+                  color={permissionGranted ? colors.success : colors.textTertiary} 
+                />
+                <View>
+                  <Text style={styles.notificationTitle}>
+                    {permissionGranted ? 'Notifications Enabled' : 'Notifications Disabled'}
+                  </Text>
+                  <Text style={styles.notificationDesc}>
+                    {permissionGranted 
+                      ? `${scheduledCount} reminder${scheduledCount !== 1 ? 's' : ''} scheduled`
+                      : 'Enable to get study reminders'}
+                  </Text>
+                </View>
+              </View>
+              {!permissionGranted && (
+                <Pressable
+                  style={styles.enableButton}
+                  onPress={requestPermissions}
+                >
+                  <Text style={styles.enableButtonText}>Enable</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          {/* Daily Reminder */}
+          {permissionGranted && (
+            <Pressable
+              style={[styles.appOptionCard, { marginTop: spacing.sm }]}
+              onPress={async () => {
+                const id = await scheduleDailyReminder(18, 0);
+                if (id) {
+                  Alert.alert('Daily Reminder Set', 'You\'ll get a reminder at 6:00 PM every day');
+                }
+              }}
+            >
+              <View style={styles.appOptionLeft}>
+                <MaterialIcons name="alarm" size={24} color={colors.primary} />
+                <View>
+                  <Text style={styles.appOptionTitle}>Set Daily Reminder</Text>
+                  <Text style={styles.appOptionDesc}>Get reminded to study at 6:00 PM</Text>
+                </View>
+              </View>
+              <MaterialIcons name="add" size={24} color={colors.textTertiary} />
+            </Pressable>
+          )}
         </View>
 
         {/* App Section */}
@@ -468,6 +528,45 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.primary,
     fontWeight: typography.medium,
+  },
+  notificationCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  notificationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  notificationLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  notificationDesc: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  enableButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  enableButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
   },
   premiumBanner: {
     flexDirection: 'row',
