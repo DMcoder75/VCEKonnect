@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   startStudySession, 
@@ -25,102 +25,99 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isStopping, setIsStopping] = useState(false);
+  
+  // Use ref to store interval ID for cleanup
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debug: Log user state changes
+  // Update elapsed time every 5 seconds instead of every second to reduce re-renders
+  // UI will still show smooth updates via the blinking animation
   useEffect(() => {
-    console.log('📱 StudyTimerContext user state:', user ? `User ID: ${user.id}` : 'No user');
-  }, [user]);
+    if (!activeSubject || !startTime) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
 
-  // Update elapsed time every second
-  useEffect(() => {
-    if (!activeSubject || !startTime) return;
-
-    const interval = setInterval(() => {
+    // Initial update
+    const updateElapsed = () => {
       const now = new Date();
       const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
       setElapsedSeconds(diff);
-    }, 1000);
+    };
+    
+    updateElapsed();
+    
+    // Update every 5 seconds to reduce re-renders
+    intervalRef.current = setInterval(updateElapsed, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [activeSubject, startTime]);
 
-  async function startTimer(subjectId: string) {
-    console.log('🚀 startTimer called:', { subjectId, hasUser: !!user, userId: user?.id });
-    
+  const startTimer = useCallback(async (subjectId: string) => {
     if (!user) {
-      console.error('❌ Cannot start timer: No user logged in');
       alert('Please log in to start the timer');
       return;
     }
 
     // Stop current timer if any
     if (activeSubject && activeSessionId) {
-      console.log('⏸️ Stopping current timer before starting new one');
       await stopTimer();
     }
 
     const now = new Date();
-    console.log('📞 Calling startStudySession with:', { userId: user.id, subjectId });
     const { sessionId, error } = await startStudySession(user.id, subjectId);
-    console.log('📞 startStudySession result:', { sessionId, error });
 
     if (error || !sessionId) {
-      console.error('❌ Failed to start timer:', error);
       alert(error || 'Failed to start timer');
       return;
     }
 
-    console.log('✅ Timer started successfully:', { sessionId, subjectId });
     setActiveSubject(subjectId);
     setActiveSessionId(sessionId);
     setStartTime(now);
     setElapsedSeconds(0);
-  }
+  }, [user, activeSubject, activeSessionId]);
 
-  async function stopTimer() {
-    if (!activeSubject || !activeSessionId || !startTime || !user) return;
+  const stopTimer = useCallback(async () => {
+    if (!activeSubject || !activeSessionId || !startTime || !user || isStopping) return;
 
-    const now = new Date();
-    const durationMinutes = (now.getTime() - startTime.getTime()) / 1000 / 60;
-
-    console.log(`⏱️ Stopping timer: ${Math.round(durationMinutes)} minutes for subject ${activeSubject}`);
-
-    // Step 1: End the study session and detect achievements
-    const { error, newAchievements } = await endStudySession(
-      activeSessionId,
-      user.id,
-      durationMinutes
-    );
+    // Immediate UI feedback - clear timer state first
+    const sessionIdToEnd = activeSessionId;
+    const subjectToUpdate = activeSubject;
+    const startTimeSnapshot = startTime;
     
-    if (error) {
-      console.error('Failed to stop timer:', error);
-    }
-
-    // Log new achievements (if any)
-    if (newAchievements && newAchievements.length > 0) {
-      console.log('🎉 New achievements unlocked:', newAchievements);
-    }
-
-    // Step 2: Update goal progress
-    const { error: goalError } = await updateGoalProgressAfterSession(
-      user.id,
-      activeSubject,
-      durationMinutes
-    );
-    
-    if (goalError) {
-      console.error('Failed to update goal progress:', goalError);
-    } else {
-      console.log('✅ Goal progress updated successfully');
-    }
-
+    setIsStopping(true);
     setActiveSubject(null);
     setActiveSessionId(null);
     setStartTime(null);
     setElapsedSeconds(0);
-  }
 
-  async function getTodayStudyTime(): Promise<{ [subjectId: string]: number }> {
+    // Then handle database operations in background
+    const now = new Date();
+    const durationMinutes = (now.getTime() - startTimeSnapshot.getTime()) / 1000 / 60;
+
+    // Use Promise.all to run both operations in parallel
+    const [sessionResult, _] = await Promise.all([
+      endStudySession(sessionIdToEnd, user.id, durationMinutes),
+      updateGoalProgressAfterSession(user.id, subjectToUpdate, durationMinutes)
+    ]);
+    
+    if (sessionResult.error) {
+      console.error('Failed to stop timer:', sessionResult.error);
+    }
+
+    setIsStopping(false);
+  }, [activeSubject, activeSessionId, startTime, user, isStopping]);
+
+  const getTodayStudyTime = useCallback(async (): Promise<{ [subjectId: string]: number }> => {
     if (!user) return {};
 
     const today = new Date();
@@ -129,9 +126,9 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     endOfToday.setHours(23, 59, 59, 999);
 
     return await getStudyTimeBySubject(user.id, today, endOfToday);
-  }
+  }, [user]);
 
-  async function getWeeklyStudyTime(): Promise<{ [subjectId: string]: number }> {
+  const getWeeklyStudyTime = useCallback(async (): Promise<{ [subjectId: string]: number }> => {
     if (!user) return {};
 
     const oneWeekAgo = new Date();
@@ -142,7 +139,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     today.setHours(23, 59, 59, 999);
 
     return await getStudyTimeBySubject(user.id, oneWeekAgo, today);
-  }
+  }, [user]);
 
   return (
     <StudyTimerContext.Provider

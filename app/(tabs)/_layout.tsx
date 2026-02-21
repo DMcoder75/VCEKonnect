@@ -8,40 +8,49 @@ import { QuickAccessDrawer, FloatingMenuButton } from '@/components/ui';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 
 // Animated Study Tab Icon that blinks red when timer is running
-function StudyTabIcon({ color, size, isRunning }: { color: string; size: number; isRunning: boolean }) {
-  const [blinkAnim] = useState(new Animated.Value(1));
+const StudyTabIcon = React.memo(({ color, size, isRunning }: { color: string; size: number; isRunning: boolean }) => {
+  const blinkAnimRef = React.useRef(new Animated.Value(1));
+  const animationRef = React.useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (isRunning) {
-      const blink = Animated.loop(
+      animationRef.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(blinkAnim, {
-            toValue: 0.3,
-            duration: 600,
+          Animated.timing(blinkAnimRef.current, {
+            toValue: 0.4,
+            duration: 700,
             useNativeDriver: true,
           }),
-          Animated.timing(blinkAnim, {
+          Animated.timing(blinkAnimRef.current, {
             toValue: 1,
-            duration: 600,
+            duration: 700,
             useNativeDriver: true,
           }),
         ])
       );
-      blink.start();
-      return () => blink.stop();
+      animationRef.current.start();
+      
+      return () => {
+        if (animationRef.current) {
+          animationRef.current.stop();
+        }
+      };
     } else {
-      blinkAnim.setValue(1);
+      blinkAnimRef.current.setValue(1);
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
     }
   }, [isRunning]);
 
   const iconColor = isRunning ? colors.error : color;
 
   return (
-    <Animated.View style={{ opacity: blinkAnim }}>
+    <Animated.View style={{ opacity: blinkAnimRef.current }}>
       <MaterialIcons name="timer" size={size} color={iconColor} />
     </Animated.View>
   );
-}
+});
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
