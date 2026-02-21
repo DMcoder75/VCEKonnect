@@ -21,6 +21,12 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 
+// Helper function to capitalize first letter of name
+function capitalizeFirstLetter(name: string): string {
+  if (!name) return '';
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
+
 export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -253,7 +259,7 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.greeting}>G'day, {user.name}!</Text>
+            <Text style={styles.greeting}>G'day, {capitalizeFirstLetter(user.name)}!</Text>
             <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
           </View>
           <Pressable
