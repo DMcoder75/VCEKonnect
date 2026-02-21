@@ -31,8 +31,17 @@ export function useElapsedTime() {
     // Calculate initial elapsed time
     const updateElapsed = () => {
       const now = new Date();
+      // Validate that startTime is a valid Date object
+      if (!(startTime instanceof Date) || isNaN(startTime.getTime())) {
+        console.error('Invalid startTime:', startTime);
+        setElapsedSeconds(0);
+        return;
+      }
+      
       const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-      setElapsedSeconds(diff);
+      // Ensure diff is a valid number
+      const validDiff = isNaN(diff) || diff < 0 ? 0 : diff;
+      setElapsedSeconds(validDiff);
     };
 
     updateElapsed();

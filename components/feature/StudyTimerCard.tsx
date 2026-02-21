@@ -29,9 +29,12 @@ export function StudyTimerCard({
   const displayName = subjectName || '';
   
   const formatTime = (seconds: number): string => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+    // Defensive check for NaN or invalid values
+    const validSeconds = isNaN(seconds) || seconds < 0 ? 0 : Math.floor(seconds);
+    
+    const hrs = Math.floor(validSeconds / 3600);
+    const mins = Math.floor((validSeconds % 3600) / 60);
+    const secs = validSeconds % 60;
     
     if (hrs > 0) {
       return `${hrs}h ${mins}m ${secs}s`;
