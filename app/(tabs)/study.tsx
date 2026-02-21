@@ -6,7 +6,7 @@ import { useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
-import { useStudyTimer } from '@/hooks/useStudyTimer';
+import { useStudyTimer, useElapsedTime } from '@/hooks/useStudyTimer';
 import { LoadingSpinner } from '@/components/ui';
 import { StudyTimerCard } from '@/components/feature';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -15,7 +15,8 @@ import { getUserSubjects } from '@/services/userSubjectsService';
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { activeSubject, elapsedSeconds, startTimer, stopTimer } = useStudyTimer();
+  const { activeSubject, startTimer, stopTimer } = useStudyTimer();
+  const elapsedSeconds = useElapsedTime();
   
   const [allTime, setAllTime] = useState<{ [key: string]: number }>({});
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
