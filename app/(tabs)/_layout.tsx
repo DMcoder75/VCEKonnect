@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform, View } from 'react-native';
 import { colors } from '@/constants/theme';
 import { QuickAccessDrawer, FloatingMenuButton } from '@/components/ui';
+import { RunningTimerIndicator } from '@/components/feature';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -30,6 +31,7 @@ export default function TabLayout() {
 
   return (
     <View style={{ flex: 1 }}>
+      <RunningTimerIndicator />
       <FloatingMenuButton onPress={() => setIsDrawerOpen(true)} />
       <QuickAccessDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
       <Tabs

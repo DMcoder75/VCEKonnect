@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +34,15 @@ export default function StudyScreen() {
       loadAllTime();
     }
   }, [user, activeSubject, isLoadingSubjects]);
+
+  // Reload data when page comes into focus (navigating back from other tabs)
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadAllTime(); // Refresh study time data
+      }
+    }, [user])
+  );
 
   async function loadSubjects() {
     if (!user) return;

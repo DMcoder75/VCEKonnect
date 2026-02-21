@@ -9,3 +9,4 @@ export { SubjectAchievementCard } from './SubjectAchievementCard';
 export { LatestAchievementBanner } from './LatestAchievementBanner';
 export { AchievementLaunchToast } from './AchievementLaunchToast';
 export { AchievementLaunchManager } from './AchievementLaunchManager';
+export { RunningTimerIndicator } from './RunningTimerIndicator';
