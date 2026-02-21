@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, ImageBackground } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { supabase } from '@/services/supabase';
 import { CalendarEvent } from '@/services/calendarService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -37,7 +38,7 @@ export default function DashboardScreen() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWeeklyResetPrompt, setShowWeeklyResetPrompt] = useState(false);
-  const [resetInfo, setResetInfo] = useState<{ currentWeekStart: Date } | null>(null);
+  const [resetInfo, setResetInfo] = useState<{ currentWeekStart: Date; hasPreviousGoals: boolean } | null>(null);
   
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
@@ -59,8 +60,31 @@ export default function DashboardScreen() {
     
     const result = await checkNeedsWeeklyReset(user.id);
     if (result.needsReset) {
-      setResetInfo({ currentWeekStart: result.currentWeekStart });
+      // Check if user has any previous goals to copy
+      const hasPreviousGoals = await checkHasPreviousGoals();
+      setResetInfo({ 
+        currentWeekStart: result.currentWeekStart, 
+        hasPreviousGoals 
+      });
       setShowWeeklyResetPrompt(true);
+    }
+  }
+
+  async function checkHasPreviousGoals(): Promise<boolean> {
+    if (!user) return false;
+    
+    try {
+      // Check if user has any completed goal periods (previous weeks/months/terms)
+      const { data, error } = await supabase
+        .from('vk_goal_periods')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+      
+      return !!data && !error;
+    } catch {
+      return false;
     }
   }
 
@@ -68,13 +92,19 @@ export default function DashboardScreen() {
     if (!user || !resetInfo) return;
     
     const result = await copyPreviousWeekGoals(user.id, resetInfo.currentWeekStart);
-    if (result.success) {
+    if (result.success && result.copiedCount > 0) {
       setShowWeeklyResetPrompt(false);
       await loadActiveGoals();
       showAlert('Goals Copied!', `${result.copiedCount} subject goals copied to ${result.periodName}`);
     } else {
-      showAlert('Info', result.message);
+      // No goals to copy
+      showAlert('No Previous Goals', 'You have not defined any goals yet. Create your first goals now!');
     }
+  }
+
+  function handleCreateNewGoals() {
+    setShowWeeklyResetPrompt(false);
+    router.push('/goals');
   }
 
   function handleSkipWeeklyReset() {
@@ -245,29 +275,56 @@ export default function DashboardScreen() {
         </View>
 
         {/* Weekly Reset Prompt */}
-        {showWeeklyResetPrompt && (
+        {showWeeklyResetPrompt && resetInfo && (
           <View style={styles.resetPrompt}>
             <View style={styles.resetHeader}>
               <MaterialIcons name="refresh" size={24} color={colors.primary} />
               <Text style={styles.resetTitle}>New Week Started!</Text>
             </View>
-            <Text style={styles.resetMessage}>
-              Would you like to copy your previous week's goals to this week?
-            </Text>
-            <View style={styles.resetButtons}>
-              <Pressable
-                style={[styles.resetButton, styles.resetButtonOutline]}
-                onPress={handleSkipWeeklyReset}
-              >
-                <Text style={styles.resetButtonTextOutline}>Skip</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.resetButton, styles.resetButtonPrimary]}
-                onPress={handleCopyPreviousGoals}
-              >
-                <Text style={styles.resetButtonTextPrimary}>Copy Goals</Text>
-              </Pressable>
-            </View>
+            
+            {resetInfo.hasPreviousGoals ? (
+              /* User HAS previous goals - show copy option */
+              <>
+                <Text style={styles.resetMessage}>
+                  Would you like to copy your previous week's goals to this week?
+                </Text>
+                <View style={styles.resetButtons}>
+                  <Pressable
+                    style={[styles.resetButton, styles.resetButtonOutline]}
+                    onPress={handleSkipWeeklyReset}
+                  >
+                    <Text style={styles.resetButtonTextOutline}>Skip</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.resetButton, styles.resetButtonPrimary]}
+                    onPress={handleCopyPreviousGoals}
+                  >
+                    <Text style={styles.resetButtonTextPrimary}>Copy Goals</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              /* User has NO previous goals - show create option */
+              <>
+                <Text style={styles.resetMessage}>
+                  You have not defined any goals yet. Set your study targets to track your progress!
+                </Text>
+                <View style={styles.resetButtons}>
+                  <Pressable
+                    style={[styles.resetButton, styles.resetButtonOutline]}
+                    onPress={handleSkipWeeklyReset}
+                  >
+                    <Text style={styles.resetButtonTextOutline}>Skip</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.resetButton, styles.resetButtonPrimary]}
+                    onPress={handleCreateNewGoals}
+                  >
+                    <Text style={styles.resetButtonTextPrimary}>Create Goals</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
         )}
 
