@@ -10,7 +10,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAlert } from '@/template';
 import { useATAR } from '@/hooks/useATAR';
-import { useStudyTimer } from '@/hooks/useStudyTimer';
+import { useStudyTimer, useElapsedTime } from '@/hooks/useStudyTimer';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { useAchievements } from '@/hooks/useAchievements';
 import { checkNeedsWeeklyReset, copyPreviousWeekGoals } from '@/services/achievementsService';
@@ -27,7 +27,8 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { showAlert } = useAlert();
   const { getPrediction, subjectScores, reloadScores } = useATAR();
-  const { activeSubject, elapsedSeconds, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
+  const { activeSubject, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
+  const elapsedSeconds = useElapsedTime();
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
   const { activeGoals, loadActiveGoals } = useStudyGoals();
   const { streaks, achievements, loadAchievements } = useAchievements();
