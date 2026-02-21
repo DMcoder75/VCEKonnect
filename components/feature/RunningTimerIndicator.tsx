@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export function RunningTimerIndicator() {
   const { user } = useAuth();
-  const { activeSubject, isRunning, elapsedSeconds } = useStudyTimer();
+  const { activeSubject, isRunning } = useStudyTimer();
   const [subjectCode, setSubjectCode] = useState<string>('');
   const [blinkAnim] = useState(new Animated.Value(1));
 
@@ -25,13 +25,13 @@ export function RunningTimerIndicator() {
       const blink = Animated.loop(
         Animated.sequence([
           Animated.timing(blinkAnim, {
-            toValue: 0.2,
-            duration: 500,
+            toValue: 0.3,
+            duration: 600,
             useNativeDriver: true,
           }),
           Animated.timing(blinkAnim, {
             toValue: 1,
-            duration: 500,
+            duration: 600,
             useNativeDriver: true,
           }),
         ])
@@ -53,30 +53,16 @@ export function RunningTimerIndicator() {
     }
   }
 
-  function formatTime(seconds: number): string {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hrs > 0) {
-      return `${hrs}h ${mins}m`;
-    }
-    return `${mins}m ${secs}s`;
-  }
-
   if (!isRunning || !subjectCode) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.subjectCode}>{subjectCode}</Text>
-        <Animated.View style={{ opacity: blinkAnim }}>
-          <MaterialIcons name="access-time" size={16} color={colors.error} />
-        </Animated.View>
-        <Text style={styles.time}>{formatTime(elapsedSeconds)}</Text>
-      </View>
+      <Text style={styles.subjectCode}>{subjectCode}:</Text>
+      <Animated.View style={{ opacity: blinkAnim }}>
+        <MaterialIcons name="access-time" size={14} color={colors.error} />
+      </Animated.View>
     </View>
   );
 }
@@ -84,36 +70,19 @@ export function RunningTimerIndicator() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 50,
+    right: 16,
     zIndex: 1000,
-    backgroundColor: colors.error,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: colors.error,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  content: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   subjectCode: {
-    fontSize: typography.caption,
-    fontWeight: typography.bold,
-    color: colors.textPrimary,
-    letterSpacing: 1,
-  },
-  time: {
-    fontSize: typography.caption,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
   },
 });
