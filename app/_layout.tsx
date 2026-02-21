@@ -1,13 +1,15 @@
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AlertProvider } from '@/template';
+import { StudyTimerProvider } from '@/contexts/StudyTimerContext';
 import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   return (
     <AlertProvider>
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StudyTimerProvider>
+          <StatusBar style="light" />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -36,6 +38,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
+        </StudyTimerProvider>
       </SafeAreaProvider>
     </AlertProvider>
   );
