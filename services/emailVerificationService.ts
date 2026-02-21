@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/template';
+import { supabase } from './supabase';
 import Constants from 'expo-constants';
 
 export interface VerificationResponse {
@@ -26,7 +26,7 @@ export async function sendVerificationCode(
   name?: string
 ): Promise<VerificationResponse> {
   try {
-    const supabase = getSupabaseClient();
+    // Use the same external Supabase client as auth service
     
     // Generate 7-digit code
     const code = generateVerificationCode();
@@ -109,7 +109,7 @@ export async function verifyCode(
   purpose: 'signup' | 'password_reset'
 ): Promise<VerificationResponse> {
   try {
-    const supabase = getSupabaseClient();
+    // Use the same external Supabase client as auth service
     
     // Find matching verification code
     const { data, error } = await supabase
@@ -154,7 +154,7 @@ export async function verifyCode(
  */
 export async function isEmailVerified(email: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient();
+    // Use the same external Supabase client as auth service
     
     const { data, error } = await supabase
       .from('vk_email_verifications')
@@ -182,7 +182,7 @@ export async function verifyCodeAndActivateUser(
   code: string
 ): Promise<VerificationResponse> {
   try {
-    const supabase = getSupabaseClient();
+    // Use the same external Supabase client as auth service
     
     // First verify the code
     const verifyResult = await verifyCode(email, code, 'signup');
