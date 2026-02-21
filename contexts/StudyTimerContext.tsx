@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
+import React, { createContext, useState, ReactNode, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   startStudySession, 
@@ -9,7 +9,7 @@ import {
 
 interface StudyTimerContextType {
   activeSubject: string | null;
-  elapsedSeconds: number;
+  startTime: Date | null;
   isRunning: boolean;
   startTimer: (subjectId: string) => Promise<void>;
   stopTimer: () => Promise<void>;
@@ -24,42 +24,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isStopping, setIsStopping] = useState(false);
-  
-  // Use ref to store interval ID for cleanup
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Update elapsed time every 5 seconds instead of every second to reduce re-renders
-  // UI will still show smooth updates via the blinking animation
-  useEffect(() => {
-    if (!activeSubject || !startTime) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    // Initial update
-    const updateElapsed = () => {
-      const now = new Date();
-      const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-      setElapsedSeconds(diff);
-    };
-    
-    updateElapsed();
-    
-    // Update every 5 seconds to reduce re-renders
-    intervalRef.current = setInterval(updateElapsed, 5000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [activeSubject, startTime]);
 
   const startTimer = useCallback(async (subjectId: string) => {
     if (!user) {
@@ -83,7 +48,6 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     setActiveSubject(subjectId);
     setActiveSessionId(sessionId);
     setStartTime(now);
-    setElapsedSeconds(0);
   }, [user, activeSubject, activeSessionId]);
 
   const stopTimer = useCallback(async () => {
@@ -98,7 +62,6 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     setActiveSubject(null);
     setActiveSessionId(null);
     setStartTime(null);
-    setElapsedSeconds(0);
 
     // Then handle database operations in background
     const now = new Date();
@@ -145,7 +108,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     <StudyTimerContext.Provider
       value={{
         activeSubject,
-        elapsedSeconds,
+        startTime,
         isRunning: !!activeSubject,
         startTimer,
         stopTimer,
