@@ -31,6 +31,7 @@ export async function registerUser(
         password_hash: passwordHash,
         name,
         year_level: 12,
+        is_verified: false, // User needs to verify email
       })
       .select()
       .single();

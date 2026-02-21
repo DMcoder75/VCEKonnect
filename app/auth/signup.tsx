@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Input, Button } from '@/components';
-import { sendVerificationCode, verifyCode } from '@/services/emailVerificationService';
+import { sendVerificationCode } from '@/services/emailVerificationService';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -19,13 +19,9 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Verification state
-  const [step, setStep] = useState<'details' | 'verify'>('details');
-  const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSendingCode, setIsSendingCode] = useState(false);
 
-  async function handleSendCode() {
+  async function handleSignup() {
     if (!name || !email || !password || !confirmPassword) {
       alert('Please fill in all fields');
       return;
@@ -48,57 +44,23 @@ export default function SignupScreen() {
       return;
     }
     
-    setIsSendingCode(true);
-    const result = await sendVerificationCode(email, 'signup', name);
-    setIsSendingCode(false);
-    
-    if (result.error) {
-      alert(result.error);
-      return;
-    }
-    
-    setStep('verify');
-    alert('Verification code sent to your email!');
-  }
-
-  async function handleVerifyAndSignup() {
-    if (verificationCode.length !== 7) {
-      alert('Please enter the 7-digit verification code');
-      return;
-    }
-    
     setIsLoading(true);
     
-    // Verify the code first
-    const verifyResult = await verifyCode(email, verificationCode, 'signup');
-    
-    if (verifyResult.error) {
-      setIsLoading(false);
-      alert(verifyResult.error);
-      return;
-    }
-    
-    // Code verified successfully, now create the account
+    // Create user account (with is_verified = false)
     await register(email, password, name);
-    setIsLoading(false);
-    router.replace('/onboarding');
-  }
-
-  function handleBackToDetails() {
-    setStep('details');
-    setVerificationCode('');
-  }
-
-  async function handleResendCode() {
-    setIsSendingCode(true);
+    
+    // Send verification email
     const result = await sendVerificationCode(email, 'signup', name);
-    setIsSendingCode(false);
+    
+    setIsLoading(false);
     
     if (result.error) {
-      alert(result.error);
+      alert(`Account created but failed to send verification email: ${result.error}\n\nYou can verify later from the login page.`);
     } else {
-      alert('New verification code sent to your email!');
+      alert('Account created! Please check your email for the verification code.');
     }
+    
+    router.replace('/auth/login');
   }
 
   return (
@@ -117,99 +79,49 @@ export default function SignupScreen() {
           <Text style={styles.tagline}>Create Your Account</Text>
         </View>
 
-        {/* Form - Step 1: Enter Details */}
-        {step === 'details' && (
-          <View style={styles.form}>
-            <Input
-              label="Full Name"
-              value={name}
-              onChangeText={setName}
-              placeholder="John Smith"
-            />
-            
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="your.email@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry
-              showPasswordToggle
-            />
-            
-            <Input
-              label="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="••••••••"
-              secureTextEntry
-              showPasswordToggle
-            />
-            
-            <Button
-              title={isSendingCode ? 'Sending Code...' : 'Continue'}
-              onPress={handleSendCode}
-              disabled={!name || !email || !password || !confirmPassword || isSendingCode}
-              fullWidth
-            />
-          </View>
-        )}
-
-        {/* Form - Step 2: Verify Email */}
-        {step === 'verify' && (
-          <View style={styles.form}>
-            <View style={styles.verifyHeader}>
-              <MaterialIcons name="mark-email-read" size={48} color={colors.success} />
-              <Text style={styles.verifyTitle}>Check Your Email</Text>
-              <Text style={styles.verifyDesc}>
-                We've sent a 7-digit verification code to{' \n'}
-                <Text style={styles.verifyEmail}>{email}</Text>
-              </Text>
-              <Text style={[styles.verifyDesc, { marginTop: spacing.sm, fontSize: typography.caption }]}>
-                Check your inbox (and spam folder) for an email from FairPrep
-              </Text>
-            </View>
-            
-            <Input
-              label="Verification Code"
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              placeholder="1234567"
-              keyboardType="number-pad"
-              maxLength={7}
-              autoCapitalize="none"
-            />
-
-            <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>Didn't receive the code?</Text>
-              <Pressable onPress={handleResendCode} disabled={isSendingCode}>
-                <Text style={[styles.resendLink, isSendingCode && styles.resendLinkDisabled]}>
-                  {isSendingCode ? 'Sending...' : 'Resend Code'}
-                </Text>
-              </Pressable>
-            </View>
-            
-            <Button
-              title={isLoading ? 'Verifying...' : 'Verify & Create Account'}
-              onPress={handleVerifyAndSignup}
-              disabled={verificationCode.length !== 7 || isLoading}
-              fullWidth
-            />
-
-            <Pressable style={styles.backButton} onPress={handleBackToDetails}>
-              <MaterialIcons name="arrow-back" size={20} color={colors.primary} />
-              <Text style={styles.backButtonText}>Back to Details</Text>
-            </Pressable>
-          </View>
-        )}
+        {/* Form */}
+        <View style={styles.form}>
+          <Input
+            label="Full Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="John Smith"
+          />
+          
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="your.email@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="••••••••"
+            secureTextEntry
+            showPasswordToggle
+          />
+          
+          <Input
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="••••••••"
+            secureTextEntry
+            showPasswordToggle
+          />
+          
+          <Button
+            title={isLoading ? 'Creating Account...' : 'Create Account'}
+            onPress={handleSignup}
+            disabled={!name || !email || !password || !confirmPassword || isLoading}
+            fullWidth
+          />
+        </View>
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -275,61 +187,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   footerLink: {
-    color: colors.primary,
-    fontWeight: typography.semibold,
-  },
-  verifyHeader: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  verifyTitle: {
-    fontSize: typography.h2,
-    fontWeight: typography.bold,
-    color: colors.textPrimary,
-    marginTop: spacing.md,
-  },
-  verifyDesc: {
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    lineHeight: 20,
-  },
-  verifyEmail: {
-    color: colors.primary,
-    fontWeight: typography.semibold,
-  },
-
-  resendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginVertical: spacing.sm,
-  },
-  resendText: {
-    fontSize: typography.bodySmall,
-    color: colors.textSecondary,
-  },
-  resendLink: {
-    fontSize: typography.bodySmall,
-    color: colors.primary,
-    fontWeight: typography.semibold,
-    textDecorationLine: 'underline',
-  },
-  resendLinkDisabled: {
-    color: colors.textTertiary,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: typography.bodySmall,
     color: colors.primary,
     fontWeight: typography.semibold,
   },

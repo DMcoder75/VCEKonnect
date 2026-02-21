@@ -78,6 +78,15 @@ export default function LoginScreen() {
             showPasswordToggle
           />
 
+          {/* Verify Email Link */}
+          <Pressable 
+            style={styles.verifyEmailLink} 
+            onPress={() => router.push('/verify-email')}
+          >
+            <MaterialIcons name="verified-user" size={16} color={colors.info} />
+            <Text style={styles.verifyEmailText}>Verify Your Email</Text>
+          </Pressable>
+
           {/* Legal Links */}
           <View style={styles.legalLinks}>
             <Pressable onPress={() => router.push('/privacy')}>
@@ -202,6 +211,23 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
     fontFamily: 'monospace',
+  },
+  verifyEmailLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    padding: spacing.sm,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.info,
+  },
+  verifyEmailText: {
+    fontSize: typography.bodySmall,
+    color: colors.info,
+    fontWeight: typography.semibold,
   },
   legalLinks: {
     flexDirection: 'row',

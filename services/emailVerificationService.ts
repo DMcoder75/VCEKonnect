@@ -171,3 +171,49 @@ export async function isEmailVerified(email: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Verify code and activate user account (set is_verified = true)
+ * @param email - User's email address
+ * @param code - 7-digit verification code
+ */
+export async function verifyCodeAndActivateUser(
+  email: string,
+  code: string
+): Promise<VerificationResponse> {
+  try {
+    const supabase = getSupabaseClient();
+    
+    // First verify the code
+    const verifyResult = await verifyCode(email, code, 'signup');
+    if (!verifyResult.success) {
+      return verifyResult;
+    }
+
+    // Update user's is_verified status
+    const { error: updateError } = await supabase
+      .from('vk_users')
+      .update({
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('email', email.toLowerCase());
+
+    if (updateError) {
+      console.error('Failed to update user verification status:', updateError);
+      return { 
+        success: false, 
+        error: 'Code verified but failed to update account status' 
+      };
+    }
+
+    console.log(`User ${email} verified successfully`);
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('Verify and activate user error:', err);
+    return { 
+      success: false, 
+      error: err.message || 'Failed to verify account' 
+    };
+  }
+}

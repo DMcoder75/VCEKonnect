@@ -19,7 +19,7 @@ export async function registerUser(
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(password, salt);
 
-    // Create user
+    // Create user (with is_verified = false by default)
     const { data, error } = await supabase
       .from('vk_users')
       .insert({
@@ -27,6 +27,7 @@ export async function registerUser(
         password_hash: passwordHash,
         name,
         year_level: 12,
+        is_verified: false, // User needs to verify email
       })
       .select()
       .single();
