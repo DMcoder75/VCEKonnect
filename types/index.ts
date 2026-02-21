@@ -8,7 +8,7 @@ export interface UserProfile {
   targetUniversities: string[];
   isPremium: boolean;
   premiumExpiry?: string;
-  stateId?: 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
+  state_id?: string; // Australian state/territory: vic, nsw, qld, wa, sa, tas, act, nt
 }
 
 export interface SubjectScore {

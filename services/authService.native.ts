@@ -56,6 +56,7 @@ export async function registerUser(
         targetUniversities: data.target_universities || [],
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
+        state_id: data.state_id,
       },
       error: null,
     };
@@ -115,6 +116,7 @@ export async function loginUser(
         targetUniversities: data.target_universities || [],
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
+        state_id: data.state_id,
       },
       error: null,
     };
@@ -150,6 +152,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       targetUniversities: data.target_universities || [],
       isPremium: data.is_premium,
       premiumExpiry: data.premium_expiry,
+      state_id: data.state_id,
     };
   } catch (err) {
     return null;
