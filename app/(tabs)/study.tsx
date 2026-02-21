@@ -22,7 +22,6 @@ export default function StudyScreen() {
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isLoadingStudyTime, setIsLoadingStudyTime] = useState(true);
-  const [showDebug, setShowDebug] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -78,33 +77,6 @@ export default function StudyScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 🔧 TEMPORARY DEBUG PANEL */}
-        <Pressable 
-          style={styles.debugPanel}
-          onPress={() => setShowDebug(!showDebug)}
-        >
-          <View style={styles.debugHeader}>
-            <Text style={styles.debugTitle}>🔧 DEBUG PANEL (Tap to {showDebug ? 'hide' : 'show'})</Text>
-          </View>
-          {showDebug && (
-            <View style={styles.debugContent}>
-              <Text style={styles.debugText}>isRunning: {String(isRunning)}</Text>
-              <Text style={styles.debugText}>activeSubject: {activeSubject || 'null'}</Text>
-              <Text style={styles.debugText}>startTime: {startTime ? startTime.toString() : 'null'}</Text>
-              <Text style={styles.debugText}>startTime type: {startTime ? typeof startTime : 'null'}</Text>
-              <Text style={styles.debugText}>startTime instanceof Date: {String(startTime instanceof Date)}</Text>
-              <Text style={styles.debugText}>elapsedSeconds: {elapsedSeconds}</Text>
-              <Text style={styles.debugText}>user.id: {user?.id || 'null'}</Text>
-              <Text style={styles.debugText}>Current Time: {new Date().toISOString()}</Text>
-              {startTime && (
-                <Text style={styles.debugText}>
-                  Time Diff: {Math.floor((new Date().getTime() - new Date(startTime as any).getTime()) / 1000)}s
-                </Text>
-              )}
-            </View>
-          )}
-        </Pressable>
-
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Study Tracker</Text>
@@ -169,34 +141,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  debugPanel: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: '#e94560',
-  },
-  debugHeader: {
-    padding: spacing.sm,
-    backgroundColor: '#16213e',
-    borderTopLeftRadius: borderRadius.md,
-    borderTopRightRadius: borderRadius.md,
-  },
-  debugTitle: {
-    fontSize: typography.caption,
-    fontWeight: typography.bold,
-    color: '#e94560',
-    textAlign: 'center',
-  },
-  debugContent: {
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  debugText: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#00d9ff',
   },
   scrollView: {
     flex: 1,
