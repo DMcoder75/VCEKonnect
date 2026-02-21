@@ -38,25 +38,34 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     }
 
     const now = new Date();
+    console.log('⏱️ Starting timer:', { subjectId, now: now.toISOString() });
+    
     const { sessionId, error } = await startStudySession(user.id, subjectId);
 
     if (error || !sessionId) {
+      console.error('❌ Failed to start session:', error);
       alert(error || 'Failed to start timer');
       return;
     }
 
+    console.log('✅ Session created:', sessionId);
     setActiveSubject(subjectId);
     setActiveSessionId(sessionId);
     setStartTime(now);
   }, [user, activeSubject, activeSessionId]);
 
   const stopTimer = useCallback(async () => {
-    if (!activeSubject || !activeSessionId || !startTime || !user || isStopping) return;
+    if (!activeSubject || !activeSessionId || !startTime || !user || isStopping) {
+      console.log('⚠️ Cannot stop timer:', { activeSubject, activeSessionId, hasStartTime: !!startTime, hasUser: !!user, isStopping });
+      return;
+    }
 
     // Immediate UI feedback - clear timer state first
     const sessionIdToEnd = activeSessionId;
     const subjectToUpdate = activeSubject;
     const startTimeSnapshot = startTime;
+    
+    console.log('⏹️ Stopping timer:', { sessionId: sessionIdToEnd, subject: subjectToUpdate });
     
     setIsStopping(true);
     setActiveSubject(null);
@@ -66,6 +75,7 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     // Then handle database operations in background
     const now = new Date();
     const durationMinutes = (now.getTime() - startTimeSnapshot.getTime()) / 1000 / 60;
+    console.log('⏱️ Duration:', durationMinutes, 'minutes');
 
     // Use Promise.all to run both operations in parallel
     const [sessionResult, _] = await Promise.all([
@@ -74,7 +84,9 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
     ]);
     
     if (sessionResult.error) {
-      console.error('Failed to stop timer:', sessionResult.error);
+      console.error('❌ Failed to stop timer:', sessionResult.error);
+    } else {
+      console.log('✅ Timer stopped successfully');
     }
 
     setIsStopping(false);

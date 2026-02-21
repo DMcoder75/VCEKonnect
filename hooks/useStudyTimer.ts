@@ -23,6 +23,8 @@ export function useElapsedTime() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
+    console.log('useElapsedTime effect:', { isRunning, hasStartTime: !!startTime, startTime });
+    
     if (!isRunning || !startTime) {
       setElapsedSeconds(0);
       return;
@@ -30,17 +32,30 @@ export function useElapsedTime() {
 
     // Calculate initial elapsed time
     const updateElapsed = () => {
-      const now = new Date();
-      // Validate that startTime is a valid Date object
-      if (!(startTime instanceof Date) || isNaN(startTime.getTime())) {
-        console.error('Invalid startTime:', startTime);
+      // Handle both Date objects and date strings
+      let startDate: Date;
+      if (startTime instanceof Date) {
+        startDate = startTime;
+      } else if (typeof startTime === 'string') {
+        startDate = new Date(startTime);
+      } else {
+        console.error('❌ Invalid startTime type:', typeof startTime, startTime);
         setElapsedSeconds(0);
         return;
       }
       
-      const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-      // Ensure diff is a valid number
+      // Validate the date
+      if (isNaN(startDate.getTime())) {
+        console.error('❌ Invalid startTime value:', startTime);
+        setElapsedSeconds(0);
+        return;
+      }
+      
+      const now = new Date();
+      const diff = Math.floor((now.getTime() - startDate.getTime()) / 1000);
       const validDiff = isNaN(diff) || diff < 0 ? 0 : diff;
+      
+      console.log('⏱️ Timer update:', { elapsed: validDiff, start: startDate.toISOString() });
       setElapsedSeconds(validDiff);
     };
 
