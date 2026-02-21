@@ -35,22 +35,27 @@ export default function SettingsScreen() {
     if (!user) return;
     setIsLoading(true);
     
-    const [allStates, userSubjectIds] = await Promise.all([
+    // Default to 'vic' if state_id is not set (for backward compatibility)
+    const userStateId = user.state_id || 'vic';
+    
+    // If user doesn't have state_id, update their profile
+    if (!user.state_id) {
+      await updateProfile({ state_id: 'vic' } as any);
+    }
+    
+    const [allStates, userSubjectIds, subjects] = await Promise.all([
       getAllStates(),
-      getUserSubjectIds(user.id)
+      getUserSubjectIds(user.id),
+      getSubjectsByState(userStateId)
     ]);
     
     setSelectedSubjects(userSubjectIds);
+    setAllSubjects(subjects);
     
     // Get user's current state
-    const currentState = allStates.find(s => s.id === user.state_id);
+    const currentState = allStates.find(s => s.id === userStateId);
     setUserState(currentState || null);
     
-    // Load subjects for user's state
-    if (user.state_id) {
-      const subjects = await getSubjectsByState(user.state_id);
-      setAllSubjects(subjects);
-    }
     setIsLoading(false);
   }
 
