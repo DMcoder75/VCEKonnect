@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,15 +7,56 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { Input, Button } from '@/components/ui';
 import { sendVerificationCode, verifyCodeAndActivateUser } from '@/services/emailVerificationService';
 
+type VerificationMode = 'have-code' | 'need-code';
+
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
+  const [mode, setMode] = useState<VerificationMode>('need-code');
   const [email, setEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
+  const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
+
+  const codeInputRefs = React.useRef<(TextInput | null)[]>([]);
+
+  function handleCodeChange(index: number, value: string) {
+    // Only allow digits
+    const digit = value.replace(/[^0-9]/g, '');
+    
+    if (digit.length > 1) {
+      // Handle paste of multiple digits
+      const digits = digit.slice(0, 7).split('');
+      const newCodeDigits = [...codeDigits];
+      digits.forEach((d, i) => {
+        if (index + i < 7) {
+          newCodeDigits[index + i] = d;
+        }
+      });
+      setCodeDigits(newCodeDigits);
+      
+      // Focus on the last filled box or next empty box
+      const nextIndex = Math.min(index + digits.length, 6);
+      codeInputRefs.current[nextIndex]?.focus();
+    } else {
+      const newCodeDigits = [...codeDigits];
+      newCodeDigits[index] = digit;
+      setCodeDigits(newCodeDigits);
+      
+      // Auto-focus next input
+      if (digit && index < 6) {
+        codeInputRefs.current[index + 1]?.focus();
+      }
+    }
+  }
+
+  function handleCodeKeyPress(index: number, key: string) {
+    if (key === 'Backspace' && !codeDigits[index] && index > 0) {
+      // Move to previous input on backspace if current is empty
+      codeInputRefs.current[index - 1]?.focus();
+    }
+  }
 
   async function handleSendCode() {
     if (!email) {
@@ -38,27 +79,30 @@ export default function VerifyEmailScreen() {
       return;
     }
     
-    setCodeSent(true);
-    alert('Verification code sent to your email!');
+    alert('Verification code sent to your email! Check your inbox and spam folder.');
   }
 
-  async function handleVerify() {
-    if (!email || !verificationCode) {
-      alert('Please enter both email and verification code');
+  async function handleVerifyCode() {
+    if (!email) {
+      alert('Please enter your email address');
       return;
     }
 
-    if (verificationCode.length !== 7) {
-      alert('Verification code must be 7 digits');
+    const code = codeDigits.join('');
+    if (code.length !== 7) {
+      alert('Please enter all 7 digits of the verification code');
       return;
     }
     
     setIsLoading(true);
-    const result = await verifyCodeAndActivateUser(email, verificationCode);
+    const result = await verifyCodeAndActivateUser(email, code);
     setIsLoading(false);
     
     if (result.error) {
       alert(result.error);
+      // Clear code on error
+      setCodeDigits(['', '', '', '', '', '', '']);
+      codeInputRefs.current[0]?.focus();
       return;
     }
     
@@ -92,37 +136,91 @@ export default function VerifyEmailScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        {/* Radio Buttons */}
+        <View style={styles.radioContainer}>
+          <Pressable
+            style={styles.radioButton}
+            onPress={() => setMode('need-code')}
+          >
+            <View style={styles.radioOuter}>
+              {mode === 'need-code' && <View style={styles.radioInner} />}
+            </View>
+            <Text style={styles.radioLabel}>I need code</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.radioButton}
+            onPress={() => setMode('have-code')}
+          >
+            <View style={styles.radioOuter}>
+              {mode === 'have-code' && <View style={styles.radioInner} />}
+            </View>
+            <Text style={styles.radioLabel}>I have code</Text>
+          </Pressable>
+        </View>
+
+        {/* Email Input (always visible) */}
         <View style={styles.form}>
           <Input
             label="Email Address"
             value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setCodeSent(false);
-            }}
+            onChangeText={setEmail}
             placeholder="your.email@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
           />
 
-          {!codeSent ? (
-            <Button
-              title={isSendingCode ? 'Sending Code...' : 'Send Verification Code'}
-              onPress={handleSendCode}
-              disabled={!email || isSendingCode}
-              fullWidth
-            />
-          ) : (
+          {mode === 'need-code' ? (
+            /* "I need code" mode - Show send button */
             <>
-              <Input
-                label="Verification Code"
-                value={verificationCode}
-                onChangeText={setVerificationCode}
-                placeholder="1234567"
-                keyboardType="number-pad"
-                maxLength={7}
-                autoCapitalize="none"
+              <Button
+                title={isSendingCode ? 'Sending Code...' : 'Send Verification Code'}
+                onPress={handleSendCode}
+                disabled={!email || isSendingCode}
+                fullWidth
+              />
+
+              <View style={styles.infoBox}>
+                <MaterialIcons name="info-outline" size={20} color={colors.info} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoText}>
+                    Check your email inbox (and spam folder) for the verification code from FairPrep
+                  </Text>
+                  <Text style={[styles.infoText, { marginTop: spacing.xs }]}>
+                    The code expires in 10 minutes
+                  </Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            /* "I have code" mode - Show 7-digit input boxes */
+            <>
+              <Text style={styles.codeLabel}>Enter 7-Digit Verification Code</Text>
+              <View style={styles.codeInputContainer}>
+                {codeDigits.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => (codeInputRefs.current[index] = ref)}
+                    style={[
+                      styles.codeInput,
+                      digit && styles.codeInputFilled,
+                    ]}
+                    value={digit}
+                    onChangeText={(value) => handleCodeChange(index, value)}
+                    onKeyPress={({ nativeEvent: { key } }) => handleCodeKeyPress(index, key)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                  />
+                ))}
+              </View>
+
+              <Button
+                title={isLoading ? 'Verifying...' : 'Verify'}
+                onPress={handleVerifyCode}
+                disabled={codeDigits.join('').length !== 7 || isLoading}
+                fullWidth
+                style={{ marginTop: spacing.lg }}
               />
 
               <View style={styles.resendContainer}>
@@ -133,28 +231,8 @@ export default function VerifyEmailScreen() {
                   </Text>
                 </Pressable>
               </View>
-
-              <Button
-                title={isLoading ? 'Verifying...' : 'Verify Email'}
-                onPress={handleVerify}
-                disabled={verificationCode.length !== 7 || isLoading}
-                fullWidth
-              />
             </>
           )}
-        </View>
-
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <MaterialIcons name="info-outline" size={20} color={colors.info} />
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoText}>
-              Check your email inbox (and spam folder) for the verification code from FairPrep
-            </Text>
-            <Text style={[styles.infoText, { marginTop: spacing.xs }]}>
-              The code expires in 10 minutes
-            </Text>
-          </View>
         </View>
 
         {/* Footer */}
@@ -223,15 +301,76 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: spacing.lg,
   },
+  radioContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xl,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  radioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  radioLabel: {
+    fontSize: typography.body,
+    color: colors.textPrimary,
+    fontWeight: typography.medium,
+  },
   form: {
     marginBottom: spacing.lg,
+  },
+  codeLabel: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  codeInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  codeInput: {
+    width: 44,
+    height: 56,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    fontSize: 24,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  codeInputFilled: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceElevated,
   },
   resendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    marginVertical: spacing.sm,
+    marginTop: spacing.md,
   },
   resendText: {
     fontSize: typography.bodySmall,
@@ -253,7 +392,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: colors.info,
-    marginBottom: spacing.lg,
+    marginTop: spacing.lg,
   },
   infoTextContainer: {
     flex: 1,
