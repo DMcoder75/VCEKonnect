@@ -1,15 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Platform, View } from 'react-native';
+import { Platform, View, Animated } from 'react-native';
 import { colors } from '@/constants/theme';
 import { QuickAccessDrawer, FloatingMenuButton } from '@/components/ui';
-import { RunningTimerIndicator } from '@/components/feature';
+import { useStudyTimer } from '@/hooks/useStudyTimer';
+
+// Animated Study Tab Icon that blinks red when timer is running
+function StudyTabIcon({ color, size, isRunning }: { color: string; size: number; isRunning: boolean }) {
+  const [blinkAnim] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    if (isRunning) {
+      const blink = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, {
+            toValue: 0.3,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blinkAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      blink.start();
+      return () => blink.stop();
+    } else {
+      blinkAnim.setValue(1);
+    }
+  }, [isRunning]);
+
+  const iconColor = isRunning ? colors.error : color;
+
+  return (
+    <Animated.View style={{ opacity: blinkAnim }}>
+      <MaterialIcons name="timer" size={size} color={iconColor} />
+    </Animated.View>
+  );
+}
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { isRunning } = useStudyTimer();
 
   const tabBarStyle = {
     height: Platform.select({
@@ -31,7 +68,6 @@ export default function TabLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <RunningTimerIndicator />
       <FloatingMenuButton onPress={() => setIsDrawerOpen(true)} />
       <QuickAccessDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
       <Tabs
@@ -69,7 +105,7 @@ export default function TabLayout() {
         options={{
           title: 'Study',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="timer" size={size} color={color} />
+            <StudyTabIcon color={color} size={size} isRunning={isRunning} />
           ),
         }}
       />
