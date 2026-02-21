@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@/constants/theme';
-import { Input, Button } from '@/components';
+import { Input, Button } from '@/components/ui';
 import { sendVerificationCode, verifyCodeAndActivateUser } from '@/services/emailVerificationService';
 
 export default function VerifyEmailScreen() {
