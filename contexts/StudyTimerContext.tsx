@@ -26,6 +26,11 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
+  // Debug: Log user state changes
+  useEffect(() => {
+    console.log('📱 StudyTimerContext user state:', user ? `User ID: ${user.id}` : 'No user');
+  }, [user]);
+
   // Update elapsed time every second
   useEffect(() => {
     if (!activeSubject || !startTime) return;
@@ -40,21 +45,32 @@ export function StudyTimerProvider({ children }: { children: ReactNode }) {
   }, [activeSubject, startTime]);
 
   async function startTimer(subjectId: string) {
-    if (!user) return;
+    console.log('🚀 startTimer called:', { subjectId, hasUser: !!user, userId: user?.id });
+    
+    if (!user) {
+      console.error('❌ Cannot start timer: No user logged in');
+      alert('Please log in to start the timer');
+      return;
+    }
 
     // Stop current timer if any
     if (activeSubject && activeSessionId) {
+      console.log('⏸️ Stopping current timer before starting new one');
       await stopTimer();
     }
 
     const now = new Date();
+    console.log('📞 Calling startStudySession with:', { userId: user.id, subjectId });
     const { sessionId, error } = await startStudySession(user.id, subjectId);
+    console.log('📞 startStudySession result:', { sessionId, error });
 
     if (error || !sessionId) {
+      console.error('❌ Failed to start timer:', error);
       alert(error || 'Failed to start timer');
       return;
     }
 
+    console.log('✅ Timer started successfully:', { sessionId, subjectId });
     setActiveSubject(subjectId);
     setActiveSessionId(sessionId);
     setStartTime(now);
