@@ -16,11 +16,12 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
   try {
     console.log('🔍 Step 1: Fetching subject IDs for user:', userId);
 
-    // Step 1: Get user's subject IDs
+    // Step 1: Get user's active subject IDs only
     const { data: userSubjectsData, error: userSubjectsError } = await supabase
       .from('vk_user_subjects')
       .select('subject_id')
       .eq('user_id', userId)
+      .eq('is_active', true)
       .order('created_at', { ascending: true });
 
     if (userSubjectsError) {
@@ -78,7 +79,7 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
 }
 
 /**
- * Get user subject IDs only (lightweight query)
+ * Get user subject IDs only (lightweight query) - active subjects only
  */
 export async function getUserSubjectIds(userId: string): Promise<string[]> {
   try {
@@ -86,6 +87,7 @@ export async function getUserSubjectIds(userId: string): Promise<string[]> {
       .from('vk_user_subjects')
       .select('subject_id')
       .eq('user_id', userId)
+      .eq('is_active', true)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -101,36 +103,80 @@ export async function getUserSubjectIds(userId: string): Promise<string[]> {
 }
 
 /**
- * Update user's subjects (replaces all existing subjects)
+ * Update user's subjects with soft delete support
+ * - Deselected subjects are marked as inactive (soft delete)
+ * - Previously deleted subjects can be restored if re-selected
+ * - New subjects are inserted
  */
 export async function updateUserSubjects(
   userId: string,
   subjectIds: string[]
 ): Promise<{ error: string | null }> {
   try {
-    // Start transaction: delete all existing subjects
-    const { error: deleteError } = await supabase
+    // Step 1: Get all existing subjects (both active and deleted)
+    const { data: existingSubjects, error: fetchError } = await supabase
       .from('vk_user_subjects')
-      .delete()
+      .select('subject_id, is_active')
       .eq('user_id', userId);
 
-    if (deleteError) {
-      return { error: deleteError.message };
+    if (fetchError) {
+      return { error: fetchError.message };
     }
 
-    // Insert new subjects
-    if (subjectIds.length > 0) {
-      const records = subjectIds.map(subjectId => ({
-        user_id: userId,
-        subject_id: subjectId,
-      }));
+    const existingMap = new Map(existingSubjects?.map(s => [s.subject_id, s.is_active]) || []);
 
-      const { error: insertError } = await supabase
-        .from('vk_user_subjects')
-        .insert(records);
+    // Step 2: Process each subject in the new list
+    for (const subjectId of subjectIds) {
+      const existingStatus = existingMap.get(subjectId);
+      
+      if (existingStatus === undefined) {
+        // New subject - insert it
+        const { error: insertError } = await supabase
+          .from('vk_user_subjects')
+          .insert({
+            user_id: userId,
+            subject_id: subjectId,
+            is_active: true,
+          });
+        
+        if (insertError) {
+          console.error(`Failed to insert subject ${subjectId}:`, insertError);
+        }
+      } else if (existingStatus === false) {
+        // Previously deleted subject - restore it
+        const { error: restoreError } = await supabase
+          .from('vk_user_subjects')
+          .update({
+            is_active: true,
+            deleted_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq('subject_id', subjectId);
+        
+        if (restoreError) {
+          console.error(`Failed to restore subject ${subjectId}:`, restoreError);
+        }
+      }
+      // If existingStatus === true, subject is already active - do nothing
+    }
 
-      if (insertError) {
-        return { error: insertError.message };
+    // Step 3: Soft delete subjects that are currently active but not in the new list
+    for (const [subjectId, isActive] of existingMap.entries()) {
+      if (isActive && !subjectIds.includes(subjectId)) {
+        const { error: deleteError } = await supabase
+          .from('vk_user_subjects')
+          .update({
+            is_active: false,
+            deleted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq('subject_id', subjectId);
+        
+        if (deleteError) {
+          console.error(`Failed to soft delete subject ${subjectId}:`, deleteError);
+        }
       }
     }
 
@@ -169,7 +215,7 @@ export async function addUserSubject(
 }
 
 /**
- * Remove a single subject for a user
+ * Remove a single subject for a user (soft delete)
  */
 export async function removeUserSubject(
   userId: string,
@@ -178,7 +224,11 @@ export async function removeUserSubject(
   try {
     const { error } = await supabase
       .from('vk_user_subjects')
-      .delete()
+      .update({
+        is_active: false,
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('user_id', userId)
       .eq('subject_id', subjectId);
 
