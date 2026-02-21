@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,14 +17,15 @@ export default function SettingsScreen() {
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   
-  const [selectedState, setSelectedState] = useState<string>(user?.state_id || '');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
   const [yearLevel, setYearLevel] = useState<11 | 12>(user?.yearLevel || 12);
   const [hasChanges, setHasChanges] = useState(false);
-  const [allStates, setAllStates] = useState<AustralianState[]>([]);
+  const [userState, setUserState] = useState<AustralianState | null>(null);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
     loadData();
@@ -33,12 +34,17 @@ export default function SettingsScreen() {
   async function loadData() {
     if (!user) return;
     setIsLoading(true);
-    const [states, userSubjectIds] = await Promise.all([
+    
+    const [allStates, userSubjectIds] = await Promise.all([
       getAllStates(),
       getUserSubjectIds(user.id)
     ]);
-    setAllStates(states);
+    
     setSelectedSubjects(userSubjectIds);
+    
+    // Get user's current state
+    const currentState = allStates.find(s => s.id === user.state_id);
+    setUserState(currentState || null);
     
     // Load subjects for user's state
     if (user.state_id) {
@@ -48,19 +54,7 @@ export default function SettingsScreen() {
     setIsLoading(false);
   }
 
-  async function handleStateChange(stateId: string) {
-    setSelectedState(stateId);
-    setHasChanges(true);
-    
-    // Clear selected subjects when state changes
-    setSelectedSubjects([]);
-    
-    // Load subjects for new state
-    setIsLoading(true);
-    const subjects = await getSubjectsByState(stateId);
-    setAllSubjects(subjects);
-    setIsLoading(false);
-  }
+
 
   function toggleSubject(subjectId: string) {
     setSelectedSubjects(prev =>
@@ -74,12 +68,11 @@ export default function SettingsScreen() {
   async function handleSave() {
     if (!user) return;
     
-    // Update user subjects in database
+    // Update user subjects in database (soft delete implemented in service)
     await updateUserSubjects(user.id, selectedSubjects);
     
     // Update user profile
     await updateProfile({
-      state_id: selectedState,
       targetCareer,
       yearLevel,
     });
@@ -93,11 +86,27 @@ export default function SettingsScreen() {
     router.replace('/auth/login');
   }
 
-  const subjectsByCategory = allSubjects.reduce((acc, subject) => {
+  // Filter subjects based on search and category
+  const filteredSubjects = allSubjects.filter(subject => {
+    const matchesSearch = searchQuery === '' || 
+      subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      subject.code.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'All' || subject.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ['All', ...new Set(allSubjects.map(s => s.category))].sort();
+
+  const subjectsByCategory = filteredSubjects.reduce((acc, subject) => {
     if (!acc[subject.category]) acc[subject.category] = [];
     acc[subject.category].push(subject);
     return acc;
   }, {} as Record<string, VCESubject[]>);
+
+  // Get selected subject details for display
+  const selectedSubjectDetails = allSubjects.filter(s => selectedSubjects.includes(s.id));
 
   if (!user) return null;
 
@@ -117,45 +126,21 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* State Section */}
+        {/* State Section - Read Only Display */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>State/Territory</Text>
-          <Text style={styles.sectionDesc}>Your Australian state or territory</Text>
-          
-          <View style={styles.stateGrid}>
-            {allStates.map(state => (
-              <Pressable
-                key={state.id}
-                style={[
-                  styles.stateCard,
-                  selectedState === state.id && styles.stateCardSelected,
-                ]}
-                onPress={() => handleStateChange(state.id)}
-              >
-                {selectedState === state.id && (
-                  <MaterialIcons
-                    name="check-circle"
-                    size={20}
-                    color={colors.success}
-                    style={styles.stateCheckIcon}
-                  />
-                )}
-                <Text style={[
-                  styles.stateAbbr,
-                  selectedState === state.id && styles.stateAbbrSelected,
-                ]}>
-                  {state.abbreviation}
-                </Text>
-                <Text style={[
-                  styles.stateName,
-                  selectedState === state.id && styles.stateNameSelected,
-                ]}>
-                  {state.name}
-                </Text>
-                <Text style={styles.stateSystem}>{state.educationSystem}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text style={styles.sectionTitle}>My State</Text>
+          {userState && (
+            <View style={styles.currentStateCard}>
+              <View style={styles.stateDisplayContent}>
+                <Text style={styles.stateDisplayAbbr}>{userState.abbreviation}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.stateDisplayName}>{userState.name}</Text>
+                  <Text style={styles.stateDisplaySystem}>{userState.educationSystem}</Text>
+                </View>
+              </View>
+              <MaterialIcons name="location-on" size={24} color={colors.primary} />
+            </View>
+          )}
         </View>
 
         {/* Profile Section */}
@@ -198,9 +183,78 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My Subjects</Text>
           <Text style={styles.sectionDesc}>
-            {selectedState ? `Select all ${allStates.find(s => s.id === selectedState)?.educationSystem || ''} subjects you're studying` : 'Select your state first'}
+            {userState ? `Manage your ${userState.educationSystem} subjects` : 'Loading subjects...'}
           </Text>
+
+          {/* Selected Subjects Display */}
+          {selectedSubjects.length > 0 && (
+            <View style={styles.selectedSection}>
+              <Text style={styles.selectedSectionTitle}>
+                Selected Subjects ({selectedSubjects.length})
+              </Text>
+              <View style={styles.selectedCardsContainer}>
+                {selectedSubjectDetails.map(subject => (
+                  <View key={subject.id} style={styles.selectedCard}>
+                    <Pressable
+                      style={styles.removeButton}
+                      onPress={() => toggleSubject(subject.id)}
+                    >
+                      <MaterialIcons name="close" size={14} color={colors.error} />
+                    </Pressable>
+                    <Text style={styles.selectedCardCode}>{subject.code}</Text>
+                    <Text style={styles.selectedCardName} numberOfLines={2}>
+                      {subject.name}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <MaterialIcons name="search" size={20} color={colors.textTertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search subjects..."
+              placeholderTextColor={colors.textTertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <MaterialIcons name="close" size={20} color={colors.textTertiary} />
+              </Pressable>
+            )}
+          </View>
+
+          {/* Category Filter */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryScroll}
+            contentContainerStyle={styles.categoryScrollContent}
+          >
+            {categories.map(category => (
+              <Pressable
+                key={category}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === category && styles.categoryChipSelected,
+                ]}
+                onPress={() => setSelectedCategory(category)}
+              >
+                <Text style={[
+                  styles.categoryChipText,
+                  selectedCategory === category && styles.categoryChipTextSelected,
+                ]}>
+                  {category}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
           
+          {/* Subject Grid */}
           {Object.entries(subjectsByCategory).map(([category, subjects]) => (
             <View key={category} style={styles.categorySection}>
               <Text style={styles.categoryTitle}>{category}</Text>
@@ -217,7 +271,7 @@ export default function SettingsScreen() {
                     {selectedSubjects.includes(subject.id) && (
                       <MaterialIcons
                         name="check-circle"
-                        size={16}
+                        size={20}
                         color={colors.success}
                         style={styles.checkIcon}
                       />
@@ -225,10 +279,15 @@ export default function SettingsScreen() {
                     <Text style={[
                       styles.subjectName,
                       selectedSubjects.includes(subject.id) && styles.subjectNameSelected,
-                    ]} numberOfLines={1}>
+                    ]} numberOfLines={2}>
                       {subject.name}
                     </Text>
                     <Text style={styles.subjectCode}>{subject.code}</Text>
+                    {subject.scaledMean && (
+                      <Text style={styles.subjectStats}>
+                        Mean: {subject.scaledMean.toFixed(1)}
+                      </Text>
+                    )}
                   </Pressable>
                 ))}
               </View>
@@ -535,21 +594,27 @@ const styles = StyleSheet.create({
   },
   checkIcon: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: spacing.xs,
+    right: spacing.xs,
   },
   subjectName: {
-    fontSize: typography.caption,
+    fontSize: typography.bodySmall,
     color: colors.textPrimary,
     fontWeight: typography.medium,
+    marginBottom: spacing.xs,
+    paddingRight: spacing.lg,
   },
   subjectNameSelected: {
     color: colors.textPrimary,
   },
   subjectCode: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    marginBottom: spacing.xxs,
+  },
+  subjectStats: {
     fontSize: 10,
     color: colors.textTertiary,
-    marginTop: 2,
   },
   careerCard: {
     backgroundColor: colors.surfaceElevated,
@@ -595,54 +660,129 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.medium,
   },
-  stateGrid: {
+  currentStateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  stateDisplayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  stateDisplayAbbr: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+    color: colors.primary,
+    minWidth: 50,
+  },
+  stateDisplayName: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  stateDisplaySystem: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  selectedSection: {
+    marginBottom: spacing.lg,
+  },
+  selectedSectionTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  selectedCardsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  stateCard: {
-    backgroundColor: colors.surfaceElevated,
+  selectedCard: {
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
-    minWidth: '30%',
-    maxWidth: '31%',
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
+    paddingRight: spacing.md,
     position: 'relative',
+    minWidth: 100,
+    maxWidth: '31%',
   },
-  stateCardSelected: {
-    borderColor: colors.success,
-    backgroundColor: colors.surface,
-  },
-  stateCheckIcon: {
+  removeButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: spacing.xs,
+    right: spacing.xs,
+    backgroundColor: colors.textPrimary,
+    borderRadius: borderRadius.full,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
-  stateAbbr: {
-    fontSize: typography.h3,
-    fontWeight: typography.bold,
-    color: colors.primary,
-    marginBottom: 2,
-  },
-  stateAbbrSelected: {
-    color: colors.success,
-  },
-  stateName: {
+  selectedCardCode: {
     fontSize: typography.caption,
+    fontWeight: typography.bold,
     color: colors.textPrimary,
+    marginBottom: spacing.xxs,
+    marginTop: spacing.xs,
+  },
+  selectedCardName: {
+    fontSize: 11,
+    color: colors.textPrimary,
+    lineHeight: 14,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.body,
+    color: colors.textPrimary,
+    paddingVertical: spacing.xs,
+  },
+  categoryScroll: {
+    marginBottom: spacing.md,
+  },
+  categoryScrollContent: {
+    paddingRight: spacing.md,
+    gap: spacing.sm,
+  },
+  categoryChip: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  categoryChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryChipText: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
     fontWeight: typography.medium,
-    textAlign: 'center',
-    marginBottom: 2,
   },
-  stateNameSelected: {
+  categoryChipTextSelected: {
     color: colors.textPrimary,
-  },
-  stateSystem: {
-    fontSize: 10,
-    color: colors.textTertiary,
-    textAlign: 'center',
   },
   notificationCard: {
     backgroundColor: colors.surfaceElevated,
