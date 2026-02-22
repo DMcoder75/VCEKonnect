@@ -17,42 +17,34 @@ export default function SettingsScreen() {
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   
-  const { userSubjects: cachedUserSubjects, allStateSubjects, allStates, refreshSubjects } = useAuth();
+  const { userSubjects, allStateSubjects, allStates, refreshSubjects } = useAuth();
   
+  // Use cached subjects DIRECTLY - no local state needed!
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
   const [yearLevel, setYearLevel] = useState<11 | 12>(user?.yearLevel || 12);
   const [hasChanges, setHasChanges] = useState(false);
-  const [userState, setUserState] = useState<AustralianState | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
-  // Load data only once when user changes - cached subjects auto-update via props
+  // Initialize selected subjects from cached data
   useEffect(() => {
-    if (user) {
-      loadData();
+    if (userSubjects.length > 0) {
+      const userSubjectIds = userSubjects.map(s => s.id);
+      setSelectedSubjects(userSubjectIds);
     }
-  }, [user?.id]);
+  }, [userSubjects.length]);
 
-  async function loadData() {
-    if (!user) return;
-    
-    // Default to 'vic' if state_id is not set (for backward compatibility)
-    const userStateId = user.state_id || 'vic';
-    
-    // If user doesn't have state_id, update their profile
-    if (!user.state_id) {
-      await updateProfile({ state_id: 'vic' } as any);
+  // Fix state_id if missing (backward compatibility)
+  useEffect(() => {
+    if (user && !user.state_id) {
+      updateProfile({ state_id: 'vic' } as any);
     }
-    
-    // Use cached subjects from AuthContext - instant!
-    const userSubjectIds = cachedUserSubjects.map(s => s.id);
-    setSelectedSubjects(userSubjectIds);
-    
-    // Use cached states from AuthContext - instant!
-    const currentState = allStates.find(s => s.id === userStateId);
-    setUserState(currentState || null);
-  }
+  }, [user?.state_id]);
+
+  // Get current state from cached states
+  const userStateId = user?.state_id || 'vic';
+  const userState = allStates.find(s => s.id === userStateId) || null;
 
 
 
@@ -89,7 +81,7 @@ export default function SettingsScreen() {
     router.replace('/auth/login');
   }
 
-  // Filter subjects based on search and category (use cached subjects)
+  // Filter subjects - uses cached data directly, no delay!
   const filteredSubjects = allStateSubjects.filter(subject => {
     const matchesSearch = searchQuery === '' || 
       subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,7 +100,7 @@ export default function SettingsScreen() {
     return acc;
   }, {} as Record<string, VCESubject[]>);
 
-  // Get selected subject details for display (use cached subjects)
+  // Get selected subject details - instant from cache
   const selectedSubjectDetails = allStateSubjects.filter(s => selectedSubjects.includes(s.id));
 
   if (!user) return null;
