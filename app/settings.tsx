@@ -27,12 +27,12 @@ export default function SettingsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
-  // Use cached data from AuthContext - instant load!
+  // Load data only once when user changes - cached subjects auto-update via props
   useEffect(() => {
     if (user) {
       loadData();
     }
-  }, [user, cachedUserSubjects, allStateSubjects]);
+  }, [user?.id]);
 
   async function loadData() {
     if (!user) return;
