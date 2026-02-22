@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuth';
 
 const DRAWER_WIDTH = 280;
 
@@ -16,7 +17,20 @@ interface QuickAccessDrawerProps {
 export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawerProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+
+  // Helper function to capitalize first letter
+  function capitalizeFirstLetter(name: string): string {
+    if (!name) return '';
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  }
+
+  // Get state display name
+  function getStateDisplayName(stateId: string | undefined): string {
+    if (!stateId) return 'VIC';
+    return stateId.toUpperCase();
+  }
 
   React.useEffect(() => {
     Animated.timing(translateX, {
@@ -114,6 +128,19 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
           </Pressable>
         </View>
 
+        {/* User Profile Section */}
+        {user && (
+          <View style={styles.profileSection}>
+            <View style={styles.profileAvatar}>
+              <MaterialIcons name="person" size={32} color={colors.primary} />
+            </View>
+            <Text style={styles.profileName}>{capitalizeFirstLetter(user.name)}</Text>
+            <Text style={styles.profileMeta}>
+              Year {user.yearLevel} · {getStateDisplayName(user.stateId)}
+            </Text>
+          </View>
+        )}
+
         {/* Menu Items */}
         <View style={styles.menuList}>
           {/* AI Features Section */}
@@ -204,6 +231,34 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     backgroundColor: colors.surface + '80',
     borderRadius: borderRadius.full,
+  },
+  profileSection: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  profileName: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  profileMeta: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    fontWeight: typography.medium,
   },
   menuList: {
     flex: 1,
