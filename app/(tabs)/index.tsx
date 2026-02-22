@@ -30,7 +30,7 @@ function capitalizeFirstLetter(name: string): string {
 export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, userSubjects: cachedUserSubjects } = useAuth();
   const { showAlert } = useAlert();
   const { getPrediction, subjectScores, reloadScores } = useATAR();
   const { activeSubject, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
@@ -41,8 +41,9 @@ export default function DashboardScreen() {
   
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
-  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  // Use cached subjects from AuthContext instead of loading separately
+  const userSubjects = cachedUserSubjects;
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWeeklyResetPrompt, setShowWeeklyResetPrompt] = useState(false);
   const [resetInfo, setResetInfo] = useState<{ currentWeekStart: Date; hasPreviousGoals: boolean } | null>(null);
@@ -51,8 +52,7 @@ export default function DashboardScreen() {
 
   const prediction = getPrediction();
 
-  // Memoize load functions to ensure stable references
-  const loadSubjectsMemoized = useCallback(loadSubjects, [user]);
+  // Memoize load function to ensure stable references
   const loadAllTimeMemoized = useCallback(loadAllTime, [user]);
 
   // Check for weekly reset on mount
@@ -122,22 +122,13 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        loadSubjectsMemoized();
         loadAllTimeMemoized();
         reloadScores(); // Reload ATAR scores when returning to dashboard
         loadActiveGoals(); // Reload study goals when returning to dashboard
         loadAchievements(); // Reload achievements and streaks
       }
-    }, [user, loadSubjectsMemoized, loadAllTimeMemoized, reloadScores, loadActiveGoals, loadAchievements])
+    }, [user, loadAllTimeMemoized, reloadScores, loadActiveGoals, loadAchievements])
   );
-
-  async function loadSubjects() {
-    if (!user) return;
-    setIsLoadingSubjects(true);
-    const subjects = await getUserSubjects(user.id);
-    setUserSubjects(subjects);
-    setIsLoadingSubjects(false);
-  }
 
   async function loadAllTime() {
     if (!user) return;

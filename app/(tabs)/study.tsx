@@ -14,27 +14,20 @@ import { getUserSubjects } from '@/services/userSubjectsService';
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, userSubjects: cachedUserSubjects } = useAuth();
   const { activeSubject, startTimer, stopTimer, startTime, isRunning } = useStudyTimer();
   const elapsedSeconds = useElapsedTime();
   
   const [allTime, setAllTime] = useState<{ [key: string]: number }>({});
-  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  // Use cached subjects from AuthContext
+  const userSubjects = cachedUserSubjects;
   const [isLoadingStudyTime, setIsLoadingStudyTime] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadSubjects();
       loadAllTime();
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (user && !isLoadingSubjects) {
-      loadAllTime();
-    }
-  }, [user, activeSubject, isLoadingSubjects]);
+  }, [user, activeSubject]);
 
   // Reload data when page comes into focus (navigating back from other tabs)
   useFocusEffect(
@@ -44,14 +37,6 @@ export default function StudyScreen() {
       }
     }, [user])
   );
-
-  async function loadSubjects() {
-    if (!user) return;
-    setIsLoadingSubjects(true);
-    const subjects = await getUserSubjects(user.id);
-    setUserSubjects(subjects);
-    setIsLoadingSubjects(false);
-  }
 
   async function loadAllTime() {
     if (!user) return;
@@ -68,7 +53,7 @@ export default function StudyScreen() {
   }
 
   const totalMinutes = Object.values(allTime).reduce((sum, time) => sum + time, 0);
-  const isLoading = isLoadingSubjects || isLoadingStudyTime;
+  const isLoading = isLoadingStudyTime;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

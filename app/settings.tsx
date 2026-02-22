@@ -17,23 +17,25 @@ export default function SettingsScreen() {
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   
+  const { userSubjects: cachedUserSubjects, allStateSubjects, refreshSubjects } = useAuth();
+  
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
   const [yearLevel, setYearLevel] = useState<11 | 12>(user?.yearLevel || 12);
   const [hasChanges, setHasChanges] = useState(false);
   const [userState, setUserState] = useState<AustralianState | null>(null);
-  const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
+  // Use cached data from AuthContext - instant load!
   useEffect(() => {
-    loadData();
-  }, [user]);
+    if (user) {
+      loadData();
+    }
+  }, [user, cachedUserSubjects, allStateSubjects]);
 
   async function loadData() {
     if (!user) return;
-    setIsLoading(true);
     
     // Default to 'vic' if state_id is not set (for backward compatibility)
     const userStateId = user.state_id || 'vic';
@@ -43,20 +45,16 @@ export default function SettingsScreen() {
       await updateProfile({ state_id: 'vic' } as any);
     }
     
-    const [allStates, userSubjectIds, subjects] = await Promise.all([
-      getAllStates(),
-      getUserSubjectIds(user.id),
-      getSubjectsByState(userStateId)
-    ]);
-    
+    // Use cached subjects from AuthContext - instant!
+    const userSubjectIds = cachedUserSubjects.map(s => s.id);
     setSelectedSubjects(userSubjectIds);
-    setAllSubjects(subjects);
     
     // Get user's current state
+    const [allStates] = await Promise.all([
+      getAllStates()
+    ]);
     const currentState = allStates.find(s => s.id === userStateId);
     setUserState(currentState || null);
-    
-    setIsLoading(false);
   }
 
 
@@ -82,6 +80,9 @@ export default function SettingsScreen() {
       yearLevel,
     });
     
+    // Refresh cached subjects in AuthContext
+    await refreshSubjects();
+    
     setHasChanges(false);
     router.back();
   }
@@ -91,8 +92,8 @@ export default function SettingsScreen() {
     router.replace('/auth/login');
   }
 
-  // Filter subjects based on search and category
-  const filteredSubjects = allSubjects.filter(subject => {
+  // Filter subjects based on search and category (use cached subjects)
+  const filteredSubjects = allStateSubjects.filter(subject => {
     const matchesSearch = searchQuery === '' || 
       subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       subject.code.toLowerCase().includes(searchQuery.toLowerCase());
@@ -102,7 +103,7 @@ export default function SettingsScreen() {
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['All', ...new Set(allSubjects.map(s => s.category))].sort();
+  const categories = ['All', ...new Set(allStateSubjects.map(s => s.category))].sort();
 
   const subjectsByCategory = filteredSubjects.reduce((acc, subject) => {
     if (!acc[subject.category]) acc[subject.category] = [];
@@ -110,8 +111,8 @@ export default function SettingsScreen() {
     return acc;
   }, {} as Record<string, VCESubject[]>);
 
-  // Get selected subject details for display
-  const selectedSubjectDetails = allSubjects.filter(s => selectedSubjects.includes(s.id));
+  // Get selected subject details for display (use cached subjects)
+  const selectedSubjectDetails = allStateSubjects.filter(s => selectedSubjects.includes(s.id));
 
   if (!user) return null;
 

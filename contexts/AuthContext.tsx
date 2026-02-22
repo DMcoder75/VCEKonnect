@@ -7,15 +7,22 @@ import {
   updateUserProfile,
   logoutUser,
 } from '@/services/authService';
+import { getUserSubjects } from '@/services/userSubjectsService';
+import { getSubjectsByState, VCESubject } from '@/services/vceSubjectsService';
 
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
+  // Cached data
+  userSubjects: VCESubject[];
+  allStateSubjects: VCESubject[];
+  // Methods
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean }>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
+  refreshSubjects: () => Promise<void>; // New: refresh subjects cache
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,10 +30,23 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
+  const [allStateSubjects, setAllStateSubjects] = useState<VCESubject[]>([]);
 
   useEffect(() => {
     loadUser();
   }, []);
+
+  // Load subjects when user changes
+  useEffect(() => {
+    if (user) {
+      refreshSubjects();
+    } else {
+      // Clear cache on logout
+      setUserSubjects([]);
+      setAllStateSubjects([]);
+    }
+  }, [user?.id]);
 
   async function loadUser() {
     console.log('🔐 AuthContext: Loading user...');
@@ -35,6 +55,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('🔐 AuthContext: User loaded:', currentUser ? `ID: ${currentUser.id}` : 'No user');
     setUser(currentUser);
     setIsLoading(false);
+  }
+
+  async function refreshSubjects() {
+    if (!user) return;
+    
+    console.log('📚 AuthContext: Refreshing subjects cache...');
+    const userStateId = user.state_id || 'vic';
+    
+    // Load both user's selected subjects AND all subjects for their state (in parallel)
+    const [selectedSubjects, stateSubjects] = await Promise.all([
+      getUserSubjects(user.id),
+      getSubjectsByState(userStateId)
+    ]);
+    
+    console.log('📚 AuthContext: Cached', selectedSubjects.length, 'user subjects,', stateSubjects.length, 'state subjects');
+    setUserSubjects(selectedSubjects);
+    setAllStateSubjects(stateSubjects);
   }
 
   async function login(email: string, password: string) {
@@ -66,6 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Reload user to get fresh data from database
     await loadUser();
+    // Refresh subjects cache if state changed
+    if (updates.state_id) {
+      await refreshSubjects();
+    }
     return { success: true };
   }
 
@@ -80,11 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
+        userSubjects,
+        allStateSubjects,
         login,
         register,
         updateProfile,
         logout,
         loadUser,
+        refreshSubjects,
       }}
     >
       {children}
