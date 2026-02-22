@@ -8,7 +8,7 @@ import {
   logoutUser,
 } from '@/services/authService';
 import { getUserSubjects } from '@/services/userSubjectsService';
-import { getSubjectsByState, VCESubject } from '@/services/vceSubjectsService';
+import { getSubjectsByState, VCESubject, getAllStates, AustralianState } from '@/services/vceSubjectsService';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -16,6 +16,7 @@ interface AuthContextType {
   // Cached data
   userSubjects: VCESubject[];
   allStateSubjects: VCESubject[];
+  allStates: AustralianState[];
   // Methods
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
@@ -32,9 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [allStateSubjects, setAllStateSubjects] = useState<VCESubject[]>([]);
+  const [allStates, setAllStates] = useState<AustralianState[]>([]);
 
   useEffect(() => {
     loadUser();
+  }, []);
+
+  // Load subjects when user changes
+  // Load states once on mount (static data)
+  useEffect(() => {
+    loadStates();
   }, []);
 
   // Load subjects when user changes
@@ -47,6 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAllStateSubjects([]);
     }
   }, [user?.id]);
+
+  async function loadStates() {
+    console.log('🌏 AuthContext: Loading states...');
+    const states = await getAllStates();
+    console.log('🌏 AuthContext: Loaded', states.length, 'states');
+    setAllStates(states);
+  }
 
   async function loadUser() {
     console.log('🔐 AuthContext: Loading user...');
@@ -123,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         userSubjects,
         allStateSubjects,
+        allStates,
         login,
         register,
         updateProfile,

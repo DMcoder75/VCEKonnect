@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { CAREER_PATHS } from '@/constants/vceData';
-import { getAllStates, getSubjectsByState, VCESubject, AustralianState } from '@/services/vceSubjectsService';
+import { VCESubject, AustralianState } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -17,7 +17,7 @@ export default function SettingsScreen() {
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   
-  const { userSubjects: cachedUserSubjects, allStateSubjects, refreshSubjects } = useAuth();
+  const { userSubjects: cachedUserSubjects, allStateSubjects, allStates, refreshSubjects } = useAuth();
   
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
@@ -49,10 +49,7 @@ export default function SettingsScreen() {
     const userSubjectIds = cachedUserSubjects.map(s => s.id);
     setSelectedSubjects(userSubjectIds);
     
-    // Get user's current state
-    const [allStates] = await Promise.all([
-      getAllStates()
-    ]);
+    // Use cached states from AuthContext - instant!
     const currentState = allStates.find(s => s.id === userStateId);
     setUserState(currentState || null);
   }
