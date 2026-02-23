@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useFeatureAccess } from '@/hooks/useFeatureFlags';
-import { LoadingSpinner } from '@/components/ui';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface FeatureGateProps {
   featureKey: string;
