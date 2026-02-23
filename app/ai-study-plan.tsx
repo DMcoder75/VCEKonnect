@@ -9,7 +9,7 @@ import { useAI } from '@/hooks/useAI';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
-import { FeatureGate } from '@/components/feature';
+
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -364,11 +364,7 @@ function AIStudyPlanContent() {
 }
 
 export default function AIStudyPlanScreen() {
-  return (
-    <FeatureGate featureKey="ai_study_plan" showUpgradePrompt={true}>
-      <AIStudyPlanContent />
-    </FeatureGate>
-  );
+  return <AIStudyPlanContent />;
 }
 
 const styles = StyleSheet.create({
