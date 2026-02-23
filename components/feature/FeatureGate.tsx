@@ -17,7 +17,7 @@ interface FeatureGateProps {
  * Gate content behind a feature flag
  * Shows upgrade prompt if user doesn't have access
  */
-export default function FeatureGate({
+export function FeatureGate({
   featureKey,
   children,
   fallback,
