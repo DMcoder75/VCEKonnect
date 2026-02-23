@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { checkVersionStatus, VersionStatus } from '@/services/versionService';
+import { checkVersionStatus, VersionStatus } from '@/services/versionService.native';
 
 export function useVersionCheck() {
   const [versionStatus, setVersionStatus] = useState<VersionStatus>({
