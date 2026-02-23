@@ -8,3 +8,4 @@ export { useStudyGoals } from './useStudyGoals';
 export { useAchievements } from './useAchievements';
 export { useNotifications } from './useNotifications';
 export { useAI } from './useAI';
+export { useFeatureAccess } from './useFeatureFlags';

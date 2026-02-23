@@ -10,3 +10,4 @@ export { LatestAchievementBanner } from './LatestAchievementBanner';
 export { AchievementLaunchToast } from './AchievementLaunchToast';
 export { AchievementLaunchManager } from './AchievementLaunchManager';
 export { RunningTimerIndicator } from './RunningTimerIndicator';
+export { default as FeatureGate } from './FeatureGate';

@@ -9,6 +9,7 @@ import { useAI } from '@/hooks/useAI';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
+import { FeatureGate } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -31,7 +32,7 @@ function formatResponseText(text: string) {
     .trim();
 }
 
-export default function AIStudyPlanScreen() {
+function AIStudyPlanContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -210,6 +211,8 @@ export default function AIStudyPlanScreen() {
     // Placeholder will hide automatically when response arrives
   }
 
+  if (!user) return null;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
@@ -357,6 +360,14 @@ export default function AIStudyPlanScreen() {
         )}
       </ScrollView>
     </View>
+  );
+}
+
+export default function AIStudyPlanScreen() {
+  return (
+    <FeatureGate featureKey="ai_study_plan" showUpgradePrompt={true}>
+      <AIStudyPlanContent />
+    </FeatureGate>
   );
 }
 
@@ -560,8 +571,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: spacing.sm,
   },
-
-
   modelInfo: {
     paddingTop: spacing.sm,
     borderTopWidth: 1,
