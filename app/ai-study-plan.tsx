@@ -9,7 +9,6 @@ import { useAI } from '@/hooks/useAI';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
-
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { VCESubject } from '@/services/vceSubjectsService';
@@ -32,7 +31,7 @@ function formatResponseText(text: string) {
     .trim();
 }
 
-function AIStudyPlanContent() {
+export default function AIStudyPlanScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -211,8 +210,6 @@ function AIStudyPlanContent() {
     // Placeholder will hide automatically when response arrives
   }
 
-  if (!user) return null;
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
@@ -361,10 +358,6 @@ function AIStudyPlanContent() {
       </ScrollView>
     </View>
   );
-}
-
-export default function AIStudyPlanScreen() {
-  return <AIStudyPlanContent />;
 }
 
 const styles = StyleSheet.create({
@@ -567,6 +560,8 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: spacing.sm,
   },
+
+
   modelInfo: {
     paddingTop: spacing.sm,
     borderTopWidth: 1,
