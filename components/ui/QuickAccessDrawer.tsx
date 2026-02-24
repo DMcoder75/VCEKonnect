@@ -1,5 +1,6 @@
+
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -148,7 +149,11 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
         )}
 
         {/* Menu Items */}
-        <View style={styles.menuList}>
+        <ScrollView 
+          style={styles.menuList}
+          contentContainerStyle={styles.menuListContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* AI Features Section */}
           <Text style={styles.sectionTitle}>AI Features (Premium)</Text>
           {menuItems.filter(item => item.premium).map((item, index) => (
@@ -204,7 +209,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
             <Text style={[styles.menuLabel, styles.logoutLabel]}>Logout</Text>
             <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
           </Pressable>
-        </View>
+        </ScrollView>
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -257,53 +262,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingTop: 0,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
   profileAvatar: {
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     borderWidth: 2,
     borderColor: colors.primary,
   },
   profileName: {
-    fontSize: typography.h3,
+    fontSize: 16,
     fontWeight: typography.bold,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   profileMeta: {
-    fontSize: typography.bodySmall,
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: typography.medium,
   },
   menuList: {
     flex: 1,
+  },
+  menuListContent: {
     paddingTop: spacing.xs,
+    paddingBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: typography.caption,
+    fontSize: 10,
     fontWeight: typography.semibold,
     color: colors.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
+    paddingVertical: 6,
   },
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginVertical: spacing.xs,
+    marginVertical: 6,
     marginHorizontal: spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
     paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
@@ -311,15 +319,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuLabel: {
     flex: 1,
-    fontSize: typography.body,
+    fontSize: 14,
     fontWeight: typography.medium,
     color: colors.textPrimary,
   },

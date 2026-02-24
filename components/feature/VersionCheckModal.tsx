@@ -48,7 +48,7 @@ export function VersionCheckModal({ versionStatus, onDismiss }: VersionCheckModa
           ]}>
             <MaterialIcons 
               name={updateRequired ? 'warning' : 'info'} 
-              size={48} 
+              size={36} 
               color={updateRequired ? colors.warning : colors.primary} 
             />
           </View>
@@ -141,13 +141,13 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
+    width: 60,
+    height: 60,
     borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   iconContainerRequired: {
     backgroundColor: `${colors.warning}20`,
@@ -156,30 +156,30 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.primary}20`,
   },
   title: {
-    fontSize: typography.h2,
+    fontSize: 18,
     fontWeight: typography.bold,
     color: colors.textPrimary,
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   versionInfo: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
   },
   versionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
   },
   versionLabel: {
-    fontSize: typography.bodySmall,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   versionValue: {
-    fontSize: typography.body,
+    fontSize: 13,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
   },
@@ -187,29 +187,29 @@ const styles = StyleSheet.create({
     color: colors.success,
   },
   message: {
-    fontSize: typography.body,
+    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: spacing.md,
+    lineHeight: 18,
+    marginBottom: spacing.sm,
   },
   releaseNotesContainer: {
-    maxHeight: 150,
+    maxHeight: 120,
     backgroundColor: colors.background,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
   },
   releaseNotesTitle: {
-    fontSize: typography.bodySmall,
+    fontSize: 12,
     fontWeight: typography.semibold,
     color: colors.primary,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   releaseNotes: {
-    fontSize: typography.bodySmall,
+    fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 16,
   },
   actions: {
     gap: spacing.sm,
@@ -230,11 +230,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     backgroundColor: `${colors.warning}15`,
     borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    marginTop: spacing.md,
+    padding: spacing.xs,
+    marginTop: spacing.sm,
   },
   warningText: {
-    fontSize: typography.caption,
+    fontSize: 11,
     color: colors.warning,
     fontWeight: typography.medium,
   },
