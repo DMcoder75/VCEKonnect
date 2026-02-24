@@ -21,7 +21,6 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
-import { getCurrentAppVersion } from '@/services/versionService';
 
 // Helper function to capitalize first letter of name
 function capitalizeFirstLetter(name: string): string {
@@ -252,51 +251,6 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* DEBUG: Version Check Status */}
-        <View style={styles.debugPanel}>
-          <Text style={styles.debugTitle}>🔧 VERSION DEBUG PANEL</Text>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>App Version:</Text>
-            <Text style={styles.debugValue}>{getCurrentAppVersion()}</Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Latest Version:</Text>
-            <Text style={styles.debugValue}>{versionStatus.latestVersion || 'N/A'}</Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Min Required:</Text>
-            <Text style={styles.debugValue}>{versionStatus.minimumVersion || 'N/A'}</Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Update Required:</Text>
-            <Text style={[styles.debugValue, versionStatus.updateRequired ? styles.debugError : styles.debugSuccess]}>
-              {versionStatus.updateRequired ? 'TRUE ❌' : 'FALSE ✅'}
-            </Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Update Available:</Text>
-            <Text style={[styles.debugValue, versionStatus.updateAvailable ? styles.debugWarning : styles.debugSuccess]}>
-              {versionStatus.updateAvailable ? 'TRUE ⚠️' : 'FALSE ✅'}
-            </Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Should Show Modal:</Text>
-            <Text style={[styles.debugValue, shouldShowModal ? styles.debugError : styles.debugSuccess]}>
-              {shouldShowModal ? 'YES ⚠️' : 'NO ✅'}
-            </Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Has Update URL:</Text>
-            <Text style={styles.debugValue}>{versionStatus.updateUrl ? 'YES' : 'NO'}</Text>
-          </View>
-          {versionStatus.releaseNotes && (
-            <View style={styles.debugRow}>
-              <Text style={styles.debugLabel}>Release Notes:</Text>
-              <Text style={styles.debugValueSmall} numberOfLines={2}>{versionStatus.releaseNotes}</Text>
-            </View>
-          )}
-        </View>
-
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -1068,55 +1022,5 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: 0.5,
   },
-  debugPanel: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.warning,
-  },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: typography.bold,
-    color: colors.warning,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  debugRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a3e',
-  },
-  debugLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: typography.medium,
-    flex: 1,
-  },
-  debugValue: {
-    fontSize: 12,
-    color: colors.textPrimary,
-    fontWeight: typography.bold,
-    flex: 1,
-    textAlign: 'right',
-  },
-  debugValueSmall: {
-    fontSize: 10,
-    color: colors.textSecondary,
-    flex: 1,
-    textAlign: 'right',
-  },
-  debugError: {
-    color: colors.error,
-  },
-  debugWarning: {
-    color: colors.warning,
-  },
-  debugSuccess: {
-    color: colors.success,
-  },
+
 });

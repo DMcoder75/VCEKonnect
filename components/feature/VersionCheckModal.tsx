@@ -13,14 +13,6 @@ interface VersionCheckModalProps {
 export function VersionCheckModal({ versionStatus, onDismiss }: VersionCheckModalProps) {
   const { updateRequired, updateAvailable, latestVersion, releaseNotes, updateUrl } = versionStatus;
   
-  // Debug logging
-  console.log('[VersionCheckModal] Props:', {
-    updateRequired,
-    updateAvailable,
-    latestVersion,
-    hasOnDismiss: !!onDismiss,
-  });
-  
   // Don't show modal if no update needed
   if (!updateRequired && !updateAvailable) {
     return null;
@@ -28,13 +20,6 @@ export function VersionCheckModal({ versionStatus, onDismiss }: VersionCheckModa
 
   const currentVersion = getCurrentAppVersion();
   const canDismiss = !updateRequired;
-  
-  console.log('[VersionCheckModal] Display logic:', {
-    currentVersion,
-    canDismiss,
-    willShowCloseButton: canDismiss && !!onDismiss,
-    willShowLaterButton: canDismiss && !!onDismiss,
-  });
 
   const handleUpdate = () => {
     openAppStore(updateUrl);

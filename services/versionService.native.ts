@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase.native';
-import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import * as Linking from 'expo-linking';
 
 export interface VersionStatus {
@@ -13,10 +13,11 @@ export interface VersionStatus {
 }
 
 /**
- * Get current app version from Expo config
+ * Get current app version from Expo Application
  */
 export function getCurrentAppVersion(): string {
-  return Constants.expoConfig?.version || '1.0.0';
+  // Use expo-application for reliable version detection
+  return Application.nativeApplicationVersion || '1.0.0';
 }
 
 /**
@@ -55,15 +56,6 @@ export async function checkVersionStatus(): Promise<VersionStatus> {
 
     // Handle both array and single object responses
     const result = Array.isArray(data) ? (data[0] || {}) : (data || {});
-    
-    console.log('[VersionService] Raw DB response:', JSON.stringify(result));
-    console.log('[VersionService] Comparison:', {
-      currentVersion,
-      minimumVersion: result.minimum_version,
-      latestVersion: result.latest_version,
-      updateRequired: result.update_required,
-      updateAvailable: result.update_available,
-    });
     
     return {
       updateRequired: result.update_required || false,
