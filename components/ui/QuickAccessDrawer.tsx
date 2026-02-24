@@ -191,7 +191,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
           ))}
 
           {/* Divider before logout */}
-          <View style={styles.divider} />
+          <View style={styles.logoutDivider} />
 
           {/* Logout Option */}
           <Pressable
@@ -259,8 +259,8 @@ const styles = StyleSheet.create({
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingTop: 0,
+    paddingBottom: spacing.md,
   },
   profileAvatar: {
     width: 64,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   menuList: {
     flex: 1,
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
   },
   sectionTitle: {
     fontSize: typography.caption,
@@ -350,5 +350,12 @@ const styles = StyleSheet.create({
   },
   logoutLabel: {
     color: colors.error,
+  },
+  logoutDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.lg,
   },
 });
