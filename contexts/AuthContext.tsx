@@ -9,6 +9,7 @@ import {
 } from '@/services/authService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectsByState, VCESubject, getAllStates, AustralianState } from '@/services/vceSubjectsService';
+import { updateUserAppVersion } from '@/services/versionTrackingService';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -69,6 +70,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const currentUser = await getCurrentUser();
     console.log('🔐 AuthContext: User loaded:', currentUser ? `ID: ${currentUser.id}` : 'No user');
     setUser(currentUser);
+    
+    // Track app version on session restore
+    if (currentUser) {
+      updateUserAppVersion(currentUser.id).catch(err => 
+        console.warn('Failed to track version on session restore:', err)
+      );
+    }
+    
     setIsLoading(false);
   }
 

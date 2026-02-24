@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { UserProfile } from '@/types';
 import bcrypt from 'react-native-bcrypt';
 import { getUserSubjects, updateUserSubjects } from './userSubjectsService';
+import { updateUserAppVersion } from './versionTrackingService';
 
 export interface AuthResponse {
   user: UserProfile | null;
@@ -41,6 +42,11 @@ export async function registerUser(
 
     // Store session
     await saveSession(data.id);
+
+    // Track app version
+    updateUserAppVersion(data.id).catch(err => 
+      console.warn('Failed to track version on register:', err)
+    );
 
     // Get user subjects from junction table
     const selectedSubjects = await getUserSubjects(data.id);
@@ -101,6 +107,11 @@ export async function loginUser(
 
     // Save session
     await saveSession(data.id);
+
+    // Track app version
+    updateUserAppVersion(data.id).catch(err => 
+      console.warn('Failed to track version on login:', err)
+    );
 
     // Get user subjects from junction table
     const selectedSubjects = await getUserSubjects(data.id);
