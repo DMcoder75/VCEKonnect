@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Platform } from 'react-native';
 import { checkVersionStatus, VersionStatus } from '@/services/versionService';
 
 export function useVersionCheck() {
@@ -15,22 +14,10 @@ export function useVersionCheck() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Skip version check on iOS to prevent crashes
-    // Android version check works perfectly
-    if (Platform.OS !== 'ios') {
-      checkVersion();
-    } else {
-      setIsChecking(false);
-    }
+    checkVersion();
   }, []);
 
   async function checkVersion() {
-    // Skip on iOS
-    if (Platform.OS === 'ios') {
-      setIsChecking(false);
-      return;
-    }
-    
     setIsChecking(true);
     try {
       const status = await checkVersionStatus();
