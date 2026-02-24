@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase.native';
 import * as Linking from 'expo-linking';
-import appConfig from '../app.json';
+import Constants from 'expo-constants';
 
 export interface VersionStatus {
   updateRequired: boolean; // Must update to continue using app
@@ -13,11 +13,22 @@ export interface VersionStatus {
 }
 
 /**
- * Get current app version directly from app.json
+ * Get current app version from expo-constants (reads app.json at runtime)
+ * Provides fallback to prevent crashes on older iOS versions
  */
 export function getCurrentAppVersion(): string {
-  // Direct import from app.json is most reliable
-  return appConfig.expo.version;
+  try {
+    // Try multiple sources in order of reliability
+    const version = 
+      Constants.expoConfig?.version ||
+      Constants.manifest2?.extra?.expoClient?.version ||
+      '1.0.0'; // Fallback to prevent crashes
+    
+    return version;
+  } catch (error) {
+    console.warn('[VersionService] Error reading version, using fallback:', error);
+    return '1.0.0';
+  }
 }
 
 /**
