@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase.native';
 import * as Linking from 'expo-linking';
-import appConfig from '../app.json';
+import Constants from 'expo-constants';
 
 export interface VersionStatus {
   updateRequired: boolean; // Must update to continue using app
@@ -13,11 +13,24 @@ export interface VersionStatus {
 }
 
 /**
- * Get current app version directly from app.json
+ * Get current app version - platform-specific implementation
+ * iOS: Uses expo-constants (reliable)
+ * Android: Uses direct app.json import (avoids native build version)
  */
 export function getCurrentAppVersion(): string {
-  // Direct import from app.json is most reliable
-  return appConfig.expo.version;
+  if (Platform.OS === 'ios') {
+    // iOS: expo-constants works reliably
+    return Constants.expoConfig?.version || Constants.manifest?.version || '1.0.0';
+  } else {
+    // Android: Direct import avoids native build version mismatch
+    try {
+      const appConfig = require('../app.json');
+      return appConfig.expo.version;
+    } catch {
+      // Fallback to expo-constants if import fails
+      return Constants.expoConfig?.version || '1.0.0';
+    }
+  }
 }
 
 /**
