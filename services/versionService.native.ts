@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase.native';
 import * as Linking from 'expo-linking';
-import Constants from 'expo-constants';
+import appConfig from '../app.json';
 
 export interface VersionStatus {
   updateRequired: boolean; // Must update to continue using app
@@ -13,11 +13,11 @@ export interface VersionStatus {
 }
 
 /**
- * Get current app version using expo-constants (cross-platform safe)
+ * Get current app version directly from app.json
  */
 export function getCurrentAppVersion(): string {
-  // Use expo-constants which is the standard Expo approach for both iOS and Android
-  return Constants.expoConfig?.version || Constants.manifest2?.extra?.expoClient?.version || '1.0.0';
+  // Direct import from app.json is most reliable
+  return appConfig.expo.version;
 }
 
 /**
