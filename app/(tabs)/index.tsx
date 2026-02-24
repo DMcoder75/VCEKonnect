@@ -85,6 +85,7 @@ export default function DashboardScreen() {
           `Update Required: ${status.updateRequired}`,
           `Update Available: ${status.updateAvailable}`,
           `Has URL: ${!!status.updateUrl}`,
+          `RAW: ${(status as any).debugInfo || 'No debug info'}`,
         ].join(' | ');
         
         setVersionDebug(debugInfo);

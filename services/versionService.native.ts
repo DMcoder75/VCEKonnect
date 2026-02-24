@@ -31,7 +31,7 @@ export function getPlatform(): 'ios' | 'android' | 'web' {
 /**
  * Check version status against server requirements
  */
-export async function checkVersionStatus(): Promise<VersionStatus> {
+export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?: string }> {
   try {
     const currentVersion = getCurrentAppVersion();
     const platform = getPlatform();
@@ -41,9 +41,11 @@ export async function checkVersionStatus(): Promise<VersionStatus> {
       user_platform: platform,
     });
 
+    // DEBUG: Log raw response
+    const debugInfo = `RPC Response - Data: ${JSON.stringify(data)} | Error: ${JSON.stringify(error)} | Type: ${typeof data} | IsArray: ${Array.isArray(data)} | Length: ${data?.length}`;
+
     if (error) {
       console.error('[VersionService] Error checking version:', error);
-      // Fail gracefully - don't block app if version check fails
       return {
         updateRequired: false,
         updateAvailable: false,
@@ -51,10 +53,11 @@ export async function checkVersionStatus(): Promise<VersionStatus> {
         minimumVersion: null,
         releaseNotes: null,
         updateUrl: null,
+        debugInfo: `ERROR: ${error.message}`,
       };
     }
 
-    const result = data[0] || {};
+    const result = data?.[0] || {};
     
     return {
       updateRequired: result.update_required || false,
@@ -63,10 +66,10 @@ export async function checkVersionStatus(): Promise<VersionStatus> {
       minimumVersion: result.minimum_version,
       releaseNotes: result.release_notes,
       updateUrl: result.update_url,
+      debugInfo,
     };
   } catch (err) {
     console.error('[VersionService] Unexpected error:', err);
-    // Fail gracefully
     return {
       updateRequired: false,
       updateAvailable: false,
@@ -74,6 +77,7 @@ export async function checkVersionStatus(): Promise<VersionStatus> {
       minimumVersion: null,
       releaseNotes: null,
       updateUrl: null,
+      debugInfo: `EXCEPTION: ${err}`,
     };
   }
 }
