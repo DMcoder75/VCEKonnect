@@ -13,11 +13,12 @@ export interface VersionStatus {
 }
 
 /**
- * Get current app version from expo-constants (reads app.json reliably on iOS + Android)
+ * Get current app version - hardcoded to match app.json
+ * Note: Dynamic imports from app.json and Constants.expoConfig are unreliable on iOS
  */
 export function getCurrentAppVersion(): string {
-  // Constants.expoConfig.version reads from app.json on both iOS and Android
-  return Constants.expoConfig?.version || '1.0.0';
+  // Hardcoded to match app.json version (update when app.json changes)
+  return '1.0.0';
 }
 
 /**
