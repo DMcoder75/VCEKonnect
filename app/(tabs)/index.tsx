@@ -39,6 +39,9 @@ export default function DashboardScreen() {
   const { activeGoals, loadActiveGoals } = useStudyGoals();
   const { streaks, achievements, loadAchievements } = useAchievements();
   
+  // DEBUG: Version check status
+  const [versionDebug, setVersionDebug] = useState<string>('');
+  
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
   // Use cached subjects from AuthContext instead of loading separately
@@ -61,6 +64,37 @@ export default function DashboardScreen() {
       checkWeeklyReset();
     }
   }, [user]);
+
+  // DEBUG: Check version on mount
+  useEffect(() => {
+    async function debugVersionCheck() {
+      try {
+        const { checkVersionStatus, getCurrentAppVersion, getPlatform } = await import('@/services/versionService');
+        const currentVersion = getCurrentAppVersion();
+        const platform = getPlatform();
+        
+        setVersionDebug(`Checking version... App: ${currentVersion}, Platform: ${platform}`);
+        
+        const status = await checkVersionStatus();
+        
+        const debugInfo = [
+          `App Version: ${currentVersion}`,
+          `Platform: ${platform}`,
+          `Latest: ${status.latestVersion || 'N/A'}`,
+          `Min Required: ${status.minimumVersion || 'N/A'}`,
+          `Update Required: ${status.updateRequired}`,
+          `Update Available: ${status.updateAvailable}`,
+          `Has URL: ${!!status.updateUrl}`,
+        ].join(' | ');
+        
+        setVersionDebug(debugInfo);
+      } catch (err) {
+        setVersionDebug(`Version check error: ${err}`);
+      }
+    }
+    
+    debugVersionCheck();
+  }, []);
 
   async function checkWeeklyReset() {
     if (!user) return;
@@ -247,6 +281,14 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* DEBUG: Version Check Status */}
+        {versionDebug && (
+          <View style={styles.debugCard}>
+            <Text style={styles.debugTitle}>🔍 Version Check Debug</Text>
+            <Text style={styles.debugText}>{versionDebug}</Text>
+          </View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -1017,5 +1059,25 @@ const styles = StyleSheet.create({
     fontWeight: typography.bold,
     color: colors.textPrimary,
     letterSpacing: 0.5,
+  },
+  debugCard: {
+    backgroundColor: colors.warning + '20',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  debugTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.warning,
+    marginBottom: spacing.xs,
+  },
+  debugText: {
+    fontSize: 11,
+    fontFamily: 'monospace',
+    color: colors.textSecondary,
+    lineHeight: 16,
   },
 });
