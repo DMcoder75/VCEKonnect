@@ -17,7 +17,7 @@ interface QuickAccessDrawerProps {
 export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawerProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
   // Helper function to capitalize first letter
@@ -91,6 +91,12 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
   function handleNavigate(route: string) {
     onClose();
     router.push(route as any);
+  }
+
+  async function handleLogout() {
+    onClose();
+    await logout();
+    router.replace('/auth/login');
   }
 
   return (
@@ -183,6 +189,24 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
               <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
             </Pressable>
           ))}
+
+          {/* Divider before logout */}
+          <View style={styles.divider} />
+
+          {/* Logout Option */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed,
+            ]}
+            onPress={handleLogout}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: `${colors.error}20` }]}>
+              <MaterialIcons name="logout" size={24} color={colors.error} />
+            </View>
+            <Text style={[styles.menuLabel, styles.logoutLabel]}>Logout</Text>
+            <MaterialIcons name="chevron-right" size={20} color={colors.textTertiary} />
+          </Pressable>
         </View>
 
         {/* Footer */}
@@ -323,5 +347,8 @@ const styles = StyleSheet.create({
     width: DRAWER_WIDTH,
     height: '100%',
     opacity: 0.3,
+  },
+  logoutLabel: {
+    color: colors.error,
   },
 });
