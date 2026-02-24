@@ -190,9 +190,6 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
             </Pressable>
           ))}
 
-          {/* Divider before logout */}
-          <View style={styles.logoutDivider} />
-
           {/* Logout Option */}
           <Pressable
             style={({ pressed }) => [
@@ -350,12 +347,5 @@ const styles = StyleSheet.create({
   },
   logoutLabel: {
     color: colors.error,
-  },
-  logoutDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    marginHorizontal: spacing.lg,
   },
 });
