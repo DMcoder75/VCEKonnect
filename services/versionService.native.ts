@@ -1,6 +1,4 @@
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
-import { supabase } from './supabase.native';
 import * as Linking from 'expo-linking';
 
 export interface VersionStatus {
@@ -34,7 +32,9 @@ export function getPlatform(): 'ios' | 'android' | 'web' {
  * Check version status against server requirements
  */
 export async function checkVersionStatus(): Promise<VersionStatus> {
+  // Lazy load supabase to avoid initialization issues on iOS
   try {
+    const { supabase } = await import('./supabase.native');
     const currentVersion = getCurrentAppVersion();
     const platform = getPlatform();
 
