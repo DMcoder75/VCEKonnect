@@ -21,6 +21,7 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
+import { getCurrentAppVersion } from '@/services/versionService';
 
 // Helper function to capitalize first letter of name
 function capitalizeFirstLetter(name: string): string {
@@ -39,7 +40,7 @@ export default function DashboardScreen() {
   const { upcomingEvents, loading: calendarLoading, completeEvent } = useCalendar(user?.id);
   const { activeGoals, loadActiveGoals } = useStudyGoals();
   const { streaks, achievements, loadAchievements } = useAchievements();
-  const { versionStatus, shouldShowModal } = useVersionCheck();
+  const { versionStatus, shouldShowModal, isChecking } = useVersionCheck();
   
   const [allTime, setAllTime] = useState(0);
   const [allTimeBySubject, setAllTimeBySubject] = useState<{ [key: string]: number }>({});
@@ -251,6 +252,20 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* VERSION DEBUG PANEL - TEMPORARY */}
+        <View style={styles.debugPanel}>
+          <Text style={styles.debugTitle}>🔧 VERSION DEBUG PANEL</Text>
+          <Text style={styles.debugText}>App Version: {getCurrentAppVersion()}</Text>
+          <Text style={styles.debugText}>Latest: {versionStatus.latestVersion || 'N/A'}</Text>
+          <Text style={styles.debugText}>Min Required: {versionStatus.minimumVersion || 'N/A'}</Text>
+          <Text style={styles.debugText}>Update Required: {versionStatus.updateRequired ? 'TRUE ❌' : 'FALSE ✅'}</Text>
+          <Text style={styles.debugText}>Update Available: {versionStatus.updateAvailable ? 'TRUE ⚠️' : 'FALSE ✅'}</Text>
+          <Text style={styles.debugText}>Should Show Modal: {shouldShowModal ? 'YES ⚠️' : 'NO ✅'}</Text>
+          <Text style={styles.debugText}>Is Checking: {isChecking ? 'YES...' : 'NO'}</Text>
+          <Text style={styles.debugText}>Has Update URL: {versionStatus.updateUrl ? 'YES' : 'NO'}</Text>
+          <Text style={styles.debugText} numberOfLines={2}>Notes: {versionStatus.releaseNotes || 'N/A'}</Text>
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -1021,6 +1036,26 @@ const styles = StyleSheet.create({
     fontWeight: typography.bold,
     color: colors.textPrimary,
     letterSpacing: 0.5,
+  },
+  debugPanel: {
+    backgroundColor: colors.warning + '30',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: typography.bold,
+    color: colors.warning,
+    marginBottom: spacing.xs,
+  },
+  debugText: {
+    fontSize: 11,
+    color: colors.textPrimary,
+    marginVertical: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 
 });
