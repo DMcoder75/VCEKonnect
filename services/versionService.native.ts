@@ -36,13 +36,26 @@ export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?
     const currentVersion = getCurrentAppVersion();
     const platform = getPlatform();
 
+    console.log('[VersionService] Calling RPC with:', { currentVersion, platform });
+
     const { data, error } = await supabase.rpc('get_version_status', {
       user_version: currentVersion,
       user_platform: platform,
     });
 
-    // DEBUG: Log raw response
-    const debugInfo = `RPC Response - Data: ${JSON.stringify(data)} | Error: ${JSON.stringify(error)} | Type: ${typeof data} | IsArray: ${Array.isArray(data)} | Length: ${data?.length}`;
+    console.log('[VersionService] RPC raw response:', { data, error });
+
+    // Build detailed debug info
+    let debugInfo = '';
+    if (error) {
+      debugInfo = `ERROR: ${error.message} | Code: ${error.code} | Details: ${error.details}`;
+    } else if (!data) {
+      debugInfo = `Data is null/undefined`;
+    } else if (Array.isArray(data)) {
+      debugInfo = `Array with ${data.length} items | First: ${JSON.stringify(data[0])}`;
+    } else {
+      debugInfo = `Non-array data: ${JSON.stringify(data)}`;
+    }
 
     if (error) {
       console.error('[VersionService] Error checking version:', error);
@@ -53,11 +66,14 @@ export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?
         minimumVersion: null,
         releaseNotes: null,
         updateUrl: null,
-        debugInfo: `ERROR: ${error.message}`,
+        debugInfo,
       };
     }
 
-    const result = data?.[0] || {};
+    // Handle both array and single object responses
+    const result = Array.isArray(data) ? (data[0] || {}) : (data || {});
+    
+    console.log('[VersionService] Parsed result:', result);
     
     return {
       updateRequired: result.update_required || false,

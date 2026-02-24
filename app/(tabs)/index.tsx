@@ -85,10 +85,10 @@ export default function DashboardScreen() {
           `Update Required: ${status.updateRequired}`,
           `Update Available: ${status.updateAvailable}`,
           `Has URL: ${!!status.updateUrl}`,
-          `RAW: ${(status as any).debugInfo || 'No debug info'}`,
         ].join(' | ');
         
-        setVersionDebug(debugInfo);
+        const rawDebug = (status as any).debugInfo || 'No raw debug';
+        setVersionDebug(`${debugInfo}\n\nRAW RESPONSE: ${rawDebug}`);
       } catch (err) {
         setVersionDebug(`Version check error: ${err}`);
       }
@@ -1076,9 +1076,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   debugText: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'monospace',
     color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 14,
   },
 });
