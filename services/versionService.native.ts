@@ -31,31 +31,15 @@ export function getPlatform(): 'ios' | 'android' | 'web' {
 /**
  * Check version status against server requirements
  */
-export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?: string }> {
+export async function checkVersionStatus(): Promise<VersionStatus> {
   try {
     const currentVersion = getCurrentAppVersion();
     const platform = getPlatform();
-
-    console.log('[VersionService] Calling RPC with:', { currentVersion, platform });
 
     const { data, error } = await supabase.rpc('get_version_status', {
       user_version: currentVersion,
       user_platform: platform,
     });
-
-    console.log('[VersionService] RPC raw response:', { data, error });
-
-    // Build detailed debug info
-    let debugInfo = '';
-    if (error) {
-      debugInfo = `ERROR: ${error.message} | Code: ${error.code} | Details: ${error.details}`;
-    } else if (!data) {
-      debugInfo = `Data is null/undefined`;
-    } else if (Array.isArray(data)) {
-      debugInfo = `Array with ${data.length} items | First: ${JSON.stringify(data[0])}`;
-    } else {
-      debugInfo = `Non-array data: ${JSON.stringify(data)}`;
-    }
 
     if (error) {
       console.error('[VersionService] Error checking version:', error);
@@ -66,14 +50,11 @@ export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?
         minimumVersion: null,
         releaseNotes: null,
         updateUrl: null,
-        debugInfo,
       };
     }
 
     // Handle both array and single object responses
     const result = Array.isArray(data) ? (data[0] || {}) : (data || {});
-    
-    console.log('[VersionService] Parsed result:', result);
     
     return {
       updateRequired: result.update_required || false,
@@ -82,7 +63,6 @@ export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?
       minimumVersion: result.minimum_version,
       releaseNotes: result.release_notes,
       updateUrl: result.update_url,
-      debugInfo,
     };
   } catch (err) {
     console.error('[VersionService] Unexpected error:', err);
@@ -93,7 +73,6 @@ export async function checkVersionStatus(): Promise<VersionStatus & { debugInfo?
       minimumVersion: null,
       releaseNotes: null,
       updateUrl: null,
-      debugInfo: `EXCEPTION: ${err}`,
     };
   }
 }
