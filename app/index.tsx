@@ -4,14 +4,11 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserSubjectIds } from '@/services/userSubjectsService';
 import { colors } from '@/constants/theme';
-import { VersionCheckModal } from '@/components/feature/VersionCheckModal';
-import { useVersionCheck } from '@/hooks/useVersionCheck';
 
 export default function IndexRedirect() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [hasCheckedSubjects, setHasCheckedSubjects] = useState(false);
-  const { versionStatus, shouldShowModal, dismissUpdate } = useVersionCheck();
 
   useEffect(() => {
     async function checkUserSubjects() {
@@ -33,16 +30,6 @@ export default function IndexRedirect() {
 
     checkUserSubjects();
   }, [user, isLoading]);
-
-  // Show version check modal if needed (blocks navigation if update required)
-  if (shouldShowModal) {
-    return (
-      <VersionCheckModal 
-        versionStatus={versionStatus} 
-        onDismiss={dismissUpdate}
-      />
-    );
-  }
 
   return (
     <View style={styles.container}>
