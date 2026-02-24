@@ -21,6 +21,7 @@ export function useVersionCheck() {
     setIsChecking(true);
     try {
       const status = await checkVersionStatus();
+      console.log('[useVersionCheck] Status from service:', JSON.stringify(status));
       setVersionStatus(status);
     } catch (err) {
       console.error('[useVersionCheck] Error:', err);

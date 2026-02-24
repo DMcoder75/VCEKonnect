@@ -56,6 +56,15 @@ export async function checkVersionStatus(): Promise<VersionStatus> {
     // Handle both array and single object responses
     const result = Array.isArray(data) ? (data[0] || {}) : (data || {});
     
+    console.log('[VersionService] Raw DB response:', JSON.stringify(result));
+    console.log('[VersionService] Comparison:', {
+      currentVersion,
+      minimumVersion: result.minimum_version,
+      latestVersion: result.latest_version,
+      updateRequired: result.update_required,
+      updateAvailable: result.update_available,
+    });
+    
     return {
       updateRequired: result.update_required || false,
       updateAvailable: result.update_available || false,
