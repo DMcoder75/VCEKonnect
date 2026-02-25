@@ -1,13 +1,8 @@
 import { supabase } from './supabase';
 import { UserProfile } from '@/types';
+import bcryptjs from 'bcryptjs';
 import { getUserSubjects, updateUserSubjects } from './userSubjectsService';
-
-let bcryptjs: any;
-try {
-  bcryptjs = require('bcryptjs');
-} catch (err) {
-  console.error('bcryptjs not available, falling back to native crypto');
-}
+import { updateUserAppVersion } from './versionTrackingService.web';
 
 export interface AuthResponse {
   user: UserProfile | null;
@@ -21,9 +16,11 @@ export async function registerUser(
   name: string
 ): Promise<AuthResponse> {
   try {
-    // Use bcryptjs for web compatibility
-    const passwordHash = await bcryptjs.hash(password, 10);
+    // Hash password with bcryptjs (web-compatible)
+    const salt = await bcryptjs.genSalt(10);
+    const passwordHash = await bcryptjs.hash(password, salt);
 
+    // Create user (with is_verified = false by default)
     const { data, error } = await supabase
       .from('vk_users')
       .insert({
@@ -31,7 +28,7 @@ export async function registerUser(
         password_hash: passwordHash,
         name,
         year_level: 12,
-        is_verified: false, // User needs to verify email
+        is_verified: false,
       })
       .select()
       .single();
@@ -43,7 +40,13 @@ export async function registerUser(
       return { user: null, error: error.message };
     }
 
+    // Store session
     await saveSession(data.id);
+
+    // Track app version (no-op on web)
+    updateUserAppVersion(data.id).catch(err => 
+      console.warn('Failed to track version on register:', err)
+    );
 
     // Get user subjects from junction table
     const selectedSubjects = await getUserSubjects(data.id);
@@ -59,6 +62,7 @@ export async function registerUser(
         targetUniversities: data.target_universities || [],
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
+        state_id: data.state_id,
       },
       error: null,
     };
@@ -82,26 +86,21 @@ export async function loginUser(
     if (error || !data) {
       return { user: null, error: 'Invalid email or password' };
     }
-    
-    // Use bcryptjs to verify password
-    let isValid = false;
-    if (bcryptjs) {
-      try {
-        isValid = await bcryptjs.compare(password, data.password_hash);
-      } catch (err) {
-        // Temporary fallback for debugging
-        isValid = password === '123456' && email === 'test@example.com';
-      }
-    } else {
-      // Fallback: simple comparison (NOT SECURE - only for debugging)
-      isValid = password === '123456' && email === 'test@example.com';
-    }
+
+    // Verify password with bcryptjs (web-compatible)
+    const isValid = await bcryptjs.compare(password, data.password_hash);
     
     if (!isValid) {
       return { user: null, error: 'Invalid email or password' };
     }
 
+    // Save session
     await saveSession(data.id);
+
+    // Track app version (no-op on web)
+    updateUserAppVersion(data.id).catch(err => 
+      console.warn('Failed to track version on login:', err)
+    );
 
     // Get user subjects from junction table
     const selectedSubjects = await getUserSubjects(data.id);
@@ -117,6 +116,7 @@ export async function loginUser(
         targetUniversities: data.target_universities || [],
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
+        state_id: data.state_id,
       },
       error: null,
     };
@@ -152,6 +152,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       targetUniversities: data.target_universities || [],
       isPremium: data.is_premium,
       premiumExpiry: data.premium_expiry,
+      state_id: data.state_id,
     };
   } catch (err) {
     return null;
@@ -179,31 +180,12 @@ export async function updateUserProfile(
 
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
-      // First verify the user exists
-      const { data: existingUser, error: selectError } = await supabase
-        .from('vk_users')
-        .select('id, email, target_career')
-        .eq('id', userId)
-        .single();
-
-      if (selectError || !existingUser) {
-        return { error: `User verification failed: ${selectError?.message || 'User not found'}. User ID: ${userId}` };
-      }
-
-      // User exists, now perform update
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('vk_users')
         .update(updateData)
-        .eq('id', userId)
-        .select();
+        .eq('id', userId);
 
-      if (error) {
-        return { error: `Update query failed: ${error.message} (Code: ${error.code || 'unknown'})` };
-      }
-      
-      if (!data || data.length === 0) {
-        return { error: `Update executed but matched 0 rows. User ID: ${userId}, Update data: ${JSON.stringify(updateData)}` };
-      }
+      if (error) return { error: error.message };
     }
 
     return { error: null };
@@ -217,11 +199,11 @@ export async function logoutUser(): Promise<void> {
   await clearSession();
 }
 
-// Session management - Web uses localStorage
+// Session management (localStorage for web)
 async function saveSession(userId: string): Promise<void> {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('vk_user_id', userId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vk_user_id', userId);
     }
   } catch (err) {
     console.error('Failed to save session:', err);
@@ -230,8 +212,8 @@ async function saveSession(userId: string): Promise<void> {
 
 async function getSession(): Promise<string | null> {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage.getItem('vk_user_id');
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('vk_user_id');
     }
     return null;
   } catch (err) {
@@ -241,8 +223,8 @@ async function getSession(): Promise<string | null> {
 
 async function clearSession(): Promise<void> {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('vk_user_id');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('vk_user_id');
     }
   } catch (err) {
     console.error('Failed to clear session:', err);

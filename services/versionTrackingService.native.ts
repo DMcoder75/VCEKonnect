@@ -1,5 +1,5 @@
 /**
- * Version Tracking Service
+ * Version Tracking Service (Native: iOS/Android)
  * Tracks client app version in database for debugging, feature rollout, and analytics
  */
 
