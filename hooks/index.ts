@@ -1,11 +1,12 @@
 export { useAuth } from './useAuth';
 export { useATAR } from './useATAR';
-export { useStudyTimer } from './useStudyTimer';
-export { useTypewriter } from './useTypewriter';
-export { useNotes } from './useNotes';
+export { useAI } from './useAI';
 export { useCalendar } from './useCalendar';
+export { useNotes } from './useNotes';
+export { useNotifications } from './useNotifications';
+export { useStudyTimer, useElapsedTime } from './useStudyTimer';
+export { useTypewriter } from './useTypewriter';
+export { useVersionCheck } from './useVersionCheck';
 export { useStudyGoals } from './useStudyGoals';
 export { useAchievements } from './useAchievements';
-export { useNotifications } from './useNotifications';
-export { useAI } from './useAI';
-export { useVersionCheck } from './useVersionCheck';
+export { useMotivationalMessage } from './useMotivationalMessage';

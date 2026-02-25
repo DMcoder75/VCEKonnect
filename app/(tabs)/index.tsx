@@ -16,7 +16,8 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { checkNeedsWeeklyReset, copyPreviousWeekGoals } from '@/services/achievementsService';
 import { ActiveGoalsResponse } from '@/services/studyGoalsService';
 import { ATARDisplay, LoadingSpinner } from '@/components/ui';
-import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay, LatestAchievementBanner, AchievementLaunchManager } from '@/components/feature';
+import { StudyTimerCard, UpcomingAssessmentCard, StudyGoalRing, CelebrationOverlay, LatestAchievementBanner, AchievementLaunchManager, MotivationalPopup } from '@/components/feature';
+import { useMotivationalMessage } from '@/hooks/useMotivationalMessage';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -49,10 +50,21 @@ export default function DashboardScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWeeklyResetPrompt, setShowWeeklyResetPrompt] = useState(false);
   const [resetInfo, setResetInfo] = useState<{ currentWeekStart: Date; hasPreviousGoals: boolean } | null>(null);
+  const [showMotivationalPopup, setShowMotivationalPopup] = useState(false);
   
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
   const prediction = getPrediction();
+
+  // Generate motivational message
+  const motivationalMessage = useMotivationalMessage({
+    activeGoals,
+    streaks,
+    userSubjects,
+    isRunning,
+    currentATAR: prediction.atar,
+    targetATAR: 95, // TODO: Get from user profile
+  });
 
   // Memoize load function to ensure stable references
   const loadAllTimeMemoized = useCallback(loadAllTime, [user]);
@@ -61,6 +73,16 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (user) {
       checkWeeklyReset();
+    }
+  }, [user]);
+
+  // Show motivational popup once per session (3 seconds after load)
+  useEffect(() => {
+    if (user && activeGoals && streaks) {
+      const timer = setTimeout(() => {
+        setShowMotivationalPopup(true);
+      }, 3000); // 3 second delay
+      return () => clearTimeout(timer);
     }
   }, [user]);
 
@@ -246,6 +268,11 @@ export default function DashboardScreen() {
         onComplete={() => setShowCelebration(false)}
       />
       <AchievementLaunchManager achievements={achievements} />
+      <MotivationalPopup
+        visible={showMotivationalPopup}
+        message={motivationalMessage}
+        onDismiss={() => setShowMotivationalPopup(false)}
+      />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
