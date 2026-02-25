@@ -84,7 +84,7 @@ export default function DashboardScreen() {
       }, 3000); // 3 second delay
       return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [user, activeGoals, streaks]);
 
 
 
