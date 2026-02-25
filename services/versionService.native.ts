@@ -18,7 +18,7 @@ export interface VersionStatus {
  */
 export function getCurrentAppVersion(): string {
   // Hardcoded to match app.json version (update when app.json changes)
-  return '1.0.0';
+  return '0.0.1';
 }
 
 /**
