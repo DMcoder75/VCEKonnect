@@ -33,6 +33,7 @@ export default function AIRecommendationsScreen() {
   const [currentSubjectId, setCurrentSubjectId] = useState('');
   const [disabledSubjects, setDisabledSubjects] = useState<Set<string>>(new Set());
   const [isGeneratingForFree, setIsGeneratingForFree] = useState(false); // Track if free user is generating
+  const [isCheckingLimits, setIsCheckingLimits] = useState(true); // Track initial limit check
 
   useEffect(() => {
     if (user) {
@@ -47,8 +48,12 @@ export default function AIRecommendationsScreen() {
   }, [user, userSubjects, tier]);
 
   async function checkFreeTrialUsed() {
-    if (!user || tier !== 'free') return;
+    if (!user || tier !== 'free') {
+      setIsCheckingLimits(false);
+      return;
+    }
     
+    setIsCheckingLimits(true);
     // For free tier, check if ANY subject has been used
     const disabledSet = new Set<string>();
     for (const subject of userSubjects) {
@@ -58,6 +63,7 @@ export default function AIRecommendationsScreen() {
       }
     }
     setDisabledSubjects(disabledSet);
+    setIsCheckingLimits(false);
   }
 
   async function loadUserData() {
@@ -206,7 +212,7 @@ export default function AIRecommendationsScreen() {
           Get personalized study recommendations for each subject based on your progress and upcoming exams.
         </Text>
 
-        {isLoadingData || isPremiumLoading ? (
+        {isLoadingData || isPremiumLoading || isCheckingLimits ? (
           <LoadingSpinner message="Loading subjects..." />
         ) : (
           <>
