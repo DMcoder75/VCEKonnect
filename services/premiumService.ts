@@ -315,19 +315,51 @@ export async function saveAIStudyPlan(plan: {
 }): Promise<{ data: any; error: any }> {
   const supabase = getSupabaseClient();
   
+  // Prepare insert payload
+  const insertPayload = {
+    user_id: plan.userId,
+    week_start_date: plan.weekStartDate,
+    week_end_date: plan.weekEndDate,
+    plan_content: plan.planContent,
+    plan_summary: plan.planSummary,
+    context_data: plan.contextData,
+    is_active: true,
+  };
+  
+  // DEBUG: Log exact insert payload
+  console.log('🔍 [saveAIStudyPlan] Insert payload:', JSON.stringify({
+    user_id: insertPayload.user_id,
+    user_id_type: typeof insertPayload.user_id,
+    user_id_length: insertPayload.user_id?.length,
+    week_start_date: insertPayload.week_start_date,
+    week_end_date: insertPayload.week_end_date,
+    has_plan_content: !!insertPayload.plan_content,
+    has_plan_summary: !!insertPayload.plan_summary,
+    has_context_data: !!insertPayload.context_data,
+    is_active: insertPayload.is_active,
+  }, null, 2));
+  
   const { data, error } = await supabase
     .from('vk_ai_study_plans')
-    .insert({
-      user_id: plan.userId,
-      week_start_date: plan.weekStartDate,
-      week_end_date: plan.weekEndDate,
-      plan_content: plan.planContent,
-      plan_summary: plan.planSummary,
-      context_data: plan.contextData,
-      is_active: true,
-    })
+    .insert(insertPayload)
     .select()
     .single();
+  
+  // DEBUG: Log result
+  if (error) {
+    console.error('❌ [saveAIStudyPlan] Insert failed:', {
+      error: error,
+      error_message: error?.message,
+      error_details: error?.details,
+      error_hint: error?.hint,
+      error_code: error?.code,
+    });
+  } else {
+    console.log('✅ [saveAIStudyPlan] Insert succeeded:', {
+      id: data?.id,
+      user_id: data?.user_id,
+    });
+  }
   
   return { data, error: error?.message || error };
 }
