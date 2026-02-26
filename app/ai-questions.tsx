@@ -382,7 +382,7 @@ export default function AIQuestionsScreen() {
             <Button
               title={isLoading ? "Generating Questions..." : canGenerate ? "Generate Practice Questions" : "Limit Reached - Upgrade"}
               onPress={canGenerate ? handleGenerateQuestions : () => setShowPaywall(true)}
-              disabled={!selectedSubject || !topic || isLoading || isCheckingLimits}
+              disabled={!selectedSubject || !topic || isLoading || isCheckingLimits || !canGenerate}
               fullWidth
             />
 

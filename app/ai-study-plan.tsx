@@ -393,7 +393,7 @@ export default function AIStudyPlanScreen() {
             <Button
               title={isLoading ? "Generating Plan..." : canGenerate ? "Generate Study Plan" : "Limit Reached - Upgrade"}
               onPress={canGenerate ? handleGeneratePlan : () => setShowPaywall(true)}
-              disabled={!targetATAR || !hoursPerWeek || isLoading || isCheckingLimits}
+              disabled={!targetATAR || !hoursPerWeek || isLoading || isCheckingLimits || !canGenerate}
               fullWidth
             />
 
