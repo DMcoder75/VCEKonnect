@@ -126,15 +126,16 @@ export default function AIRecommendationsScreen() {
 
         // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
         // This ensures free tier users can't spam generate after their first use
+        const initialResponse = result.data.response || '';
         const recommendationData = {
           userId: user.id,
           subjectId,
           recommendationType: 'study_strategy',
           recommendationContent: {
-            response: result.data.response,
+            response: initialResponse,
             metadata: result.data.metadata,
           },
-          recommendationSummary: result.data.response.substring(0, 200) + '...',
+          recommendationSummary: initialResponse.substring(0, 200) + '...',
           contextData: {
             recentMinutes,
             currentScore,

@@ -240,12 +240,13 @@ export default function AIStudyPlanScreen() {
     
     // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
     // This ensures free tier users can't spam generate after their first use
-    if (result.data && fullResponse) {
+    if (result.data) {
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
 
+      const initialResponse = result.data.response || ''; // Use immediate response, not fullResponse
       const planData = {
         userId: user.id,
         weekStartDate: weekStart.toISOString().split('T')[0],
@@ -255,9 +256,9 @@ export default function AIStudyPlanScreen() {
           targetATAR: parseFloat(targetATAR),
           hoursPerWeek: parseFloat(hoursPerWeek),
           examDate,
-          generatedPlan: fullResponse,
+          generatedPlan: initialResponse,
         },
-        planSummary: fullResponse.substring(0, 200) + '...', // First 200 chars
+        planSummary: initialResponse.substring(0, 200) + '...', // First 200 chars
         contextData: {
           currentScores,
           totalSubjects: userSubjects.length,

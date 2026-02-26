@@ -216,14 +216,15 @@ export default function AIQuestionsScreen() {
     
     // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
     // This ensures free tier users can't spam generate after their first use
-    if (result.data && fullResponse) {
+    if (result.data) {
+      const initialResponse = result.data.response || ''; // Use immediate response, not fullResponse
       const questionsData = {
         userId: user.id,
         subjectId: selectedSubject.id,
         topic,
         difficultyLevel: difficulty,
         questionsContent: {
-          response: fullResponse,
+          response: initialResponse,
           topic,
           difficulty,
         },
