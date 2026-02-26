@@ -12,3 +12,5 @@ export { AchievementLaunchManager } from './AchievementLaunchManager';
 export { AchievementLaunchToast } from './AchievementLaunchToast';
 export { SubjectAchievementCard } from './SubjectAchievementCard';
 export { MotivationalPopup } from './MotivationalPopup';
+export { PremiumPaywall } from './PremiumPaywall';
+export { PremiumBlurOverlay } from './PremiumBlurOverlay';
