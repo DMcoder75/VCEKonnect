@@ -153,6 +153,9 @@ export default function AIStudyPlanScreen() {
       
       completionInProgress.current = true;
       
+      // ✅ CRITICAL FIX: Immediately hide placeholder when AI response arrives
+      setShowPlaceholder(false);
+      
       // Start with original response
       let currentText = response.response;
       let sessionId = response.session_id;
@@ -198,14 +201,13 @@ export default function AIStudyPlanScreen() {
         }
       }
       
-      // Update UI with final complete text + trigger fade-in
+      // Update UI with final complete text
       setFullResponse(currentText);
-      setShowPlaceholder(false);
       
-      // Trigger fade-in animation after brief delay
+      // ✅ Trigger fade-in animation after 1 second delay
       setTimeout(() => {
         setShowFullText(true);
-      }, 100);
+      }, 1000);
       
       completionInProgress.current = false;
     }
