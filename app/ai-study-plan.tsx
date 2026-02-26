@@ -52,6 +52,7 @@ export default function AIStudyPlanScreen() {
   const [fullResponse, setFullResponse] = useState(''); // Complete accumulated response
   const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
+  const [isContinuing, setIsContinuing] = useState(false); // Track if continuation is in progress
   
   // Premium paywall states
   const [showPaywall, setShowPaywall] = useState(false);
@@ -156,6 +157,9 @@ export default function AIStudyPlanScreen() {
       let continuesFetched = 0;
       const maxContinuations = 10;
       
+      // Show continuation indicator
+      setIsContinuing(true);
+      
       // Silent background loop - accumulate all continuations
       while (continuesFetched < maxContinuations) {
         const trimmed = currentText.trim();
@@ -197,6 +201,8 @@ export default function AIStudyPlanScreen() {
         }
       }
       
+      // Hide continuation indicator when done
+      setIsContinuing(false);
       completionInProgress.current = false;
     }
     
@@ -470,6 +476,14 @@ export default function AIStudyPlanScreen() {
                 {/* Display full text with fade-in animation (no typewriter) */}
                 <Text style={styles.responseText}>{formatResponseText(fullResponse)}</Text>
                 
+                {/* Continuation Loading Indicator */}
+                {isContinuing && (
+                  <View style={styles.continuationIndicator}>
+                    <LoadingSpinner message="" />
+                    <Text style={styles.continuationText}>Completing response...</Text>
+                  </View>
+                )}
+
                 {/* Metadata Info */}
                 {response && (
                   <View style={styles.modelInfo}>
@@ -716,6 +730,21 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: 24,
     marginTop: spacing.sm,
+  },
+  continuationIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.md,
+  },
+  continuationText: {
+    fontSize: typography.bodySmall,
+    color: colors.primary,
+    fontWeight: typography.semibold,
   },
   modelInfo: {
     paddingTop: spacing.sm,
