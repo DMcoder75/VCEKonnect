@@ -266,6 +266,8 @@ export default function AIStudyPlanScreen() {
     // This ensures free tier users can't spam generate after their first use
     if (result.data) {
       addDebugLog('💾 Preparing to save plan to database...');
+      addDebugLog(`👤 Current user.id: ${user.id}`);
+      addDebugLog(`📧 Current user.email: ${user.email}`);
       
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
@@ -293,7 +295,7 @@ export default function AIStudyPlanScreen() {
         },
       };
 
-      addDebugLog('💾 Calling saveAIStudyPlan()...');
+      addDebugLog(`💾 Calling saveAIStudyPlan() with userId: ${planData.userId}`);
       const saveResult = await saveAIStudyPlan(planData);
       
       if (saveResult.error) {
