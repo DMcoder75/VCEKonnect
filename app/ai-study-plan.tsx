@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -52,13 +53,6 @@ export default function AIStudyPlanScreen() {
   const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
   
-  // DEBUG PANEL (temporary for testing)
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const addDebugLog = (msg: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setDebugLogs(prev => [...prev, `[${timestamp}] ${msg}`]);
-  };
-  
   // Premium paywall states
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallMessage, setPaywallMessage] = useState('');
@@ -83,10 +77,8 @@ export default function AIStudyPlanScreen() {
   async function checkInitialLimits() {
     if (!user) return;
     
-    addDebugLog('🔍 Checking initial limits...');
     setIsCheckingLimits(true);
     const check = await canCreateAIStudyPlan(user.id);
-    addDebugLog(`✅ Limit check result: allowed=${check.allowed}, reason="${check.reason}"`);
     setCanGenerate(check.allowed);
     if (!check.allowed) {
       setPaywallMessage(check.reason || 'Upgrade to generate more AI study plans');
@@ -214,20 +206,13 @@ export default function AIStudyPlanScreen() {
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
     
-    addDebugLog('🚀 Generate button clicked');
-    
     // Check premium limits before generating
-    addDebugLog('🔍 Checking premium limits...');
     const check = await canCreateAIStudyPlan(user.id);
-    addDebugLog(`✅ Premium check: allowed=${check.allowed}, reason="${check.reason}"`);
     if (!check.allowed) {
-      addDebugLog('❌ Limit reached - showing paywall');
       setPaywallMessage(check.reason);
       setShowPaywall(true);
       return;
     }
-    
-    addDebugLog('✅ Premium check passed - proceeding with generation');
     
     // Reset state
     setShowPlaceholder(true);
@@ -242,7 +227,6 @@ export default function AIStudyPlanScreen() {
     });
     
     // Pass full subject names and codes with session ID
-    addDebugLog('📡 Calling AI API...');
     const result = await createStudyPlan(
       user.id,
       userSubjects.map(s => ({ code: s.code, name: s.name })),
@@ -253,27 +237,15 @@ export default function AIStudyPlanScreen() {
       sessionId // Pass session ID to maintain conversation context
     );
     
-    addDebugLog(`📥 API result: ${result.data ? 'SUCCESS' : 'FAILED'}`);
-    if (result.error) {
-      addDebugLog(`❌ API error: ${result.error}`);
-    } else if (result.data) {
-      addDebugLog(`✅ API response received: ${result.data.response.substring(0, 50)}...`);
-    }
-    
     // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
     // This ensures free tier users can't spam generate after their first use
     if (result.data) {
-      addDebugLog('💾 Preparing to save plan to database...');
-      addDebugLog(`👤 Current user.id: ${user.id}`);
-      addDebugLog(`📧 Current user.email: ${user.email}`);
-      
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
 
       const initialResponse = result.data.response || ''; // Use immediate response, not fullResponse
-      addDebugLog(`📦 Plan data: response length=${initialResponse.length} chars`);
       
       const planData = {
         userId: user.id,
@@ -293,20 +265,10 @@ export default function AIStudyPlanScreen() {
         },
       };
 
-      addDebugLog(`💾 Calling saveAIStudyPlan() with userId: ${planData.userId}`);
-      const saveResult = await saveAIStudyPlan(planData);
-      
-      if (saveResult.error) {
-        addDebugLog(`❌ Save FAILED: ${saveResult.error}`);
-      } else if (saveResult.data) {
-        addDebugLog(`✅ Save SUCCESS: record ID=${saveResult.data.id}`);
-      }
-    } else {
-      addDebugLog('⚠️ No data to save - skipping database save');
+      await saveAIStudyPlan(planData);
     }
     
     // Re-check limits after generation completes to update button state
-    addDebugLog('🔄 Re-checking limits after generation...');
     setTimeout(async () => {
       await checkInitialLimits();
     }, 1000);
@@ -494,24 +456,6 @@ export default function AIStudyPlanScreen() {
                     <Text style={styles.placeholderFooterText}>Powered by AI • Generating personalized plan...</Text>
                   </View>
                 )}
-              </View>
-            )}
-
-            {/* DEBUG PANEL - Shows real-time execution logs */}
-            {debugLogs.length > 0 && (
-              <View style={styles.debugPanel}>
-                <View style={styles.debugHeader}>
-                  <MaterialIcons name="bug-report" size={20} color={colors.warning} />
-                  <Text style={styles.debugTitle}>Debug Logs (Temporary)</Text>
-                  <Pressable onPress={() => setDebugLogs([])} style={styles.clearButton}>
-                    <Text style={styles.clearButtonText}>Clear</Text>
-                  </Pressable>
-                </View>
-                <ScrollView style={styles.debugScrollView} nestedScrollEnabled>
-                  {debugLogs.map((log, idx) => (
-                    <Text key={idx} style={styles.debugLog}>{log}</Text>
-                  ))}
-                </ScrollView>
               </View>
             )}
 
@@ -751,7 +695,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     borderWidth: 2,
     borderColor: colors.success,
-    opacity: 0.3,
+    opacity: 0,
   },
   fadeInCard: {
     opacity: 1,
@@ -829,50 +773,5 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: typography.bold,
     color: colors.background,
-  },
-  debugPanel: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    marginTop: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.warning,
-    maxHeight: 300,
-  },
-  debugHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-    paddingBottom: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  debugTitle: {
-    flex: 1,
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: colors.warning,
-  },
-  clearButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.sm,
-  },
-  clearButtonText: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    fontWeight: typography.semibold,
-  },
-  debugScrollView: {
-    maxHeight: 240,
-  },
-  debugLog: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontFamily: 'monospace',
-    lineHeight: 16,
-    marginBottom: 2,
   },
 });
