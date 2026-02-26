@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/template';
+import { supabase } from './supabase';
 
 // =====================================================
 // PREMIUM TIER DEFINITIONS
@@ -102,7 +102,7 @@ export const PREMIUM_PRICES = {
  * Get user's current premium tier
  */
 export async function getUserPremiumTier(userId: string): Promise<PremiumTier> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   const { data, error } = await supabase.rpc('get_user_premium_tier', {
     p_user_id: userId,
@@ -128,7 +128,7 @@ export async function getUserPremiumLimits(userId: string): Promise<PremiumLimit
  * Check if user has active premium (basic or pro)
  */
 export async function hasActivePremium(userId: string): Promise<boolean> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   const { data, error } = await supabase.rpc('has_active_premium', {
     p_user_id: userId,
@@ -168,7 +168,7 @@ export interface WhatIfScenario {
  * Check if user can create a new what-if scenario
  */
 export async function canCreateWhatIfScenario(userId: string): Promise<{ allowed: boolean; reason?: string }> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   const tier = await getUserPremiumTier(userId);
   const limits = PREMIUM_TIER_LIMITS[tier];
   
@@ -200,7 +200,7 @@ export async function canCreateWhatIfScenario(userId: string): Promise<{ allowed
  * Save a what-if scenario
  */
 export async function saveWhatIfScenario(scenario: WhatIfScenario): Promise<{ data: any; error: any }> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   const { data, error } = await supabase
     .from('vk_whatif_scenarios')
@@ -225,7 +225,7 @@ export async function saveWhatIfScenario(scenario: WhatIfScenario): Promise<{ da
  * Get user's what-if scenarios
  */
 export async function getUserWhatIfScenarios(userId: string): Promise<WhatIfScenario[]> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   const { data, error } = await supabase
     .from('vk_whatif_scenarios')
@@ -250,7 +250,7 @@ export async function getUserWhatIfScenarios(userId: string): Promise<WhatIfScen
  */
 export async function canCreateAIStudyPlan(userId: string): Promise<{ allowed: boolean; reason?: string }> {
   try {
-    const supabase = getSupabaseClient();
+    // Use external Supabase client (configured in ./supabase.ts)
     const tier = await getUserPremiumTier(userId);
     const limits = PREMIUM_TIER_LIMITS[tier];
     
@@ -313,7 +313,7 @@ export async function saveAIStudyPlan(plan: {
   planSummary?: string;
   contextData?: any;
 }): Promise<{ data: any; error: any }> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   // Prepare insert payload
   const insertPayload = {
@@ -373,7 +373,7 @@ export async function saveAIStudyPlan(plan: {
  */
 export async function canCreateAIRecommendation(userId: string, subjectId: string): Promise<{ allowed: boolean; reason?: string }> {
   try {
-    const supabase = getSupabaseClient();
+    // Use external Supabase client (configured in ./supabase.ts)
     const tier = await getUserPremiumTier(userId);
     const limits = PREMIUM_TIER_LIMITS[tier];
     
@@ -447,7 +447,7 @@ export async function saveAIRecommendation(recommendation: {
   recommendationSummary?: string;
   contextData?: any;
 }): Promise<{ data: any; error: any }> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   const { data, error } = await supabase
     .from('vk_ai_recommendations')
@@ -475,7 +475,7 @@ export async function saveAIRecommendation(recommendation: {
  */
 export async function canCreateAIPracticeQuestions(userId: string, subjectId: string): Promise<{ allowed: boolean; reason?: string }> {
   try {
-    const supabase = getSupabaseClient();
+    // Use external Supabase client (configured in ./supabase.ts)
     const tier = await getUserPremiumTier(userId);
     const limits = PREMIUM_TIER_LIMITS[tier];
     
@@ -549,7 +549,7 @@ export async function saveAIPracticeQuestions(questions: {
   questionsContent: any;
   questionCount: number;
 }): Promise<{ data: any; error: any }> {
-  const supabase = getSupabaseClient();
+  // Use external Supabase client (configured in ./supabase.ts)
   
   const { data, error } = await supabase
     .from('vk_ai_practice_questions')
