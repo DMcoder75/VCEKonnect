@@ -238,6 +238,11 @@ export default function AIStudyPlanScreen() {
       sessionId // Pass session ID to maintain conversation context
     );
     
+    // Re-check limits after generation completes to update button state
+    setTimeout(async () => {
+      await checkInitialLimits();
+    }, 1000);
+    
     // Placeholder will hide automatically when response arrives
   }
 
@@ -274,6 +279,8 @@ export default function AIStudyPlanScreen() {
       alert('Failed to save study plan: ' + error);
     } else {
       alert('Study plan saved successfully!');
+      // Re-check limits after saving to update UI
+      await checkInitialLimits();
     }
   }
 

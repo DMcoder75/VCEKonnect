@@ -144,6 +144,11 @@ export default function AIRecommendationsScreen() {
 
           await saveAIRecommendation(recommendationData);
         }
+        
+        // Re-check limits after generation to update disabled subjects
+        setTimeout(async () => {
+          await checkFreeTrialUsed();
+        }, 500);
       }
     } finally {
       // Clear loading state for this subject

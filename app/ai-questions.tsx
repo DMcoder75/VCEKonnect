@@ -69,6 +69,8 @@ export default function AIQuestionsScreen() {
   // Premium paywall states
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallMessage, setPaywallMessage] = useState('');
+  const [canGenerate, setCanGenerate] = useState(true);
+  const [isCheckingLimits, setIsCheckingLimits] = useState(true);
   
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
@@ -81,6 +83,24 @@ export default function AIQuestionsScreen() {
       loadUserData();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && selectedSubject) {
+      checkInitialLimits();
+    }
+  }, [user, selectedSubject]);
+
+  async function checkInitialLimits() {
+    if (!user || !selectedSubject) return;
+    
+    setIsCheckingLimits(true);
+    const check = await canCreateAIPracticeQuestions(user.id, selectedSubject.id);
+    setCanGenerate(check.allowed);
+    if (!check.allowed) {
+      setPaywallMessage(check.reason || 'Upgrade to generate more practice questions');
+    }
+    setIsCheckingLimits(false);
+  }
 
   async function loadUserData() {
     if (!user) return;
@@ -194,6 +214,11 @@ export default function AIQuestionsScreen() {
       sessionId // Pass session ID to enable continuation
     );
     
+    // Re-check limits after generation to update button state
+    setTimeout(async () => {
+      await checkInitialLimits();
+    }, 1000);
+    
     // Placeholder will hide automatically when response arrives
   }
 
@@ -220,6 +245,8 @@ export default function AIQuestionsScreen() {
       alert('Failed to save questions: ' + error);
     } else {
       alert('Practice questions saved successfully!');
+      // Re-check limits after saving to update UI
+      await checkInitialLimits();
     }
   }
 
@@ -254,7 +281,7 @@ export default function AIQuestionsScreen() {
           </Text>
         </View>
 
-        {isLoadingData || isPremiumLoading ? (
+        {isLoadingData || isPremiumLoading || isCheckingLimits ? (
           <LoadingSpinner message="Loading subjects..." />
         ) : (
           <>
@@ -337,10 +364,25 @@ export default function AIQuestionsScreen() {
             </View>
 
             {/* Generate Button */}
+            {!canGenerate && (
+              <View style={styles.limitReachedCard}>
+                <MaterialIcons name="lock" size={24} color={colors.warning} />
+                <Text style={styles.limitReachedText}>
+                  {paywallMessage}
+                </Text>
+                <Pressable
+                  style={styles.upgradeButton}
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <MaterialIcons name="workspace-premium" size={20} color={colors.background} />
+                  <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+                </Pressable>
+              </View>
+            )}
             <Button
-              title={isLoading ? "Generating Questions..." : "Generate Practice Questions"}
-              onPress={handleGenerateQuestions}
-              disabled={!selectedSubject || !topic || isLoading}
+              title={isLoading ? "Generating Questions..." : canGenerate ? "Generate Practice Questions" : "Limit Reached - Upgrade"}
+              onPress={canGenerate ? handleGenerateQuestions : () => setShowPaywall(true)}
+              disabled={!selectedSubject || !topic || isLoading || isCheckingLimits}
               fullWidth
             />
 
@@ -699,5 +741,36 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  limitReachedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+    gap: spacing.sm,
+  },
+  limitReachedText: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  upgradeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  upgradeButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
 });
