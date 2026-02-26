@@ -1,5 +1,5 @@
 // User preferences service for managing study goals and preferences
-import { getSupabaseClient } from '@/template';
+import { supabase } from './supabase';
 
 export interface UserPreferences {
   targetATAR?: number;
@@ -12,7 +12,6 @@ export interface UserPreferences {
  * Get user preferences from vk_users table
  */
 export async function getUserPreferences(userId: string): Promise<UserPreferences | null> {
-  const supabase = getSupabaseClient();
   
   const { data, error } = await supabase
     .from('vk_users')
@@ -40,7 +39,6 @@ export async function updateUserPreferences(
   userId: string,
   preferences: Partial<UserPreferences>
 ): Promise<{ error: string | null }> {
-  const supabase = getSupabaseClient();
 
   const updateData: any = {
     updated_at: new Date().toISOString(),
