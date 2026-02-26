@@ -32,6 +32,7 @@ export default function AIRecommendationsScreen() {
   const [paywallMessage, setPaywallMessage] = useState('');
   const [currentSubjectId, setCurrentSubjectId] = useState('');
   const [disabledSubjects, setDisabledSubjects] = useState<Set<string>>(new Set());
+  const [isGeneratingForFree, setIsGeneratingForFree] = useState(false); // Track if free user is generating
 
   useEffect(() => {
     if (user) {
@@ -90,6 +91,11 @@ export default function AIRecommendationsScreen() {
       return;
     }
     
+    // CRITICAL: For free tier, disable ALL buttons immediately when generating
+    if (tier === 'free') {
+      setIsGeneratingForFree(true);
+    }
+    
     // Set loading state for this specific subject
     setLoadingSubjects(prev => ({ ...prev, [subjectId]: true }));
     
@@ -145,12 +151,23 @@ export default function AIRecommendationsScreen() {
 
         await saveAIRecommendation(recommendationData);
         
-        // Immediately re-check limits after generation to update disabled subjects
-        await checkFreeTrialUsed();
+        // CRITICAL: For free tier, after response is received, lock ALL subjects
+        if (tier === 'free') {
+          const allSubjectIds = new Set(userSubjects.map(s => s.id));
+          setDisabledSubjects(allSubjectIds);
+        } else {
+          // For paid tiers, re-check limits for this specific subject
+          await checkFreeTrialUsed();
+        }
       }
     } finally {
       // Clear loading state for this subject
       setLoadingSubjects(prev => ({ ...prev, [subjectId]: false }));
+      
+      // Clear free tier generation lock
+      if (tier === 'free') {
+        setIsGeneratingForFree(false);
+      }
     }
   }
 
@@ -196,6 +213,8 @@ export default function AIRecommendationsScreen() {
             {userSubjects.map(subject => {
               const subjectRec = recommendations[subject.id];
               const isLoadingSubject = loadingSubjects[subject.id] || false;
+              const isDisabled = isLoadingSubject || disabledSubjects.has(subject.id) || isGeneratingForFree;
+              const isLocked = disabledSubjects.has(subject.id);
               
               return (
                 <View key={subject.id} style={styles.subjectCard}>
@@ -208,25 +227,25 @@ export default function AIRecommendationsScreen() {
                     <Pressable
                       style={[
                         styles.generateButton, 
-                        (isLoadingSubject || disabledSubjects.has(subject.id)) && styles.generateButtonDisabled
+                        isDisabled && styles.generateButtonDisabled
                       ]}
                       onPress={() => {
-                        if (disabledSubjects.has(subject.id)) {
+                        if (isLocked) {
                           setCurrentSubjectId(subject.id);
                           setShowPaywall(true);
                         } else {
                           handleGetRecommendations(subject.id, subject.code, subject.name);
                         }
                       }}
-                      disabled={isLoadingSubject || disabledSubjects.has(subject.id)}
+                      disabled={isDisabled}
                     >
                       <MaterialIcons 
-                        name={disabledSubjects.has(subject.id) ? "lock" : isLoadingSubject ? "hourglass-empty" : "auto-awesome"} 
+                        name={isLocked ? "lock" : isLoadingSubject ? "hourglass-empty" : "auto-awesome"} 
                         size={20} 
                         color={colors.background} 
                       />
                       <Text style={styles.generateButtonText}>
-                        {disabledSubjects.has(subject.id) ? "Locked" : isLoadingSubject ? "Loading..." : "Get Tips"}
+                        {isLocked ? "Locked" : isLoadingSubject ? "Loading..." : "Get Tips"}
                       </Text>
                     </Pressable>
                   </View>
