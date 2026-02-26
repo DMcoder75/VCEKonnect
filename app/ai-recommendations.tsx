@@ -40,15 +40,15 @@ export default function AIRecommendationsScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (user && userSubjects.length > 0 && tier === 'free') {
-      checkFreeTrialUsed();
+    if (user && userSubjects.length > 0) {
+      checkLimits();
     }
   }, [user, userSubjects, tier]);
 
-  async function checkFreeTrialUsed() {
-    if (!user || tier !== 'free') return;
+  async function checkLimits() {
+    if (!user) return;
     
-    // For free tier, check if ANY subject has been used
+    // Check limits for ALL tiers (free, basic, pro)
     const disabledSet = new Set<string>();
     for (const subject of userSubjects) {
       const check = await canCreateAIRecommendation(user.id, subject.id);
@@ -146,7 +146,7 @@ export default function AIRecommendationsScreen() {
         await saveAIRecommendation(recommendationData);
         
         // Immediately re-check limits after generation to update disabled subjects
-        await checkFreeTrialUsed();
+        await checkLimits();
       }
     } finally {
       // Clear loading state for this subject

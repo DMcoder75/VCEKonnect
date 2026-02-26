@@ -86,11 +86,11 @@ export default function AIQuestionsScreen() {
 
   useEffect(() => {
     if (user && selectedSubject) {
-      checkInitialLimits();
+      checkLimits();
     }
-  }, [user, selectedSubject]);
+  }, [user, selectedSubject, tier]);
 
-  async function checkInitialLimits() {
+  async function checkLimits() {
     if (!user || !selectedSubject) return;
     
     setIsCheckingLimits(true);
@@ -236,7 +236,7 @@ export default function AIQuestionsScreen() {
     
     // Re-check limits after generation to update button state
     setTimeout(async () => {
-      await checkInitialLimits();
+      await checkLimits();
     }, 1000);
     
     // Placeholder will hide automatically when response arrives
@@ -266,7 +266,7 @@ export default function AIQuestionsScreen() {
     } else {
       alert('Practice questions saved successfully!');
       // Re-check limits after saving to update UI
-      await checkInitialLimits();
+      await checkLimits();
     }
   }
 
