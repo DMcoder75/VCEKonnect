@@ -383,12 +383,12 @@ export async function canCreateAIRecommendation(userId: string, subjectId: strin
     
     // Free tier: only one subject, only once
     if (tier === 'free') {
-      const { data: totalCount } = await supabase
+      const { count } = await supabase
         .from('vk_ai_recommendations')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      if (totalCount && totalCount > 0) {
+      if (count && count > 0) {
         return { 
           allowed: false, 
           reason: 'Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
@@ -485,12 +485,12 @@ export async function canCreateAIPracticeQuestions(userId: string, subjectId: st
     
     // Free tier: only one subject, only once
     if (tier === 'free') {
-      const { data: totalCount } = await supabase
+      const { count } = await supabase
         .from('vk_ai_practice_questions')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      if (totalCount && totalCount > 0) {
+      if (count && count > 0) {
         return { 
           allowed: false, 
           reason: 'Free tier limited to 1 subject practice questions. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
