@@ -55,6 +55,8 @@ export default function AIStudyPlanScreen() {
   // Premium paywall states
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallMessage, setPaywallMessage] = useState('');
+  const [canGenerate, setCanGenerate] = useState(true); // Track if user can generate based on limits
+  const [isCheckingLimits, setIsCheckingLimits] = useState(true); // Track initial limit check
   
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
@@ -67,8 +69,21 @@ export default function AIStudyPlanScreen() {
       console.log('Created new session:', newSessionId);
       
       loadUserData();
+      checkInitialLimits();
     }
   }, [user]);
+
+  async function checkInitialLimits() {
+    if (!user) return;
+    
+    setIsCheckingLimits(true);
+    const check = await canCreateAIStudyPlan(user.id);
+    setCanGenerate(check.allowed);
+    if (!check.allowed) {
+      setPaywallMessage(check.reason || 'Upgrade to generate more AI study plans');
+    }
+    setIsCheckingLimits(false);
+  }
 
   async function loadUserData() {
     if (!user) return;
@@ -293,7 +308,7 @@ export default function AIStudyPlanScreen() {
           </Text>
         </View>
 
-        {isLoadingData || isPremiumLoading ? (
+        {isLoadingData || isPremiumLoading || isCheckingLimits ? (
           <LoadingSpinner message="Loading your data..." />
         ) : (
           <>
@@ -353,10 +368,25 @@ export default function AIStudyPlanScreen() {
             </View>
 
             {/* Generate Button */}
+            {!canGenerate && tier === 'free' && (
+              <View style={styles.limitReachedCard}>
+                <MaterialIcons name="lock" size={24} color={colors.warning} />
+                <Text style={styles.limitReachedText}>
+                  Free trial used. Upgrade to Basic for 5 stored plans or Pro for unlimited!
+                </Text>
+                <Pressable
+                  style={styles.upgradeButton}
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <MaterialIcons name="workspace-premium" size={20} color={colors.background} />
+                  <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+                </Pressable>
+              </View>
+            )}
             <Button
-              title={isLoading ? "Generating Plan..." : "Generate Study Plan"}
-              onPress={handleGeneratePlan}
-              disabled={!targetATAR || !hoursPerWeek || isLoading}
+              title={isLoading ? "Generating Plan..." : canGenerate ? "Generate Study Plan" : "Limit Reached - Upgrade"}
+              onPress={canGenerate ? handleGeneratePlan : () => setShowPaywall(true)}
+              disabled={!targetATAR || !hoursPerWeek || isLoading || isCheckingLimits}
               fullWidth
             />
 
@@ -672,6 +702,37 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   saveButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
+  },
+  limitReachedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+    gap: spacing.sm,
+  },
+  limitReachedText: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  upgradeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  upgradeButtonText: {
     fontSize: typography.bodySmall,
     fontWeight: typography.bold,
     color: colors.background,

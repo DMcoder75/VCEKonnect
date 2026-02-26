@@ -31,12 +31,33 @@ export default function AIRecommendationsScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallMessage, setPaywallMessage] = useState('');
   const [currentSubjectId, setCurrentSubjectId] = useState('');
+  const [disabledSubjects, setDisabledSubjects] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
       loadUserData();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && userSubjects.length > 0 && tier === 'free') {
+      checkFreeTrialUsed();
+    }
+  }, [user, userSubjects, tier]);
+
+  async function checkFreeTrialUsed() {
+    if (!user || tier !== 'free') return;
+    
+    // For free tier, check if ANY subject has been used
+    const disabledSet = new Set<string>();
+    for (const subject of userSubjects) {
+      const check = await canCreateAIRecommendation(user.id, subject.id);
+      if (!check.allowed) {
+        disabledSet.add(subject.id);
+      }
+    }
+    setDisabledSubjects(disabledSet);
+  }
 
   async function loadUserData() {
     if (!user) return;
@@ -50,12 +71,22 @@ export default function AIRecommendationsScreen() {
   async function handleGetRecommendations(subjectId: string, subjectCode: string, subjectName: string) {
     if (!user) return;
     
+    // Check if subject is disabled (free trial already used)
+    if (disabledSubjects.has(subjectId)) {
+      setCurrentSubjectId(subjectId);
+      setPaywallMessage('Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!');
+      setShowPaywall(true);
+      return;
+    }
+    
     // Check premium limits before generating
     const check = await canCreateAIRecommendation(user.id, subjectId);
     if (!check.allowed) {
       setCurrentSubjectId(subjectId);
       setPaywallMessage(check.reason);
       setShowPaywall(true);
+      // Add to disabled list
+      setDisabledSubjects(prev => new Set(prev).add(subjectId));
       return;
     }
     
@@ -172,17 +203,27 @@ export default function AIRecommendationsScreen() {
                     </View>
                     
                     <Pressable
-                      style={[styles.generateButton, isLoadingSubject && styles.generateButtonDisabled]}
-                      onPress={() => handleGetRecommendations(subject.id, subject.code, subject.name)}
+                      style={[
+                        styles.generateButton, 
+                        (isLoadingSubject || disabledSubjects.has(subject.id)) && styles.generateButtonDisabled
+                      ]}
+                      onPress={() => {
+                        if (disabledSubjects.has(subject.id)) {
+                          setCurrentSubjectId(subject.id);
+                          setShowPaywall(true);
+                        } else {
+                          handleGetRecommendations(subject.id, subject.code, subject.name);
+                        }
+                      }}
                       disabled={isLoadingSubject}
                     >
                       <MaterialIcons 
-                        name={isLoadingSubject ? "hourglass-empty" : "auto-awesome"} 
+                        name={disabledSubjects.has(subject.id) ? "lock" : isLoadingSubject ? "hourglass-empty" : "auto-awesome"} 
                         size={20} 
                         color={colors.background} 
                       />
                       <Text style={styles.generateButtonText}>
-                        {isLoadingSubject ? "Loading..." : "Get Tips"}
+                        {disabledSubjects.has(subject.id) ? "Locked" : isLoadingSubject ? "Loading..." : "Get Tips"}
                       </Text>
                     </Pressable>
                   </View>
