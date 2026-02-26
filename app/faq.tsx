@@ -190,6 +190,94 @@ const FAQ_DATA: FAQItem[] = [
     answer: 'The app offers full functionality in the free tier for core features like timers, goals, calendar, and ATAR prediction. Premium adds advanced analytics and reporting features. You can upgrade anytime from the Premium page.',
   },
 
+  // Achievements & Streaks
+  {
+    category: 'Achievements & Streaks',
+    question: 'What are achievements and how do I earn them?',
+    answer: 'Achievements are milestones that recognize your study dedication! You earn them automatically by completing study goals, maintaining weekly/monthly streaks (5, 10, 15, 20+ weeks), and hitting subject-specific targets. Check the Achievements & History page from the side menu to see all your earned achievements and current streaks.',
+  },
+  {
+    category: 'Achievements & Streaks',
+    question: 'How do study streaks work?',
+    answer: 'You build a streak by completing your weekly or monthly study goals consecutively. For example, if you meet your weekly goal 5 weeks in a row, you earn a 5-week streak! Streaks are tracked per period type (weekly/monthly) and also per subject. The longer your streak, the more prestigious achievements you unlock.',
+  },
+  {
+    category: 'Achievements & Streaks',
+    question: 'Where can I see my achievements and streaks?',
+    answer: 'Tap the side menu (☰) and select "Achievements & History". This page shows your current weekly/monthly streaks, all earned achievements (period and subject-based), active goal progress, and historical goal completion data. You can also see subject-specific streaks and per-subject progress breakdowns.',
+  },
+  {
+    category: 'Achievements & Streaks',
+    question: 'What happens if I miss a week and break my streak?',
+    answer: 'Your current streak resets to 0, but your longest streak record is preserved! You can always start building a new streak from the next period. The app tracks both your current streak and your best (longest) streak for motivation.',
+  },
+  {
+    category: 'Achievements & Streaks',
+    question: 'Do I get notified when I earn an achievement?',
+    answer: 'Yes! When you earn a new achievement, you will see a celebration animation and a banner notification. Major milestones (like 10-week or 20-week streaks) trigger special celebrations to recognize your hard work!',
+  },
+
+  // Motivational Messages
+  {
+    category: 'Motivational Messages',
+    question: 'What is the motivational popup I see when I open the app?',
+    answer: 'FairPrep shows you one personalized motivational message each time you launch the app! The message could be a reminder about a streak at risk, encouragement for a goal nearly complete, a subject that needs attention, ATAR gap awareness, celebration of progress ahead of pace, streak milestone recognition, or an inspiring quote. It appears 3 seconds after the Dashboard loads.',
+  },
+  {
+    category: 'Motivational Messages',
+    question: 'Why do I see the motivational message only once per session?',
+    answer: 'The popup is designed to motivate you at the start of your study session without being intrusive. It shows once when you launch the app, then won\'t reappear as you navigate between tabs. You will see a new message the next time you fully launch the app again.',
+  },
+  {
+    category: 'Motivational Messages',
+    question: 'How does the app choose which motivational message to show?',
+    answer: 'The app uses a smart 7-tier priority system: (1) Urgent: Streak at risk warnings, (2) Goal nearly complete (90-99%), (3) Subject lagging behind weekly target, (4) ATAR gap (current vs target), (5) Ahead of pace celebrations, (6) Streak milestone achievements, and (7) General motivational quotes. The highest priority message that applies to your current situation is shown.',
+  },
+  {
+    category: 'Motivational Messages',
+    question: 'Can I disable motivational messages?',
+    answer: 'Currently, motivational messages are a core feature designed to keep you engaged and on track. They appear only once per app launch and can be dismissed instantly by tapping outside the popup or the close button.',
+  },
+
+  // Goals Progress
+  {
+    category: 'Goals Progress',
+    question: 'What is the Goals Progress page?',
+    answer: 'The Goals Progress page (accessible from Dashboard or side menu) gives you a detailed breakdown of your weekly, monthly, and term goals. It shows overall progress rings, subject-by-subject breakdowns with progress bars, motivational messages tailored to each timeframe, and completion status for every subject. It is your command center for tracking study targets!',
+  },
+  {
+    category: 'Goals Progress',
+    question: 'How do I interpret the progress bars on the Goals Progress page?',
+    answer: 'Each subject shows a progress bar with achieved hours vs target hours (e.g., "2.5/5h" or "45/60min" for smaller targets). The percentage indicates how close you are to completion. Green checkmarks appear when you hit 100% or more. The bars update automatically as you log study time.',
+  },
+  {
+    category: 'Goals Progress',
+    question: 'What are the motivational banners on the Goals Progress page?',
+    answer: 'Each goal period (weekly/monthly/term) displays a context-aware motivational banner based on your progress: 100%+ = "Goal achieved!", 90-99% = "Almost there!", 75-89% = "Great progress!", 50-74% = "Halfway there!", 25-49% = "Good start!", 0-24% = "Time to get started!". These help you stay motivated and aware of your pacing.',
+  },
+
+  // App Updates
+  {
+    category: 'App Updates',
+    question: 'What happens when a new app version is available?',
+    answer: 'FairPrep has a built-in version checker. When you open the app, it checks if a newer version is available. If an update is optional, you will see a dismissible modal with release notes and an "Update Later" option. If the update is mandatory (critical bug fix or security patch), the modal cannot be dismissed until you update.',
+  },
+  {
+    category: 'App Updates',
+    question: 'How do I update the app?',
+    answer: 'When the update modal appears, tap the "Update Now" button. On iOS, it redirects you to the App Store. On Android, it takes you to the Google Play Store. Download and install the latest version, then reopen FairPrep. The update check happens automatically on app launch.',
+  },
+  {
+    category: 'App Updates',
+    question: 'Why am I forced to update sometimes?',
+    answer: 'Force-updates are used only for critical fixes (e.g., security vulnerabilities, data corruption bugs, or major functionality breaks). This ensures all users have a safe, stable experience. Optional updates are for new features, UI improvements, and minor enhancements that you can install at your convenience.',
+  },
+  {
+    category: 'App Updates',
+    question: 'Does the app track which version I am using?',
+    answer: 'Yes, for debugging and support purposes. When you log in, the app records your current version, platform (iOS/Android/Web), and device model. This helps our team identify version-specific bugs, analyze feature adoption, and provide better technical support if you contact us with issues.',
+  },
+
   // Troubleshooting
   {
     category: 'Troubleshooting',
@@ -206,6 +294,16 @@ const FAQ_DATA: FAQItem[] = [
     question: 'The app is slow or freezing. Help!',
     answer: 'Try closing and reopening the app. Clear any running timers that aren\'t needed. If problems continue, check for app updates in your app store. Contact support at support@fairprep.com.au if issues persist.',
   },
+  {
+    category: 'Troubleshooting',
+    question: 'I don\'t see my achievements or streaks updating. Why?',
+    answer: 'Achievements and streaks are calculated automatically when you complete study goals. Make sure you have set weekly or monthly goals and are logging study time using the study timers. Progress updates happen in real-time, but achievements are awarded at the end of each goal period (weekly/monthly). Check the Achievements & History page to see your latest stats.',
+  },
+  {
+    category: 'Troubleshooting',
+    question: 'The motivational popup is not showing. Is something wrong?',
+    answer: 'The motivational popup appears 3 seconds after the Dashboard loads and only once per app launch session. If you navigate away from the Dashboard quickly or have already seen it during this session, it won\'t show again until you fully close and relaunch the app. This is by design to avoid repetitive interruptions.',
+  },
 ];
 
 const CATEGORIES = [
@@ -215,9 +313,13 @@ const CATEGORIES = [
   'ATAR Predictor',
   'Study Timer',
   'Study Goals',
+  'Goals Progress',
+  'Achievements & Streaks',
+  'Motivational Messages',
   'Calendar',
   'Notes',
   'Pathway',
+  'App Updates',
   'Premium',
   'Troubleshooting',
 ];
