@@ -216,6 +216,22 @@ export default function AIRecommendationsScreen() {
           <LoadingSpinner message="Loading subjects..." />
         ) : (
           <>
+            {/* Limit Reached Banner - Show above subject list for free tier */}
+            {disabledSubjects.size > 0 && tier === 'free' && (
+              <View style={styles.limitReachedBanner}>
+                <MaterialIcons name="lock" size={20} color={colors.warning} />
+                <Text style={styles.limitReachedText}>
+                  Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!
+                </Text>
+                <Pressable
+                  style={styles.upgradeButtonSmall}
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <Text style={styles.upgradeButtonSmallText}>Upgrade Now</Text>
+                </Pressable>
+              </View>
+            )}
+
             {userSubjects.map(subject => {
               const subjectRec = recommendations[subject.id];
               const isLoadingSubject = loadingSubjects[subject.id] || false;
@@ -442,6 +458,34 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: typography.caption,
     color: colors.textTertiary,
+  },
+  limitReachedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    gap: spacing.sm,
+  },
+  limitReachedText: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  upgradeButtonSmall: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  upgradeButtonSmallText: {
+    fontSize: typography.caption,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
   errorCard: {
     backgroundColor: colors.surface,
