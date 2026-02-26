@@ -293,6 +293,8 @@ export default function AIStudyPlanScreen() {
         },
       };
 
+      addDebugLog(`🆔 User ID being saved: ${user.id}`);
+      addDebugLog(`📧 User email: ${user.email}`);
       addDebugLog('💾 Calling saveAIStudyPlan()...');
       const saveResult = await saveAIStudyPlan(planData);
       
