@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -62,6 +61,12 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
       route: '/ai-questions',
       color: colors.warning,
       premium: true,
+    },
+    {
+      icon: 'file-download' as const,
+      label: 'Export Data',
+      route: '/export-data',
+      color: colors.premium,
     },
     {
       icon: 'help-outline' as const,

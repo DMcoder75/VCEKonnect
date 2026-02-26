@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,18 +5,21 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
+import { usePremium } from '@/hooks/usePremium';
 import { getStateConfig } from '@/services/atarCalculator';
 import { ATARDisplay, Input, Button, LoadingSpinner } from '@/components';
-import { SubjectScoreCard } from '@/components/feature';
+import { SubjectScoreCard, PremiumPaywall, PremiumBlurOverlay } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { canCreateWhatIfScenario, saveWhatIfScenario } from '@/services/premiumService';
 
 export default function ATARScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
   const { subjectScores, updateScore, getScenarios, getPrediction, reloadScores } = useATAR();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
   
   // Get state configuration
   const stateId = (user?.stateId || 'VIC') as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
@@ -37,6 +39,13 @@ export default function ATARScreen() {
   const [targetATAR, setTargetATAR] = useState('');
   const [showScaling, setShowScaling] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
+
+  // Premium paywalls
+  const [showRoadmapPaywall, setShowRoadmapPaywall] = useState(false);
+  const [showWhatIfPaywall, setShowWhatIfPaywall] = useState(false);
+  const [showAIStrategyPaywall, setShowAIStrategyPaywall] = useState(false);
+  const [showAIAdvancedPaywall, setShowAIAdvancedPaywall] = useState(false);
+  const [requiredAITier, setRequiredAITier] = useState<'basic' | 'pro'>('basic');
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
@@ -131,6 +140,40 @@ export default function ATARScreen() {
     setWhatIfScores({});
     setShowWhatIf(false);
   }
+
+  async function handleSaveWhatIfScenario() {
+    if (!user) return;
+
+    // Check if user has premium access
+    const { allowed, reason } = await canCreateWhatIfScenario(user.id);
+    if (!allowed) {
+      setShowWhatIfPaywall(true);
+      return;
+    }
+
+    // Save the scenario
+    const scenarioData = {
+      userId: user.id,
+      scenarioName: `What-If ${new Date().toLocaleDateString()}`,
+      subjectScores: subjectScores.map(score => ({
+        subjectId: score.subjectId,
+        sacAverage: whatIfScores[score.subjectId]?.sac || score.sacAverage || 0,
+        examPrediction: whatIfScores[score.subjectId]?.exam || score.examPrediction || 0,
+        studyRank: score.studyRank || 50,
+      })),
+      predictedAtar: whatIfPrediction?.atar || 0,
+      predictedAggregate: whatIfPrediction?.aggregate || 0,
+      currentAtar: prediction.atar,
+      atarDifference: (whatIfPrediction?.atar || 0) - prediction.atar,
+    };
+
+    const { data, error } = await saveWhatIfScenario(scenarioData);
+    if (error) {
+      console.error('Error saving scenario:', error);
+    } else {
+      alert('Scenario saved successfully!');
+    }
+  }
   
   // Calculate required improvements to reach target ATAR
   function calculateRoadmap() {
@@ -219,6 +262,26 @@ export default function ATARScreen() {
     
     return recommendations;
   }
+
+  function handleAIStrategy() {
+    if (!limits.atarAISubjectStrategy) {
+      setRequiredAITier('basic');
+      setShowAIStrategyPaywall(true);
+      return;
+    }
+    // TODO: Navigate to AI Strategy page
+    alert('AI Subject Strategy feature coming soon!');
+  }
+
+  function handleAIAdvancedStrategy() {
+    if (!limits.atarAIAdvancedStrategy) {
+      setRequiredAITier('pro');
+      setShowAIAdvancedPaywall(true);
+      return;
+    }
+    // TODO: Navigate to AI Advanced Strategy page
+    alert('AI Advanced Strategy feature coming soon!');
+  }
   
   const roadmap = calculateRoadmap();
   const recommendations = getSubjectRecommendations();
@@ -296,6 +359,12 @@ export default function ATARScreen() {
   }
 
   function handleEditSubject(subjectId: string) {
+    // Check premium limits for score editing
+    if (!limits.atarSubjectScoreEditing) {
+      alert('Subject score editing is a premium feature. Upgrade to Basic plan to unlock!');
+      return;
+    }
+
     const existing = subjectScores.find(s => s.subjectId === subjectId);
     setEditingSubject(subjectId);
     setSacInput(existing?.sacAverage.toString() || '');
@@ -317,7 +386,7 @@ export default function ATARScreen() {
     setRankInput('');
   }
 
-  const isLoading = isLoadingSubjects || isLoadingScores;
+  const isLoading = isLoadingSubjects || isLoadingScores || isPremiumLoading;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -383,12 +452,19 @@ export default function ATARScreen() {
               <Pressable
                 style={[styles.toolCard, showRoadmap && styles.toolCardActive]}
                 onPress={() => {
+                  if (!limits.atarRoadmapAccess) {
+                    setShowRoadmapPaywall(true);
+                    return;
+                  }
                   setShowRoadmap(!showRoadmap);
                   setShowWhatIf(false);
                   setShowScaling(false);
                   setShowRecommendations(false);
                 }}
               >
+                {!limits.atarRoadmapAccess && (
+                  <MaterialIcons name="lock" size={12} color={colors.warning} style={styles.lockIcon} />
+                )}
                 <MaterialIcons 
                   name="route" 
                   size={24} 
@@ -433,7 +509,7 @@ export default function ATARScreen() {
             </View>
 
             {/* Target Score Roadmap */}
-            {showRoadmap && (
+            {showRoadmap && limits.atarRoadmapAccess && (
               <View style={styles.roadmapCard}>
                 <View style={styles.roadmapHeader}>
                   <MaterialIcons name="route" size={24} color={colors.success} />
@@ -579,6 +655,31 @@ export default function ATARScreen() {
                     )}
                   </View>
                 ))}
+
+                {/* AI Strategy Buttons */}
+                <View style={styles.aiStrategyContainer}>
+                  <Pressable
+                    style={[styles.aiStrategyButton, styles.aiStrategyButtonBasic]}
+                    onPress={handleAIStrategy}
+                  >
+                    <MaterialIcons name="psychology" size={20} color={colors.background} />
+                    <Text style={styles.aiStrategyButtonText}>AI Subject Strategy</Text>
+                    {!limits.atarAISubjectStrategy && (
+                      <Text style={styles.premiumBadge}>Premium</Text>
+                    )}
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.aiStrategyButton, styles.aiStrategyButtonPro]}
+                    onPress={handleAIAdvancedStrategy}
+                  >
+                    <MaterialIcons name="auto-awesome" size={20} color={colors.background} />
+                    <Text style={styles.aiStrategyButtonText}>AI Advanced Strategy</Text>
+                    {!limits.atarAIAdvancedStrategy && (
+                      <Text style={styles.premiumBadge}>Premium</Text>
+                    )}
+                  </Pressable>
+                </View>
               </View>
             )}
             
@@ -672,24 +773,41 @@ export default function ATARScreen() {
                     </Text>
                   </View>
                 </View>
-                <Pressable style={styles.resetButton} onPress={resetWhatIf}>
-                  <Text style={styles.resetButtonText}>Reset Changes</Text>
-                </Pressable>
+                <View style={styles.whatIfButtons}>
+                  <Pressable style={styles.resetButton} onPress={resetWhatIf}>
+                    <Text style={styles.resetButtonText}>Reset Changes</Text>
+                  </Pressable>
+                  <Pressable style={styles.saveButton} onPress={handleSaveWhatIfScenario}>
+                    <MaterialIcons name="save" size={18} color={colors.background} />
+                    <Text style={styles.saveButtonText}>Save Scenario</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
 
-            {/* Scenarios */}
+            {/* Scenarios - Blur best/worst for free tier */}
             <View style={styles.scenariosCard}>
               <Text style={styles.sectionTitle}>ATAR Scenarios</Text>
               <View style={styles.scenarioRow}>
+                {/* Best Case - Premium Feature */}
                 <View style={styles.scenarioItem}>
-                  <Text style={[styles.scenarioValue, { color: colors.success }]}>
-                    {scenarios.bestCase.toFixed(2)}
-                  </Text>
-                  <Text style={styles.scenarioLabel}>Best Case</Text>
-                  <Text style={styles.scenarioDesc}>+10% all exams</Text>
+                  {!limits.atarBestWorstCaseVisible ? (
+                    <View style={styles.scenarioLocked}>
+                      <MaterialIcons name="lock" size={20} color={colors.textTertiary} />
+                      <Text style={styles.scenarioLockedText}>Premium</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={[styles.scenarioValue, { color: colors.success }]}>
+                        {scenarios.bestCase.toFixed(2)}
+                      </Text>
+                      <Text style={styles.scenarioLabel}>Best Case</Text>
+                      <Text style={styles.scenarioDesc}>+10% all exams</Text>
+                    </>
+                  )}
                 </View>
                 <View style={styles.scenarioDivider} />
+                {/* Current - Always Visible */}
                 <View style={styles.scenarioItem}>
                   <Text style={[styles.scenarioValue, { color: colors.atarMid }]}>
                     {scenarios.current.toFixed(2)}
@@ -698,12 +816,22 @@ export default function ATARScreen() {
                   <Text style={styles.scenarioDesc}>Based on inputs</Text>
                 </View>
                 <View style={styles.scenarioDivider} />
+                {/* Worst Case - Premium Feature */}
                 <View style={styles.scenarioItem}>
-                  <Text style={[styles.scenarioValue, { color: colors.warning }]}>
-                    {scenarios.worstCase.toFixed(2)}
-                  </Text>
-                  <Text style={styles.scenarioLabel}>Worst Case</Text>
-                  <Text style={styles.scenarioDesc}>-10% all exams</Text>
+                  {!limits.atarBestWorstCaseVisible ? (
+                    <View style={styles.scenarioLocked}>
+                      <MaterialIcons name="lock" size={20} color={colors.textTertiary} />
+                      <Text style={styles.scenarioLockedText}>Premium</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={[styles.scenarioValue, { color: colors.warning }]}>
+                        {scenarios.worstCase.toFixed(2)}
+                      </Text>
+                      <Text style={styles.scenarioLabel}>Worst Case</Text>
+                      <Text style={styles.scenarioDesc}>-10% all exams</Text>
+                    </>
+                  )}
                 </View>
               </View>
             </View>
@@ -711,7 +839,9 @@ export default function ATARScreen() {
             {/* Subject Scores */}
             <Text style={styles.sectionTitle}>Subject Scores</Text>
             <Text style={styles.sectionDesc}>
-              Enter your SAC averages and predicted exam scores
+              {limits.atarSubjectScoreEditing 
+                ? 'Enter your SAC averages and predicted exam scores'
+                : '🔒 Score editing available in Premium plan'}
             </Text>
 
             {userSubjects.map(subject => {
@@ -802,9 +932,14 @@ export default function ATARScreen() {
                       style={styles.addScoreCard}
                       onPress={() => handleEditSubject(subject.id)}
                     >
+                      {!limits.atarSubjectScoreEditing && (
+                        <MaterialIcons name="lock" size={24} color={colors.textTertiary} style={styles.addScoreLock} />
+                      )}
                       <MaterialIcons name="add-circle-outline" size={32} color={colors.primary} />
                       <Text style={styles.addScoreText}>{subject.name}</Text>
-                      <Text style={styles.addScoreDesc}>Tap to add scores</Text>
+                      <Text style={styles.addScoreDesc}>
+                        {limits.atarSubjectScoreEditing ? 'Tap to add scores' : 'Premium feature'}
+                      </Text>
                     </Pressable>
                   )}
                 </View>
@@ -865,6 +1000,43 @@ export default function ATARScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Premium Paywalls */}
+      <PremiumPaywall
+        visible={showRoadmapPaywall}
+        onClose={() => setShowRoadmapPaywall(false)}
+        feature="ATAR Roadmap"
+        description="Get personalized roadmaps showing exactly what scores you need to reach your target ATAR"
+        requiredTier="basic"
+        currentTier={tier}
+      />
+
+      <PremiumPaywall
+        visible={showWhatIfPaywall}
+        onClose={() => setShowWhatIfPaywall(false)}
+        feature="What-If Scenarios"
+        description="Save and compare unlimited what-if scenarios to plan your exam strategy"
+        requiredTier="basic"
+        currentTier={tier}
+      />
+
+      <PremiumPaywall
+        visible={showAIStrategyPaywall}
+        onClose={() => setShowAIStrategyPaywall(false)}
+        feature="AI Subject Strategy"
+        description="Get AI-powered subject-specific strategy recommendations based on your performance"
+        requiredTier="basic"
+        currentTier={tier}
+      />
+
+      <PremiumPaywall
+        visible={showAIAdvancedPaywall}
+        onClose={() => setShowAIAdvancedPaywall(false)}
+        feature="AI Advanced Subject Strategy"
+        description="Unlock advanced AI analysis with personalized study plans and performance predictions"
+        requiredTier="pro"
+        currentTier={tier}
+      />
     </View>
   );
 }
@@ -916,6 +1088,8 @@ const styles = StyleSheet.create({
   scenarioItem: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 70,
   },
   scenarioValue: {
     fontSize: typography.h2,
@@ -930,6 +1104,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textTertiary,
     marginTop: 2,
+  },
+  scenarioLocked: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  scenarioLockedText: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
   },
   scenarioDivider: {
     width: 1,
@@ -976,6 +1158,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderStyle: 'dashed',
     borderColor: colors.border,
+    position: 'relative',
+  },
+  addScoreLock: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
   },
   addScoreText: {
     fontSize: typography.body,
@@ -1151,7 +1339,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginHorizontal: spacing.md,
   },
+  whatIfButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   resetButton: {
+    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
@@ -1163,6 +1356,21 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
     color: colors.textSecondary,
+  },
+  saveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+  },
+  saveButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.background,
   },
   whatIfSubjectCard: {
     backgroundColor: colors.surface,
@@ -1230,6 +1438,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     borderWidth: 2,
     borderColor: colors.border,
+    position: 'relative',
   },
   toolCardActive: {
     backgroundColor: colors.primary,
@@ -1242,6 +1451,11 @@ const styles = StyleSheet.create({
   },
   toolTextActive: {
     color: colors.background,
+  },
+  lockIcon: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
   },
   
   // Target Score Roadmap
@@ -1494,6 +1708,45 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     fontWeight: typography.semibold,
     color: colors.error,
+  },
+  aiStrategyContainer: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  aiStrategyButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    position: 'relative',
+  },
+  aiStrategyButtonBasic: {
+    backgroundColor: colors.primary,
+  },
+  aiStrategyButtonPro: {
+    backgroundColor: colors.premium,
+  },
+  aiStrategyButtonText: {
+    fontSize: typography.caption,
+    fontWeight: typography.bold,
+    color: colors.background,
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: colors.warning,
+    fontSize: 8,
+    fontWeight: typography.bold,
+    color: colors.background,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: borderRadius.xs,
   },
   
   // Scaling Visualization
