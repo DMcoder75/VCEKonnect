@@ -249,39 +249,87 @@ export async function getUserWhatIfScenarios(userId: string): Promise<WhatIfScen
  * Check if user can create a new AI study plan
  */
 export async function canCreateAIStudyPlan(userId: string): Promise<{ allowed: boolean; reason?: string }> {
-  const supabase = getSupabaseClient();
-  const tier = await getUserPremiumTier(userId);
-  const limits = PREMIUM_TIER_LIMITS[tier];
-  
-  if (limits.aiStudyPlansTotal === 'unlimited') {
+  try {
+    const supabase = getSupabaseClient();
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
+    
+    if (limits.aiStudyPlansTotal === 'unlimited') {
+      return { allowed: true };
+    }
+    
+    // Check total count - use direct query if RPC not available
+    let count = 0;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('count_ai_study_plans', {
+      p_user_id: userId,
+    });
+    
+    if (rpcError) {
+      // Fallback to direct query if RPC function doesn't exist
+      console.warn('RPC function not available, using direct query:', rpcError);
+      const { data: directData, error: directError } = await supabase
+        .from('vk_ai_study_plans')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (directError) {
+        console.error('Error counting AI study plans (direct query):', directError);
+        return { allowed: false, reason: 'Error checking limit' };
+      }
+      count = directData || 0;
+    } else {
+      count = rpcData || 0;
+    }
+    
+    if (count >= limits.aiStudyPlansTotal) {
+      if (tier === 'free') {
+        return { 
+          allowed: false, 
+          reason: 'Free tier limited to 1 AI study plan. Upgrade to Basic ($20/6m) for 5 stored plans or Pro ($40/6m) for unlimited personalized plans!' 
+        };
+      } else {
+        return { 
+          allowed: false, 
+          reason: `Basic tier limited to ${limits.aiStudyPlansTotal} stored plans. Upgrade to Pro ($40/6m) for unlimited personalized weekly plans!` 
+        };
+      }
+    }
+    
     return { allowed: true };
-  }
-  
-  // Check total count
-  const { data: count, error } = await supabase.rpc('count_ai_study_plans', {
-    p_user_id: userId,
-  });
-  
-  if (error) {
-    console.error('Error counting AI study plans:', error);
+  } catch (error) {
+    console.error('Unexpected error in canCreateAIStudyPlan:', error);
     return { allowed: false, reason: 'Error checking limit' };
   }
+}
+
+/**
+ * Save AI study plan to database
+ */
+export async function saveAIStudyPlan(plan: {
+  userId: string;
+  weekStartDate: string;
+  weekEndDate: string;
+  planContent: any;
+  planSummary?: string;
+  contextData?: any;
+}): Promise<{ data: any; error: any }> {
+  const supabase = getSupabaseClient();
   
-  if (count >= limits.aiStudyPlansTotal) {
-    if (tier === 'free') {
-      return { 
-        allowed: false, 
-        reason: 'Free tier limited to 1 AI study plan. Upgrade to Basic ($20/6m) for 5 stored plans or Pro ($40/6m) for unlimited personalized plans!' 
-      };
-    } else {
-      return { 
-        allowed: false, 
-        reason: `Basic tier limited to ${limits.aiStudyPlansTotal} stored plans. Upgrade to Pro ($40/6m) for unlimited personalized weekly plans!` 
-      };
-    }
-  }
+  const { data, error } = await supabase
+    .from('vk_ai_study_plans')
+    .insert({
+      user_id: plan.userId,
+      week_start_date: plan.weekStartDate,
+      week_end_date: plan.weekEndDate,
+      plan_content: plan.planContent,
+      plan_summary: plan.planSummary,
+      context_data: plan.contextData,
+      is_active: true,
+    })
+    .select()
+    .single();
   
-  return { allowed: true };
+  return { data, error: error?.message || error };
 }
 
 // =====================================================
@@ -292,49 +340,98 @@ export async function canCreateAIStudyPlan(userId: string): Promise<{ allowed: b
  * Check if user can create AI recommendation for subject
  */
 export async function canCreateAIRecommendation(userId: string, subjectId: string): Promise<{ allowed: boolean; reason?: string }> {
-  const supabase = getSupabaseClient();
-  const tier = await getUserPremiumTier(userId);
-  const limits = PREMIUM_TIER_LIMITS[tier];
-  
-  if (limits.aiRecommendationsPerSubject === 'unlimited') {
-    return { allowed: true };
-  }
-  
-  // Free tier: only one subject, only once
-  if (tier === 'free') {
-    const { data: totalCount } = await supabase
-      .from('vk_ai_recommendations')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
+  try {
+    const supabase = getSupabaseClient();
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
     
-    if (totalCount && totalCount > 0) {
+    if (limits.aiRecommendationsPerSubject === 'unlimited') {
+      return { allowed: true };
+    }
+    
+    // Free tier: only one subject, only once
+    if (tier === 'free') {
+      const { data: totalCount } = await supabase
+        .from('vk_ai_recommendations')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (totalCount && totalCount > 0) {
+        return { 
+          allowed: false, 
+          reason: 'Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
+        };
+      }
+      return { allowed: true };
+    }
+    
+    // Basic tier: check per-subject limit - use direct query if RPC not available
+    let count = 0;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('count_ai_recommendations_for_subject', {
+      p_user_id: userId,
+      p_subject_id: subjectId,
+    });
+    
+    if (rpcError) {
+      // Fallback to direct query
+      console.warn('RPC function not available, using direct query:', rpcError);
+      const { data: directData, error: directError } = await supabase
+        .from('vk_ai_recommendations')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('subject_id', subjectId);
+      
+      if (directError) {
+        console.error('Error counting AI recommendations:', directError);
+        return { allowed: false, reason: 'Error checking limit' };
+      }
+      count = directData || 0;
+    } else {
+      count = rpcData || 0;
+    }
+    
+    if (count >= limits.aiRecommendationsPerSubject) {
       return { 
         allowed: false, 
-        reason: 'Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
+        reason: `Basic tier limited to ${limits.aiRecommendationsPerSubject} recommendations per subject. Upgrade to Pro ($40/6m) for unlimited!` 
       };
     }
+    
     return { allowed: true };
-  }
-  
-  // Basic tier: check per-subject limit
-  const { data: count, error } = await supabase.rpc('count_ai_recommendations_for_subject', {
-    p_user_id: userId,
-    p_subject_id: subjectId,
-  });
-  
-  if (error) {
-    console.error('Error counting AI recommendations:', error);
+  } catch (error) {
+    console.error('Unexpected error in canCreateAIRecommendation:', error);
     return { allowed: false, reason: 'Error checking limit' };
   }
+}
+
+/**
+ * Save AI recommendation to database
+ */
+export async function saveAIRecommendation(recommendation: {
+  userId: string;
+  subjectId: string;
+  recommendationType: string;
+  recommendationContent: any;
+  recommendationSummary?: string;
+  contextData?: any;
+}): Promise<{ data: any; error: any }> {
+  const supabase = getSupabaseClient();
   
-  if (count >= limits.aiRecommendationsPerSubject) {
-    return { 
-      allowed: false, 
-      reason: `Basic tier limited to ${limits.aiRecommendationsPerSubject} recommendations per subject. Upgrade to Pro ($40/6m) for unlimited!` 
-    };
-  }
+  const { data, error } = await supabase
+    .from('vk_ai_recommendations')
+    .insert({
+      user_id: recommendation.userId,
+      subject_id: recommendation.subjectId,
+      recommendation_type: recommendation.recommendationType,
+      recommendation_content: recommendation.recommendationContent,
+      recommendation_summary: recommendation.recommendationSummary,
+      context_data: recommendation.contextData,
+      is_bookmarked: false,
+    })
+    .select()
+    .single();
   
-  return { allowed: true };
+  return { data, error: error?.message || error };
 }
 
 // =====================================================
@@ -345,47 +442,99 @@ export async function canCreateAIRecommendation(userId: string, subjectId: strin
  * Check if user can create AI practice questions for subject
  */
 export async function canCreateAIPracticeQuestions(userId: string, subjectId: string): Promise<{ allowed: boolean; reason?: string }> {
-  const supabase = getSupabaseClient();
-  const tier = await getUserPremiumTier(userId);
-  const limits = PREMIUM_TIER_LIMITS[tier];
-  
-  if (limits.aiPracticeQuestionsPerSubject === 'unlimited') {
-    return { allowed: true };
-  }
-  
-  // Free tier: only one subject, only once
-  if (tier === 'free') {
-    const { data: totalCount } = await supabase
-      .from('vk_ai_practice_questions')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
+  try {
+    const supabase = getSupabaseClient();
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
     
-    if (totalCount && totalCount > 0) {
+    if (limits.aiPracticeQuestionsPerSubject === 'unlimited') {
+      return { allowed: true };
+    }
+    
+    // Free tier: only one subject, only once
+    if (tier === 'free') {
+      const { data: totalCount } = await supabase
+        .from('vk_ai_practice_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (totalCount && totalCount > 0) {
+        return { 
+          allowed: false, 
+          reason: 'Free tier limited to 1 subject practice questions. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
+        };
+      }
+      return { allowed: true };
+    }
+    
+    // Basic tier: check per-subject limit - use direct query if RPC not available
+    let count = 0;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('count_ai_practice_questions_for_subject', {
+      p_user_id: userId,
+      p_subject_id: subjectId,
+    });
+    
+    if (rpcError) {
+      // Fallback to direct query
+      console.warn('RPC function not available, using direct query:', rpcError);
+      const { data: directData, error: directError } = await supabase
+        .from('vk_ai_practice_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('subject_id', subjectId);
+      
+      if (directError) {
+        console.error('Error counting AI practice questions:', directError);
+        return { allowed: false, reason: 'Error checking limit' };
+      }
+      count = directData || 0;
+    } else {
+      count = rpcData || 0;
+    }
+    
+    if (count >= limits.aiPracticeQuestionsPerSubject) {
       return { 
         allowed: false, 
-        reason: 'Free tier limited to 1 subject practice questions. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
+        reason: `Basic tier limited to ${limits.aiPracticeQuestionsPerSubject} practice question sets per subject. Upgrade to Pro ($40/6m) for unlimited!` 
       };
     }
+    
     return { allowed: true };
-  }
-  
-  // Basic tier: check per-subject limit
-  const { data: count, error } = await supabase.rpc('count_ai_practice_questions_for_subject', {
-    p_user_id: userId,
-    p_subject_id: subjectId,
-  });
-  
-  if (error) {
-    console.error('Error counting AI practice questions:', error);
+  } catch (error) {
+    console.error('Unexpected error in canCreateAIPracticeQuestions:', error);
     return { allowed: false, reason: 'Error checking limit' };
   }
+}
+
+/**
+ * Save AI practice questions to database
+ */
+export async function saveAIPracticeQuestions(questions: {
+  userId: string;
+  subjectId: string;
+  topic?: string;
+  difficultyLevel?: 'easy' | 'medium' | 'hard' | 'exam_level';
+  questionsContent: any;
+  questionCount: number;
+}): Promise<{ data: any; error: any }> {
+  const supabase = getSupabaseClient();
   
-  if (count >= limits.aiPracticeQuestionsPerSubject) {
-    return { 
-      allowed: false, 
-      reason: `Basic tier limited to ${limits.aiPracticeQuestionsPerSubject} practice question sets per subject. Upgrade to Pro ($40/6m) for unlimited!` 
-    };
-  }
+  const { data, error } = await supabase
+    .from('vk_ai_practice_questions')
+    .insert({
+      user_id: questions.userId,
+      subject_id: questions.subjectId,
+      topic: questions.topic,
+      difficulty_level: questions.difficultyLevel,
+      questions_content: questions.questionsContent,
+      question_count: questions.questionCount,
+      attempted_count: 0,
+      correct_count: 0,
+      completion_status: 'not_started',
+      is_bookmarked: false,
+    })
+    .select()
+    .single();
   
-  return { allowed: true };
+  return { data, error: error?.message || error };
 }
