@@ -241,6 +241,7 @@ export default function AIStudyPlanScreen() {
     // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
     // This ensures free tier users can't spam generate after their first use
     if (result.data) {
+      console.log('[AI Study Plan] Auto-saving usage to database...');
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
       const weekEnd = new Date(weekStart);
@@ -265,7 +266,17 @@ export default function AIStudyPlanScreen() {
         },
       };
 
-      await saveAIStudyPlan(planData);
+      console.log('[AI Study Plan] Saving plan data:', JSON.stringify(planData, null, 2));
+      const saveResult = await saveAIStudyPlan(planData);
+      
+      if (saveResult.error) {
+        console.error('[AI Study Plan] ❌ SAVE FAILED:', saveResult.error);
+        alert('Warning: Usage tracking failed - ' + saveResult.error);
+      } else {
+        console.log('[AI Study Plan] ✅ Successfully saved usage record:', saveResult.data);
+      }
+    } else {
+      console.error('[AI Study Plan] ❌ No result.data - cannot save usage');
     }
     
     // Re-check limits after generation completes to update button state

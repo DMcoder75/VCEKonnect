@@ -126,6 +126,7 @@ export default function AIRecommendationsScreen() {
 
         // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
         // This ensures free tier users can't spam generate after their first use
+        console.log('[AI Recommendations] Auto-saving usage to database...');
         const initialResponse = result.data.response || '';
         const recommendationData = {
           userId: user.id,
@@ -143,7 +144,15 @@ export default function AIRecommendationsScreen() {
           },
         };
 
-        await saveAIRecommendation(recommendationData);
+        console.log('[AI Recommendations] Saving recommendation data:', JSON.stringify(recommendationData, null, 2));
+        const saveResult = await saveAIRecommendation(recommendationData);
+        
+        if (saveResult.error) {
+          console.error('[AI Recommendations] ❌ SAVE FAILED:', saveResult.error);
+          alert('Warning: Usage tracking failed - ' + saveResult.error);
+        } else {
+          console.log('[AI Recommendations] ✅ Successfully saved usage record:', saveResult.data);
+        }
         
         // Re-check limits after generation to update disabled subjects
         setTimeout(async () => {
