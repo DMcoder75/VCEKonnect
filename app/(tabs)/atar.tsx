@@ -785,57 +785,6 @@ export default function ATARScreen() {
               </View>
             )}
 
-            {/* Scenarios - Blur best/worst for free tier */}
-            <View style={styles.scenariosCard}>
-              <Text style={styles.sectionTitle}>ATAR Scenarios</Text>
-              <View style={styles.scenarioRow}>
-                {/* Best Case - Premium Feature */}
-                <View style={styles.scenarioItem}>
-                  {!limits.atarBestWorstCaseVisible ? (
-                    <View style={styles.scenarioLocked}>
-                      <MaterialIcons name="lock" size={20} color={colors.textTertiary} />
-                      <Text style={styles.scenarioLockedText}>Premium</Text>
-                    </View>
-                  ) : (
-                    <>
-                      <Text style={[styles.scenarioValue, { color: colors.success }]}>
-                        {scenarios.bestCase.toFixed(2)}
-                      </Text>
-                      <Text style={styles.scenarioLabel}>Best Case</Text>
-                      <Text style={styles.scenarioDesc}>+10% all exams</Text>
-                    </>
-                  )}
-                </View>
-                <View style={styles.scenarioDivider} />
-                {/* Current - Always Visible */}
-                <View style={styles.scenarioItem}>
-                  <Text style={[styles.scenarioValue, { color: colors.atarMid }]}>
-                    {scenarios.current.toFixed(2)}
-                  </Text>
-                  <Text style={styles.scenarioLabel}>Current</Text>
-                  <Text style={styles.scenarioDesc}>Based on inputs</Text>
-                </View>
-                <View style={styles.scenarioDivider} />
-                {/* Worst Case - Premium Feature */}
-                <View style={styles.scenarioItem}>
-                  {!limits.atarBestWorstCaseVisible ? (
-                    <View style={styles.scenarioLocked}>
-                      <MaterialIcons name="lock" size={20} color={colors.textTertiary} />
-                      <Text style={styles.scenarioLockedText}>Premium</Text>
-                    </View>
-                  ) : (
-                    <>
-                      <Text style={[styles.scenarioValue, { color: colors.warning }]}>
-                        {scenarios.worstCase.toFixed(2)}
-                      </Text>
-                      <Text style={styles.scenarioLabel}>Worst Case</Text>
-                      <Text style={styles.scenarioDesc}>-10% all exams</Text>
-                    </>
-                  )}
-                </View>
-              </View>
-            </View>
-
             {/* Subject Scores */}
             <Text style={styles.sectionTitle}>Subject Scores</Text>
             <Text style={styles.sectionDesc}>
@@ -1075,49 +1024,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.sm,
   },
-  scenariosCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  scenarioRow: {
-    flexDirection: 'row',
-    marginTop: spacing.md,
-  },
-  scenarioItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 70,
-  },
-  scenarioValue: {
-    fontSize: typography.h2,
-    fontWeight: typography.bold,
-  },
-  scenarioLabel: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  scenarioDesc: {
-    fontSize: 10,
-    color: colors.textTertiary,
-    marginTop: 2,
-  },
-  scenarioLocked: {
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  scenarioLockedText: {
-    fontSize: typography.caption,
-    color: colors.textTertiary,
-  },
-  scenarioDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.sm,
-  },
+
   sectionTitle: {
     fontSize: typography.h3,
     fontWeight: typography.semibold,
