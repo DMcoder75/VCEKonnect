@@ -6,15 +6,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
+import { usePremium } from '@/hooks/usePremium';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
+import { PremiumPaywall } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { getUserPreferences, updateUserPreferences } from '@/services/userPreferencesService';
 import { getActiveGoals } from '@/services/studyGoalsService';
 import { calculateATAR } from '@/services/atarCalculator';
+import { canCreateAIStudyPlan, saveAIStudyPlan } from '@/services/premiumService';
 
 // Format AI response text (preserve structure, clean markdown)
 function formatResponseText(text: string) {
@@ -36,6 +39,7 @@ export default function AIStudyPlanScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isLoading, error, response, setResponse, createStudyPlan } = useAI();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [currentScores, setCurrentScores] = useState<{ [key: string]: number }>({});
@@ -47,6 +51,10 @@ export default function AIStudyPlanScreen() {
   const [fullResponse, setFullResponse] = useState(''); // Complete accumulated response
   const [showFullText, setShowFullText] = useState(false); // Fade-in effect trigger
   const [sessionId, setSessionId] = useState<string>(''); // Unique session ID for this conversation
+  
+  // Premium paywall states
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState('');
   
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
@@ -184,6 +192,14 @@ export default function AIStudyPlanScreen() {
   async function handleGeneratePlan() {
     if (!user || !targetATAR || !hoursPerWeek) return;
     
+    // Check premium limits before generating
+    const check = await canCreateAIStudyPlan(user.id);
+    if (!check.allowed) {
+      setPaywallMessage(check.reason);
+      setShowPaywall(true);
+      return;
+    }
+    
     // Reset state
     setShowPlaceholder(true);
     setFullResponse('');
@@ -210,6 +226,42 @@ export default function AIStudyPlanScreen() {
     // Placeholder will hide automatically when response arrives
   }
 
+  async function handleSavePlan() {
+    if (!user || !fullResponse) return;
+
+    // Save the study plan to database
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
+
+    const planData = {
+      userId: user.id,
+      weekStartDate: weekStart.toISOString().split('T')[0],
+      weekEndDate: weekEnd.toISOString().split('T')[0],
+      planContent: {
+        subjects: userSubjects.map(s => ({ code: s.code, name: s.name })),
+        targetATAR: parseFloat(targetATAR),
+        hoursPerWeek: parseFloat(hoursPerWeek),
+        examDate,
+        generatedPlan: fullResponse,
+      },
+      planSummary: fullResponse.substring(0, 200) + '...', // First 200 chars
+      contextData: {
+        currentScores,
+        totalSubjects: userSubjects.length,
+      },
+    };
+
+    const { data, error } = await saveAIStudyPlan(planData);
+    if (error) {
+      console.error('Error saving study plan:', error);
+      alert('Failed to save study plan: ' + error);
+    } else {
+      alert('Study plan saved successfully!');
+    }
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
@@ -227,12 +279,21 @@ export default function AIStudyPlanScreen() {
         </View>
 
         {/* Premium Badge */}
-        <View style={styles.premiumBadge}>
-          <MaterialIcons name="auto-awesome" size={20} color={colors.warning} />
-          <Text style={styles.premiumText}>AI-Powered Premium Feature</Text>
+        <View style={[
+          styles.premiumBadge,
+          tier === 'pro' && styles.premiumBadgePro,
+          tier === 'basic' && styles.premiumBadgeBasic,
+        ]}>
+          <MaterialIcons name="auto-awesome" size={20} color={tier === 'free' ? colors.warning : colors.background} />
+          <Text style={[
+            styles.premiumText,
+            tier !== 'free' && styles.premiumTextActive,
+          ]}>
+            {tier === 'pro' ? 'Pro Plan - Unlimited AI Plans' : tier === 'basic' ? 'Basic Plan - 5 Plans Stored' : 'Free: 1 Trial Only'}
+          </Text>
         </View>
 
-        {isLoadingData ? (
+        {isLoadingData || isPremiumLoading ? (
           <LoadingSpinner message="Loading your data..." />
         ) : (
           <>
@@ -351,11 +412,29 @@ export default function AIStudyPlanScreen() {
                     </Text>
                   </View>
                 )}
+
+                {/* Save Button - Only show for Basic/Pro tiers */}
+                {limits.aiStudyPlanStorage && (
+                  <Pressable style={styles.saveButton} onPress={handleSavePlan}>
+                    <MaterialIcons name="save" size={20} color={colors.background} />
+                    <Text style={styles.saveButtonText}>Save Study Plan</Text>
+                  </Pressable>
+                )}
               </View>
             )}
           </>
         )}
       </ScrollView>
+
+      {/* Premium Paywall */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        feature="AI Study Plans"
+        description={paywallMessage || "Get AI-generated personalized weekly study plans based on your progress and goals"}
+        requiredTier={tier === 'free' ? 'basic' : 'pro'}
+        currentTier={tier}
+      />
     </View>
   );
 }
@@ -404,10 +483,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.warning,
   },
+  premiumBadgeBasic: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  premiumBadgePro: {
+    backgroundColor: colors.premium,
+    borderColor: colors.premium,
+  },
   premiumText: {
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
     color: colors.warning,
+  },
+  premiumTextActive: {
+    color: colors.background,
   },
   section: {
     marginBottom: spacing.lg,
@@ -560,8 +650,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: spacing.sm,
   },
-
-
   modelInfo: {
     paddingTop: spacing.sm,
     borderTopWidth: 1,
@@ -571,5 +659,21 @@ const styles = StyleSheet.create({
   modelText: {
     fontSize: typography.caption,
     color: colors.textTertiary,
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+  },
+  saveButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
 });

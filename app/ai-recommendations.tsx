@@ -6,22 +6,31 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
+import { usePremium } from '@/hooks/usePremium';
 import { LoadingSpinner } from '@/components/ui';
+import { PremiumPaywall } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectScores } from '@/services/scoresService';
 import { getStudyTimeBySubject } from '@/services/studyService';
 import { VCESubject } from '@/services/vceSubjectsService';
+import { canCreateAIRecommendation, saveAIRecommendation } from '@/services/premiumService';
 
 export default function AIRecommendationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { error, getRecommendations } = useAI();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [recommendations, setRecommendations] = useState<{ [subjectId: string]: any }>({});
   const [loadingSubjects, setLoadingSubjects] = useState<{ [subjectId: string]: boolean }>({});
   const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Premium paywall states
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState('');
+  const [currentSubjectId, setCurrentSubjectId] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -40,6 +49,15 @@ export default function AIRecommendationsScreen() {
 
   async function handleGetRecommendations(subjectId: string, subjectCode: string, subjectName: string) {
     if (!user) return;
+    
+    // Check premium limits before generating
+    const check = await canCreateAIRecommendation(user.id, subjectId);
+    if (!check.allowed) {
+      setCurrentSubjectId(subjectId);
+      setPaywallMessage(check.reason);
+      setShowPaywall(true);
+      return;
+    }
     
     // Set loading state for this specific subject
     setLoadingSubjects(prev => ({ ...prev, [subjectId]: true }));
@@ -74,6 +92,27 @@ export default function AIRecommendationsScreen() {
           ...prev,
           [subjectId]: result.data,
         }));
+
+        // Save to database if user has storage quota (Basic/Pro tier)
+        if (limits.aiRecommendationsStorage) {
+          const recommendationData = {
+            userId: user.id,
+            subjectId,
+            recommendationType: 'study_strategy',
+            recommendationContent: {
+              response: result.data.response,
+              metadata: result.data.metadata,
+            },
+            recommendationSummary: result.data.response.substring(0, 200) + '...',
+            contextData: {
+              recentMinutes,
+              currentScore,
+              daysUntilExam,
+            },
+          };
+
+          await saveAIRecommendation(recommendationData);
+        }
       }
     } finally {
       // Clear loading state for this subject
@@ -98,16 +137,25 @@ export default function AIRecommendationsScreen() {
         </View>
 
         {/* Premium Badge */}
-        <View style={styles.premiumBadge}>
-          <MaterialIcons name="auto-awesome" size={20} color={colors.warning} />
-          <Text style={styles.premiumText}>AI-Powered Study Insights</Text>
+        <View style={[
+          styles.premiumBadge,
+          tier === 'pro' && styles.premiumBadgePro,
+          tier === 'basic' && styles.premiumBadgeBasic,
+        ]}>
+          <MaterialIcons name="auto-awesome" size={20} color={tier === 'free' ? colors.warning : colors.background} />
+          <Text style={[
+            styles.premiumText,
+            tier !== 'free' && styles.premiumTextActive,
+          ]}>
+            {tier === 'pro' ? 'Pro Plan - Unlimited Recommendations' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
+          </Text>
         </View>
 
         <Text style={styles.description}>
           Get personalized study recommendations for each subject based on your progress and upcoming exams.
         </Text>
 
-        {isLoadingData ? (
+        {isLoadingData || isPremiumLoading ? (
           <LoadingSpinner message="Loading subjects..." />
         ) : (
           <>
@@ -153,6 +201,7 @@ export default function AIRecommendationsScreen() {
                         <Text style={styles.metaText}>
                           Generated {new Date(subjectRec.timestamp).toLocaleTimeString()}
                           {subjectRec.metadata?.search_performed && ' • Web search used'}
+                          {limits.aiRecommendationsStorage && ' • Saved'}
                         </Text>
                       </View>
                     </View>
@@ -176,6 +225,16 @@ export default function AIRecommendationsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Premium Paywall */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        feature="AI Recommendations"
+        description={paywallMessage || "Get AI-powered subject recommendations for all your subjects"}
+        requiredTier={tier === 'free' ? 'basic' : 'pro'}
+        currentTier={tier}
+      />
     </View>
   );
 }
@@ -224,10 +283,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.warning,
   },
+  premiumBadgeBasic: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  premiumBadgePro: {
+    backgroundColor: colors.premium,
+    borderColor: colors.premium,
+  },
   premiumText: {
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
     color: colors.warning,
+  },
+  premiumTextActive: {
+    color: colors.background,
   },
   description: {
     fontSize: typography.body,
@@ -302,21 +372,6 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: typography.caption,
     color: colors.textTertiary,
-  },
-  followupSection: {
-    marginTop: spacing.sm,
-    gap: spacing.xs,
-  },
-  followupItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.xs,
-  },
-  followupText: {
-    flex: 1,
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    lineHeight: 18,
   },
   errorCard: {
     backgroundColor: colors.surface,

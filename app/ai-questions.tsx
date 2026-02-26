@@ -6,11 +6,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
+import { usePremium } from '@/hooks/usePremium';
 import { useTypewriter } from '@/hooks/useTypewriter';
 import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
+import { PremiumPaywall } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
+import { canCreateAIPracticeQuestions, saveAIPracticeQuestions } from '@/services/premiumService';
 
 // Format AI response text (preserve structure, clean markdown & LaTeX)
 function formatResponseText(text: string) {
@@ -50,6 +53,7 @@ export default function AIQuestionsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isLoading, error, response, generateQuestions } = useAI();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<VCESubject | null>(null);
@@ -61,6 +65,10 @@ export default function AIQuestionsScreen() {
   const [fullResponse, setFullResponse] = useState('');
   const [showFullText, setShowFullText] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
+  
+  // Premium paywall states
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState('');
   
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
@@ -161,6 +169,14 @@ export default function AIQuestionsScreen() {
   async function handleGenerateQuestions() {
     if (!user || !selectedSubject || !topic) return;
     
+    // Check premium limits before generating
+    const check = await canCreateAIPracticeQuestions(user.id, selectedSubject.id);
+    if (!check.allowed) {
+      setPaywallMessage(check.reason);
+      setShowPaywall(true);
+      return;
+    }
+    
     // Reset state
     setShowPlaceholder(true);
     setFullResponse('');
@@ -181,6 +197,32 @@ export default function AIQuestionsScreen() {
     // Placeholder will hide automatically when response arrives
   }
 
+  async function handleSaveQuestions() {
+    if (!user || !selectedSubject || !fullResponse) return;
+
+    // Save practice questions to database
+    const questionsData = {
+      userId: user.id,
+      subjectId: selectedSubject.id,
+      topic,
+      difficultyLevel: difficulty,
+      questionsContent: {
+        response: fullResponse,
+        topic,
+        difficulty,
+      },
+      questionCount: parseInt(questionCount) || 3,
+    };
+
+    const { data, error } = await saveAIPracticeQuestions(questionsData);
+    if (error) {
+      console.error('Error saving practice questions:', error);
+      alert('Failed to save questions: ' + error);
+    } else {
+      alert('Practice questions saved successfully!');
+    }
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
@@ -198,12 +240,21 @@ export default function AIQuestionsScreen() {
         </View>
 
         {/* Premium Badge */}
-        <View style={styles.premiumBadge}>
-          <MaterialIcons name="auto-awesome" size={20} color={colors.warning} />
-          <Text style={styles.premiumText}>AI Question Generator</Text>
+        <View style={[
+          styles.premiumBadge,
+          tier === 'pro' && styles.premiumBadgePro,
+          tier === 'basic' && styles.premiumBadgeBasic,
+        ]}>
+          <MaterialIcons name="auto-awesome" size={20} color={tier === 'free' ? colors.warning : colors.background} />
+          <Text style={[
+            styles.premiumText,
+            tier !== 'free' && styles.premiumTextActive,
+          ]}>
+            {tier === 'pro' ? 'Pro Plan - Unlimited Questions' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
+          </Text>
         </View>
 
-        {isLoadingData ? (
+        {isLoadingData || isPremiumLoading ? (
           <LoadingSpinner message="Loading subjects..." />
         ) : (
           <>
@@ -341,10 +392,19 @@ export default function AIQuestionsScreen() {
                     <Text style={styles.modelText}>
                       {new Date(response.timestamp).toLocaleString()} • {fullResponse.length} characters
                       {response.metadata.search_performed && ' • Web search used'}
+                      {limits.aiPracticeQuestionsStorage && ' • Saved'}
                     </Text>
                   </View>
                 )}
                 
+                {/* Save Button - Only show for Basic/Pro tiers */}
+                {limits.aiPracticeQuestionsStorage && (
+                  <Pressable style={styles.saveButton} onPress={handleSaveQuestions}>
+                    <MaterialIcons name="save" size={20} color={colors.background} />
+                    <Text style={styles.saveButtonText}>Save Questions</Text>
+                  </Pressable>
+                )}
+
                 {/* Tips */}
                 <View style={styles.tipsCard}>
                   <MaterialIcons name="lightbulb-outline" size={20} color={colors.warning} />
@@ -357,6 +417,16 @@ export default function AIQuestionsScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Premium Paywall */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        feature="AI Practice Questions"
+        description={paywallMessage || "Get AI-generated VCE-style practice questions for all your subjects"}
+        requiredTier={tier === 'free' ? 'basic' : 'pro'}
+        currentTier={tier}
+      />
     </View>
   );
 }
@@ -405,10 +475,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.warning,
   },
+  premiumBadgeBasic: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  premiumBadgePro: {
+    backgroundColor: colors.premium,
+    borderColor: colors.premium,
+  },
   premiumText: {
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
     color: colors.warning,
+  },
+  premiumTextActive: {
+    color: colors.background,
   },
   section: {
     marginBottom: spacing.lg,
@@ -588,6 +669,22 @@ const styles = StyleSheet.create({
   modelText: {
     fontSize: typography.caption,
     color: colors.textTertiary,
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  saveButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
   tipsCard: {
     flexDirection: 'row',
