@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
-    paddingTop: spacing.sm, // Reduced top padding to minimize gap
+    paddingTop: 4, // Minimal gap between header and content
     paddingBottom: spacing.xxl,
   },
   messageCard: {
