@@ -493,18 +493,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingTop: spacing.sm, // Reduced top padding to minimize gap
     paddingBottom: spacing.xxl,
   },
   messageCard: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: spacing.sm, // Reduced padding
+    marginBottom: spacing.sm, // Reduced bottom margin
     borderWidth: 2,
     borderColor: colors.primary,
   },
   messageText: {
-    fontSize: typography.body,
+    fontSize: typography.bodySmall, // Reduced font size
     fontWeight: typography.semibold,
     color: colors.textPrimary,
     textAlign: 'center',

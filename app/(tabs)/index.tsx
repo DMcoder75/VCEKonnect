@@ -51,6 +51,7 @@ export default function DashboardScreen() {
   const [showWeeklyResetPrompt, setShowWeeklyResetPrompt] = useState(false);
   const [resetInfo, setResetInfo] = useState<{ currentWeekStart: Date; hasPreviousGoals: boolean } | null>(null);
   const [showMotivationalPopup, setShowMotivationalPopup] = useState(false);
+  const hasShownPopupThisSession = React.useRef(false); // Session-based flag
   
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
@@ -76,11 +77,12 @@ export default function DashboardScreen() {
     }
   }, [user]);
 
-  // Show motivational popup once per session (3 seconds after load)
+  // Show motivational popup ONCE per app launch session (not every time dashboard loads)
   useEffect(() => {
-    if (user && activeGoals && streaks) {
+    if (user && activeGoals && streaks && !hasShownPopupThisSession.current) {
       const timer = setTimeout(() => {
         setShowMotivationalPopup(true);
+        hasShownPopupThisSession.current = true; // Mark as shown for this session
       }, 3000); // 3 second delay
       return () => clearTimeout(timer);
     }

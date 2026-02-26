@@ -51,29 +51,17 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
     },
     {
       icon: 'lightbulb' as const,
-      label: 'AI Recommendations',
+      label: 'AI Recommends',
       route: '/ai-recommendations',
       color: colors.success,
       premium: true,
     },
     {
       icon: 'quiz' as const,
-      label: 'Practice Questions',
+      label: 'AI Questions',
       route: '/ai-questions',
       color: colors.warning,
       premium: true,
-    },
-    {
-      icon: 'privacy-tip' as const,
-      label: 'Privacy Policy',
-      route: '/privacy',
-      color: colors.primary,
-    },
-    {
-      icon: 'gavel' as const,
-      label: 'Terms & Conditions',
-      route: '/terms',
-      color: colors.warning,
     },
     {
       icon: 'help-outline' as const,
