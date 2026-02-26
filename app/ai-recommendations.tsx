@@ -145,10 +145,8 @@ export default function AIRecommendationsScreen() {
 
         await saveAIRecommendation(recommendationData);
         
-        // Re-check limits after generation to update disabled subjects
-        setTimeout(async () => {
-          await checkFreeTrialUsed();
-        }, 500);
+        // Immediately re-check limits after generation to update disabled subjects
+        await checkFreeTrialUsed();
       }
     } finally {
       // Clear loading state for this subject
@@ -220,7 +218,7 @@ export default function AIRecommendationsScreen() {
                           handleGetRecommendations(subject.id, subject.code, subject.name);
                         }
                       }}
-                      disabled={isLoadingSubject}
+                      disabled={isLoadingSubject || disabledSubjects.has(subject.id)}
                     >
                       <MaterialIcons 
                         name={disabledSubjects.has(subject.id) ? "lock" : isLoadingSubject ? "hourglass-empty" : "auto-awesome"} 
