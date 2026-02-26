@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
