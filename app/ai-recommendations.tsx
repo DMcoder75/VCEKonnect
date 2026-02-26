@@ -238,6 +238,7 @@ export default function AIRecommendationsScreen() {
                       onPress={() => {
                         if (isLocked) {
                           setCurrentSubjectId(subject.id);
+                          setPaywallMessage('Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!');
                           setShowPaywall(true);
                         } else {
                           handleGetRecommendations(subject.id, subject.code, subject.name);
