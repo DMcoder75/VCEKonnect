@@ -217,7 +217,6 @@ export default function AIQuestionsScreen() {
     // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
     // This ensures free tier users can't spam generate after their first use
     if (result.data) {
-      console.log('[AI Questions] Auto-saving usage to database...');
       const initialResponse = result.data.response || ''; // Use immediate response, not fullResponse
       const questionsData = {
         userId: user.id,
@@ -232,17 +231,7 @@ export default function AIQuestionsScreen() {
         questionCount: parseInt(questionCount) || 3,
       };
 
-      console.log('[AI Questions] Saving questions data:', JSON.stringify(questionsData, null, 2));
-      const saveResult = await saveAIPracticeQuestions(questionsData);
-      
-      if (saveResult.error) {
-        console.error('[AI Questions] ❌ SAVE FAILED:', saveResult.error);
-        alert('Warning: Usage tracking failed - ' + saveResult.error);
-      } else {
-        console.log('[AI Questions] ✅ Successfully saved usage record:', saveResult.data);
-      }
-    } else {
-      console.error('[AI Questions] ❌ No result.data - cannot save usage');
+      await saveAIPracticeQuestions(questionsData);
     }
     
     // Re-check limits after generation to update button state
