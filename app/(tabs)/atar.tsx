@@ -785,15 +785,19 @@ export default function ATARScreen() {
               </View>
             )}
 
-            {/* Subject Scores */}
-            <Text style={styles.sectionTitle}>Subject Scores</Text>
-            <Text style={styles.sectionDesc}>
-              {limits.atarSubjectScoreEditing 
-                ? 'Enter your SAC averages and predicted exam scores'
-                : '🔒 Score editing available in Premium plan'}
-            </Text>
+            {/* Subject Scores - Hidden when Scaling view is active */}
+            {!showScaling && (
+              <>
+                <Text style={styles.sectionTitle}>Subject Scores</Text>
+                <Text style={styles.sectionDesc}>
+                  {limits.atarSubjectScoreEditing 
+                    ? 'Enter your SAC averages and predicted exam scores'
+                    : '🔒 Score editing available in Premium plan'}
+                </Text>
+              </>
+            )}
 
-            {userSubjects.map(subject => {
+            {!showScaling && userSubjects.map(subject => {
               const score = subjectScores.find(s => s.subjectId === subject.id);
               const isEditing = editingSubject === subject.id;
               const whatIf = whatIfScores[subject.id];
@@ -895,7 +899,7 @@ export default function ATARScreen() {
               );
             })}
 
-            {userSubjects.length === 0 && (
+            {!showScaling && userSubjects.length === 0 && (
               <View style={styles.emptyState}>
                 <MaterialIcons name="assessment" size={64} color={colors.textTertiary} />
                 <Text style={styles.emptyText}>No subjects selected</Text>
