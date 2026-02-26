@@ -473,7 +473,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: 0,
   },
   backButton: {
     padding: spacing.xs,
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+    paddingTop: 0,
     paddingBottom: spacing.xxl,
   },
   messageCard: {
