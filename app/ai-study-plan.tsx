@@ -217,8 +217,6 @@ export default function AIStudyPlanScreen() {
     if (!user || !targetATAR || !hoursPerWeek) return;
     
     addDebugLog('🚀 Generate button clicked');
-    addDebugLog(`👤 Current user ID: ${user.id}`);
-    addDebugLog(`📧 Current user email: ${user.email}`);
     
     // Check premium limits before generating
     addDebugLog('🔍 Checking premium limits...');
@@ -276,8 +274,6 @@ export default function AIStudyPlanScreen() {
 
       const initialResponse = result.data.response || ''; // Use immediate response, not fullResponse
       addDebugLog(`📦 Plan data: response length=${initialResponse.length} chars`);
-      
-      addDebugLog(`💾 Attempting to save with user_id: ${user.id}`);
       
       const planData = {
         userId: user.id,
