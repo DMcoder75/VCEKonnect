@@ -204,7 +204,7 @@ export default function AIQuestionsScreen() {
     completionInProgress.current = false;
     
     // Pass session ID for continuation support
-    await generateQuestions(
+    const result = await generateQuestions(
       user.id,
       selectedSubject.code,
       selectedSubject.name,
@@ -213,6 +213,25 @@ export default function AIQuestionsScreen() {
       parseInt(questionCount) || 3,
       sessionId // Pass session ID to enable continuation
     );
+    
+    // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
+    // This ensures free tier users can't spam generate after their first use
+    if (result.data && fullResponse) {
+      const questionsData = {
+        userId: user.id,
+        subjectId: selectedSubject.id,
+        topic,
+        difficultyLevel: difficulty,
+        questionsContent: {
+          response: fullResponse,
+          topic,
+          difficulty,
+        },
+        questionCount: parseInt(questionCount) || 3,
+      };
+
+      await saveAIPracticeQuestions(questionsData);
+    }
     
     // Re-check limits after generation to update button state
     setTimeout(async () => {

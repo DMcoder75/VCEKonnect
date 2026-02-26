@@ -124,26 +124,25 @@ export default function AIRecommendationsScreen() {
           [subjectId]: result.data,
         }));
 
-        // Save to database if user has storage quota (Basic/Pro tier)
-        if (limits.aiRecommendationsStorage) {
-          const recommendationData = {
-            userId: user.id,
-            subjectId,
-            recommendationType: 'study_strategy',
-            recommendationContent: {
-              response: result.data.response,
-              metadata: result.data.metadata,
-            },
-            recommendationSummary: result.data.response.substring(0, 200) + '...',
-            contextData: {
-              recentMinutes,
-              currentScore,
-              daysUntilExam,
-            },
-          };
+        // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
+        // This ensures free tier users can't spam generate after their first use
+        const recommendationData = {
+          userId: user.id,
+          subjectId,
+          recommendationType: 'study_strategy',
+          recommendationContent: {
+            response: result.data.response,
+            metadata: result.data.metadata,
+          },
+          recommendationSummary: result.data.response.substring(0, 200) + '...',
+          contextData: {
+            recentMinutes,
+            currentScore,
+            daysUntilExam,
+          },
+        };
 
-          await saveAIRecommendation(recommendationData);
-        }
+        await saveAIRecommendation(recommendationData);
         
         // Re-check limits after generation to update disabled subjects
         setTimeout(async () => {

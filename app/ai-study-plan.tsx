@@ -228,7 +228,7 @@ export default function AIStudyPlanScreen() {
     });
     
     // Pass full subject names and codes with session ID
-    await createStudyPlan(
+    const result = await createStudyPlan(
       user.id,
       userSubjects.map(s => ({ code: s.code, name: s.name })),
       parseFloat(targetATAR),
@@ -237,6 +237,35 @@ export default function AIStudyPlanScreen() {
       examDate,
       sessionId // Pass session ID to maintain conversation context
     );
+    
+    // CRITICAL: Auto-save to database to track usage (required for limit enforcement)
+    // This ensures free tier users can't spam generate after their first use
+    if (result.data && fullResponse) {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
+
+      const planData = {
+        userId: user.id,
+        weekStartDate: weekStart.toISOString().split('T')[0],
+        weekEndDate: weekEnd.toISOString().split('T')[0],
+        planContent: {
+          subjects: userSubjects.map(s => ({ code: s.code, name: s.name })),
+          targetATAR: parseFloat(targetATAR),
+          hoursPerWeek: parseFloat(hoursPerWeek),
+          examDate,
+          generatedPlan: fullResponse,
+        },
+        planSummary: fullResponse.substring(0, 200) + '...', // First 200 chars
+        contextData: {
+          currentScores,
+          totalSubjects: userSubjects.length,
+        },
+      };
+
+      await saveAIStudyPlan(planData);
+    }
     
     // Re-check limits after generation completes to update button state
     setTimeout(async () => {
