@@ -146,15 +146,17 @@ export default function AIStudyPlanScreen() {
     slowDownNearEnd: true,
   });
 
-  // Background completion checker (runs silently, no state updates until complete)
+  // Background completion checker (runs silently, updates text as it completes)
   useEffect(() => {
     async function checkAndComplete() {
       if (!response || completionInProgress.current) return;
       
       completionInProgress.current = true;
       
-      // ✅ CRITICAL FIX: Immediately hide placeholder when AI response arrives
+      // ✅ Immediately hide placeholder and show initial response
       setShowPlaceholder(false);
+      setFullResponse(response.response); // Show immediately
+      setShowFullText(true); // Trigger fade-in immediately
       
       // Start with original response
       let currentText = response.response;
@@ -196,18 +198,12 @@ export default function AIStudyPlanScreen() {
         if (result.data) {
           currentText = currentText + ' ' + result.data.response;
           continuesFetched++;
+          // Update UI with growing text (user sees it completing in real-time)
+          setFullResponse(currentText);
         } else {
           break;
         }
       }
-      
-      // Update UI with final complete text
-      setFullResponse(currentText);
-      
-      // ✅ Trigger fade-in animation after 1 second delay
-      setTimeout(() => {
-        setShowFullText(true);
-      }, 1000);
       
       completionInProgress.current = false;
     }
