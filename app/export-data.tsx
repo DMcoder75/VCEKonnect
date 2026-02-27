@@ -5,14 +5,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 import { useAlert } from '@/template';
 import { exportUserData, ExportOptions } from '@/services/exportService';
 import { LoadingSpinner } from '@/components/ui';
+import { PremiumPaywall } from '@/components/feature';
 
 export default function ExportDataScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { tier, limits, isLoading: isPremiumLoading } = usePremium();
   const { showAlert } = useAlert();
   
   const [includeStudySessions, setIncludeStudySessions] = useState(true);
@@ -20,10 +23,17 @@ export default function ExportDataScreen() {
   const [includeScores, setIncludeScores] = useState(true);
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [isExporting, setIsExporting] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   async function handleExport() {
     if (!user) {
       showAlert('Error', 'Please log in to export data');
+      return;
+    }
+
+    // Check premium access
+    if (!limits.exportDataAccess) {
+      setShowPaywall(true);
       return;
     }
 
@@ -68,7 +78,41 @@ export default function ExportDataScreen() {
           <View style={styles.headerPlaceholder} />
         </View>
 
+        {/* Premium Badge */}
+        <View style={[
+          styles.premiumBadge,
+          tier === 'pro' && styles.premiumBadgePro,
+          tier === 'basic' && styles.premiumBadgeBasic,
+        ]}>
+          <MaterialIcons name="workspace-premium" size={20} color={tier === 'free' ? colors.warning : colors.background} />
+          <Text style={[
+            styles.premiumText,
+            tier !== 'free' && styles.premiumTextActive,
+          ]}>
+            {tier === 'pro' || tier === 'basic' ? 'Premium Feature Unlocked' : 'Premium Feature - Upgrade Required'}
+          </Text>
+        </View>
+
+        {/* Locked Message for Free Tier */}
+        {!limits.exportDataAccess && (
+          <View style={styles.lockedCard}>
+            <MaterialIcons name="lock" size={48} color={colors.warning} />
+            <Text style={styles.lockedTitle}>Premium Feature</Text>
+            <Text style={styles.lockedText}>
+              Export Data is available in Basic ($20/6m) and Pro ($40/6m) plans. Upgrade to backup your study data and analyze it anywhere.
+            </Text>
+            <Pressable
+              style={styles.upgradeButton}
+              onPress={() => setShowPaywall(true)}
+            >
+              <MaterialIcons name="workspace-premium" size={20} color={colors.background} />
+              <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Info Card */}
+        {limits.exportDataAccess && (
         <View style={styles.infoCard}>
           <MaterialIcons name="info-outline" size={24} color={colors.primary} />
           <View style={styles.infoContent}>
@@ -79,8 +123,11 @@ export default function ExportDataScreen() {
             </Text>
           </View>
         </View>
+        )}
 
-        {/* Data Selection */}
+        {/* Data Selection - Only show if premium */}
+        {limits.exportDataAccess && (
+        <>
         <Text style={styles.sectionTitle}>Select Data to Export</Text>
         
         <View style={styles.optionCard}>
@@ -196,7 +243,19 @@ export default function ExportDataScreen() {
             Your data is exported locally to your device. FairPrep does not send your data to external servers.
           </Text>
         </View>
+        </>
+        )}
       </ScrollView>
+
+      {/* Premium Paywall */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        feature="Export Data"
+        description="Backup your study data and analyze it anywhere with full data export in JSON or CSV format"
+        requiredTier="basic"
+        currentTier={tier}
+      />
     </View>
   );
 }
@@ -361,5 +420,72 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  premiumBadgeBasic: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  premiumBadgePro: {
+    backgroundColor: colors.premium,
+    borderColor: colors.premium,
+  },
+  premiumText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.warning,
+  },
+  premiumTextActive: {
+    color: colors.background,
+  },
+  lockedCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.warning,
+    marginBottom: spacing.lg,
+  },
+  lockedTitle: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  lockedText: {
+    fontSize: typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.md,
+  },
+  upgradeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  upgradeButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
 });
