@@ -65,6 +65,10 @@ export default function AIStudyPlanScreen() {
   
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
+  
+  // Debug state
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebugPanel, setShowDebugPanel] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -82,11 +86,48 @@ export default function AIStudyPlanScreen() {
     if (!user) return;
     
     setIsCheckingLimits(true);
+    
+    // DEBUG: Fetch raw subscription data
+    const { supabase } = require('@/services/supabase');
+    const { data: subscriptions, error: subError } = await supabase
+      .from('vk_premium_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('payment_status', 'completed')
+      .order('end_date', { ascending: false });
+    
+    // DEBUG: Call RPC function directly
+    const { data: tierFromRPC, error: rpcError } = await supabase.rpc('get_user_premium_tier', {
+      p_user_id: user.id,
+    });
+    
+    // DEBUG: Check active premium
+    const { data: hasPremiumFromRPC, error: premiumError } = await supabase.rpc('has_active_premium', {
+      p_user_id: user.id,
+    });
+    
     const check = await canCreateAIStudyPlan(user.id);
     setCanGenerate(check.allowed);
     if (!check.allowed) {
       setPaywallMessage(check.reason || 'Upgrade to generate more AI study plans');
     }
+    
+    // Set debug info
+    setDebugInfo({
+      userId: user.id,
+      currentTier: tier,
+      isPremium: isPremium,
+      subscriptions: subscriptions || [],
+      subscriptionError: subError?.message,
+      tierFromRPC: tierFromRPC,
+      rpcError: rpcError?.message,
+      hasPremiumFromRPC: hasPremiumFromRPC,
+      premiumError: premiumError?.message,
+      canGenerate: check.allowed,
+      limits: limits,
+      timestamp: new Date().toISOString(),
+    });
+    
     setIsCheckingLimits(false);
   }
 
@@ -413,6 +454,24 @@ export default function AIStudyPlanScreen() {
                 />
               </View>
             </View>
+
+            {/* Debug Panel */}
+            {showDebugPanel && debugInfo && (
+              <View style={styles.debugPanel}>
+                <View style={styles.debugHeader}>
+                  <MaterialIcons name="bug-report" size={20} color={colors.warning} />
+                  <Text style={styles.debugTitle}>Debug Panel</Text>
+                  <Pressable onPress={() => setShowDebugPanel(false)}>
+                    <MaterialIcons name="close" size={20} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+                <ScrollView style={styles.debugContent} nestedScrollEnabled>
+                  <Text style={styles.debugText}>
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </Text>
+                </ScrollView>
+              </View>
+            )}
 
             {/* Current Subjects */}
             <View style={styles.section}>
@@ -849,5 +908,35 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: typography.bold,
     color: colors.background,
+  },
+  debugPanel: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.warning,
+    maxHeight: 400,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  debugTitle: {
+    flex: 1,
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.warning,
+  },
+  debugContent: {
+    maxHeight: 350,
+  },
+  debugText: {
+    fontSize: 11,
+    color: colors.textPrimary,
+    fontFamily: 'monospace',
+    lineHeight: 16,
   },
 });
