@@ -82,6 +82,64 @@ export default function ATARScreen() {
     return getPredictionFromScores(modifiedScores);
   }
   
+  // Calculate intelligent best case scenario based on current scores
+  function calculateBestCaseATAR(): number {
+    if (subjectScores.length === 0) return 0;
+    
+    const bestCaseScores = subjectScores.map(score => {
+      const currentSac = score.sacAverage || 0;
+      const currentExam = score.examPrediction || 0;
+      const currentAvg = (currentSac + currentExam) / 2;
+      
+      // Best case: realistic improvement based on current performance
+      // If currently at 80%, best might be 90-92% (not 100%)
+      // If currently at 60%, best might be 75-80%
+      // Formula: current + (ceiling - current) * improvement_factor
+      const ceiling = 95; // Realistic maximum (very few students get 100%)
+      const improvementFactor = 0.5; // Can improve by 50% of the gap to ceiling
+      
+      const bestSac = Math.min(ceiling, currentSac + (ceiling - currentSac) * improvementFactor);
+      const bestExam = Math.min(ceiling, currentExam + (ceiling - currentExam) * improvementFactor);
+      
+      return {
+        ...score,
+        sacAverage: bestSac,
+        examPrediction: bestExam,
+      };
+    });
+    
+    return getPredictionFromScores(bestCaseScores).atar;
+  }
+  
+  // Calculate intelligent worst case scenario based on current scores
+  function calculateWorstCaseATAR(): number {
+    if (subjectScores.length === 0) return 0;
+    
+    const worstCaseScores = subjectScores.map(score => {
+      const currentSac = score.sacAverage || 0;
+      const currentExam = score.examPrediction || 0;
+      const currentAvg = (currentSac + currentExam) / 2;
+      
+      // Worst case: realistic decline based on current performance
+      // If currently at 80%, worst might be 70-72%
+      // If currently at 90%, worst might be 80-82%
+      // Formula: current - (current - floor) * decline_factor
+      const floor = 60; // Realistic minimum (students rarely score below this)
+      const declineFactor = 0.25; // Can decline by 25% of the gap to floor
+      
+      const worstSac = Math.max(floor, currentSac - (currentSac - floor) * declineFactor);
+      const worstExam = Math.max(floor, currentExam - (currentExam - floor) * declineFactor);
+      
+      return {
+        ...score,
+        sacAverage: worstSac,
+        examPrediction: worstExam,
+      };
+    });
+    
+    return getPredictionFromScores(worstCaseScores).atar;
+  }
+  
   function getPredictionFromScores(scores: any[]) {
     if (!scores || scores.length === 0) {
       return { atar: 0, aggregate: 0 };
@@ -864,21 +922,17 @@ export default function ATARScreen() {
                     <MaterialIcons name="trending-up" size={20} color={colors.success} />
                     <Text style={styles.scenarioLabel}>Best Case</Text>
                     {limits.atarSubjectScoreEditing ? (
-                      <Text style={[styles.scenarioATAR, { color: colors.success }]}>
-                        {getPredictionFromScores(
-                          subjectScores.map(s => ({
-                            ...s,
-                            sacAverage: 100,
-                            examPrediction: 100,
-                          }))
-                        ).atar.toFixed(2)}
-                      </Text>
+                      <>
+                        <Text style={[styles.scenarioATAR, { color: colors.success }]}>
+                          {calculateBestCaseATAR().toFixed(2)}
+                        </Text>
+                        <Text style={styles.scenarioDesc}>Optimistic</Text>
+                      </>
                     ) : (
                       <View style={styles.scenarioLocked}>
                         <MaterialIcons name="lock" size={32} color={colors.textTertiary} />
                       </View>
                     )}
-                    <Text style={styles.scenarioDesc}>All 100%</Text>
                   </View>
 
                   {/* Current - Always visible */}
@@ -896,21 +950,17 @@ export default function ATARScreen() {
                     <MaterialIcons name="trending-down" size={20} color={colors.error} />
                     <Text style={styles.scenarioLabel}>Worst Case</Text>
                     {limits.atarSubjectScoreEditing ? (
-                      <Text style={[styles.scenarioATAR, { color: colors.error }]}>
-                        {getPredictionFromScores(
-                          subjectScores.map(s => ({
-                            ...s,
-                            sacAverage: 70,
-                            examPrediction: 70,
-                          }))
-                        ).atar.toFixed(2)}
-                      </Text>
+                      <>
+                        <Text style={[styles.scenarioATAR, { color: colors.error }]}>
+                          {calculateWorstCaseATAR().toFixed(2)}
+                        </Text>
+                        <Text style={styles.scenarioDesc}>Pessimistic</Text>
+                      </>
                     ) : (
                       <View style={styles.scenarioLocked}>
                         <MaterialIcons name="lock" size={32} color={colors.textTertiary} />
                       </View>
                     )}
-                    <Text style={styles.scenarioDesc}>All 70%</Text>
                   </View>
                 </View>
               </View>
