@@ -472,20 +472,29 @@ export default function ATARScreen() {
           )}
         </View>
 
-        {/* Export Menu Overlay */}
+        {/* Export Menu Overlay with Background Dismiss */}
         {showExportMenu && !isLoading && subjectScores.length > 0 && userSubjects.length > 0 && (
-          <View style={styles.exportMenuOverlay}>
+          <>
+            {/* Transparent overlay to capture outside clicks */}
             <Pressable 
-              style={styles.exportMenuItem} 
-              onPress={() => {
-                setShowExportMenu(false);
-                handleExportPDF();
-              }}
-            >
-              <MaterialIcons name="picture-as-pdf" size={20} color={colors.error} />
-              <Text style={styles.exportMenuText}>Export as PDF</Text>
-            </Pressable>
-          </View>
+              style={styles.exportMenuBackdrop}
+              onPress={() => setShowExportMenu(false)}
+            />
+            
+            {/* Menu content */}
+            <View style={styles.exportMenuOverlay}>
+              <Pressable 
+                style={styles.exportMenuItem} 
+                onPress={() => {
+                  setShowExportMenu(false);
+                  handleExportPDF();
+                }}
+              >
+                <MaterialIcons name="picture-as-pdf" size={20} color={colors.error} />
+                <Text style={styles.exportMenuText}>Export as PDF</Text>
+              </Pressable>
+            </View>
+          </>
         )}
 
         {/* State-Specific Warnings */}
@@ -1109,6 +1118,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
+  },
+  exportMenuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
   },
   exportMenuOverlay: {
     position: 'absolute',
