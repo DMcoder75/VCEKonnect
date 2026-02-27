@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
 import { usePremium } from '@/hooks/usePremium';
 import { useTypewriter } from '@/hooks/useTypewriter';
+import { useAlert } from '@/template';
 import { continueAIResponse, generateUniqueSessionId } from '@/services/aiService';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { PremiumPaywall } from '@/components/feature';
@@ -19,6 +20,7 @@ import { getUserPreferences, updateUserPreferences } from '@/services/userPrefer
 import { getActiveGoals } from '@/services/studyGoalsService';
 import { calculateATAR } from '@/services/atarCalculator';
 import { canCreateAIStudyPlan, saveAIStudyPlan } from '@/services/premiumService';
+import { exportStudyPlanToPDF } from '@/services/exportService';
 
 // Format AI response text (preserve structure, clean markdown)
 function formatResponseText(text: string) {
@@ -41,6 +43,7 @@ export default function AIStudyPlanScreen() {
   const { user } = useAuth();
   const { isLoading, error, response, setResponse, createStudyPlan } = useAI();
   const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { showAlert } = useAlert();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [currentScores, setCurrentScores] = useState<{ [key: string]: number }>({});
@@ -312,11 +315,27 @@ export default function AIStudyPlanScreen() {
     const { data, error } = await saveAIStudyPlan(planData);
     if (error) {
       console.error('Error saving study plan:', error);
-      alert('Failed to save study plan: ' + error);
+      showAlert('Error', 'Failed to save study plan: ' + error);
     } else {
-      alert('Study plan saved successfully!');
+      showAlert('Success', 'Study plan saved successfully!');
       // Re-check limits after saving to update UI
       await checkInitialLimits();
+    }
+  }
+
+  async function handleExportPDF() {
+    if (!fullResponse) return;
+
+    const result = await exportStudyPlanToPDF(fullResponse, {
+      targetATAR,
+      hoursPerWeek,
+      subjects: userSubjects,
+    });
+
+    if (result.success) {
+      showAlert('Success', result.message);
+    } else {
+      showAlert('Error', result.message);
     }
   }
 
@@ -494,13 +513,20 @@ export default function AIStudyPlanScreen() {
                   </View>
                 )}
 
-                {/* Save Button - Only show for Basic/Pro tiers */}
-                {limits.aiStudyPlanStorage && (
-                  <Pressable style={styles.saveButton} onPress={handleSavePlan}>
-                    <MaterialIcons name="save" size={20} color={colors.background} />
-                    <Text style={styles.saveButtonText}>Save Study Plan</Text>
+                {/* Action Buttons */}
+                <View style={styles.actionButtons}>
+                  <Pressable style={styles.exportButton} onPress={handleExportPDF}>
+                    <MaterialIcons name="picture-as-pdf" size={20} color={colors.background} />
+                    <Text style={styles.exportButtonText}>Export PDF</Text>
                   </Pressable>
-                )}
+                  
+                  {limits.aiStudyPlanStorage && (
+                    <Pressable style={styles.saveButton} onPress={handleSavePlan}>
+                      <MaterialIcons name="save" size={20} color={colors.background} />
+                      <Text style={styles.saveButtonText}>Save to Library</Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             )}
           </>
@@ -756,7 +782,29 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textTertiary,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  exportButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  exportButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
+  },
   saveButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -765,7 +813,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    marginTop: spacing.md,
   },
   saveButtonText: {
     fontSize: typography.bodySmall,

@@ -7,6 +7,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useAI } from '@/hooks/useAI';
 import { usePremium } from '@/hooks/usePremium';
+import { useAlert } from '@/template';
 import { LoadingSpinner } from '@/components/ui';
 import { PremiumPaywall } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -14,6 +15,7 @@ import { getSubjectScores } from '@/services/scoresService';
 import { getStudyTimeBySubject } from '@/services/studyService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { canCreateAIRecommendation, saveAIRecommendation } from '@/services/premiumService';
+import { exportRecommendationsToPDF } from '@/services/exportService';
 
 export default function AIRecommendationsScreen() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function AIRecommendationsScreen() {
   const { user } = useAuth();
   const { error, getRecommendations } = useAI();
   const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { showAlert } = useAlert();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [recommendations, setRecommendations] = useState<{ [subjectId: string]: any }>({});
@@ -73,6 +76,31 @@ export default function AIRecommendationsScreen() {
     const subjects = await getUserSubjects(user.id);
     setUserSubjects(subjects);
     setIsLoadingData(false);
+  }
+
+  async function handleExportAllPDF() {
+    if (Object.keys(recommendations).length === 0) {
+      showAlert('No Data', 'No recommendations to export');
+      return;
+    }
+
+    const exportData = Object.entries(recommendations).map(([subjectId, rec]) => {
+      const subject = userSubjects.find(s => s.id === subjectId);
+      return {
+        subjectCode: subject?.code || 'Unknown',
+        subjectName: subject?.name || 'Unknown',
+        recommendation: rec.response,
+        timestamp: rec.timestamp,
+      };
+    });
+
+    const result = await exportRecommendationsToPDF(exportData);
+
+    if (result.success) {
+      showAlert('Success', result.message);
+    } else {
+      showAlert('Error', result.message);
+    }
   }
 
   async function handleGetRecommendations(subjectId: string, subjectCode: string, subjectName: string) {
@@ -216,6 +244,13 @@ export default function AIRecommendationsScreen() {
           <LoadingSpinner message="Loading subjects..." />
         ) : (
           <>
+            {/* Export All Button - Show when there are recommendations */}
+            {Object.keys(recommendations).length > 0 && (
+              <Pressable style={styles.exportAllButton} onPress={handleExportAllPDF}>
+                <MaterialIcons name="picture-as-pdf" size={20} color={colors.background} />
+                <Text style={styles.exportAllButtonText}>Export All to PDF</Text>
+              </Pressable>
+            )}
             {/* Limit Reached Banner - Show above subject list for free tier */}
             {disabledSubjects.size > 0 && tier === 'free' && (
               <View style={styles.limitReachedBanner}>
@@ -484,6 +519,22 @@ const styles = StyleSheet.create({
   },
   upgradeButtonSmallText: {
     fontSize: typography.caption,
+    fontWeight: typography.bold,
+    color: colors.background,
+  },
+  exportAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  exportAllButtonText: {
+    fontSize: typography.body,
     fontWeight: typography.bold,
     color: colors.background,
   },

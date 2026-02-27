@@ -21,7 +21,7 @@ export default function ExportDataScreen() {
   const [includeStudySessions, setIncludeStudySessions] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeScores, setIncludeScores] = useState(true);
-  const [format, setFormat] = useState<'json' | 'csv'>('json');
+  const [format, setFormat] = useState<'json' | 'csv' | 'pdf'>('json');
   const [isExporting, setIsExporting] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
@@ -182,6 +182,23 @@ export default function ExportDataScreen() {
         <Text style={styles.sectionTitle}>Export Format</Text>
         
         <View style={styles.formatButtons}>
+          <Pressable
+            style={[styles.formatButton, format === 'pdf' && styles.formatButtonActive]}
+            onPress={() => setFormat('pdf')}
+          >
+            <MaterialIcons 
+              name="picture-as-pdf" 
+              size={24} 
+              color={format === 'pdf' ? colors.background : colors.textSecondary} 
+            />
+            <Text style={[styles.formatText, format === 'pdf' && styles.formatTextActive]}>
+              PDF
+            </Text>
+            <Text style={[styles.formatDesc, format === 'pdf' && styles.formatDescActive]}>
+              Professional report, best for sharing
+            </Text>
+          </Pressable>
+
           <Pressable
             style={[styles.formatButton, format === 'json' && styles.formatButtonActive]}
             onPress={() => setFormat('json')}
@@ -354,11 +371,13 @@ const styles = StyleSheet.create({
   },
   formatButtons: {
     flexDirection: 'row',
-    gap: spacing.md,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     marginBottom: spacing.lg,
   },
   formatButton: {
     flex: 1,
+    minWidth: '30%',
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.md,

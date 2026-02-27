@@ -6,6 +6,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
 import { usePremium } from '@/hooks/usePremium';
+import { useAlert } from '@/template';
 import { getStateConfig } from '@/services/atarCalculator';
 import { ATARDisplay, Input, Button, LoadingSpinner } from '@/components';
 import { SubjectScoreCard, PremiumPaywall, PremiumBlurOverlay } from '@/components/feature';
@@ -13,6 +14,7 @@ import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { canCreateWhatIfScenario, saveWhatIfScenario } from '@/services/premiumService';
+import { exportATARToPDF } from '@/services/exportService';
 
 export default function ATARScreen() {
   const insets = useSafeAreaInsets();
@@ -20,6 +22,7 @@ export default function ATARScreen() {
   const { user } = useAuth();
   const { subjectScores, updateScore, getScenarios, getPrediction, reloadScores } = useATAR();
   const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { showAlert } = useAlert();
   
   // Get state configuration
   const stateId = (user?.stateId || 'VIC') as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
@@ -286,6 +289,39 @@ export default function ATARScreen() {
   const roadmap = calculateRoadmap();
   const recommendations = getSubjectRecommendations();
 
+  async function handleExportPDF() {
+    if (!user || subjectScores.length === 0) {
+      showAlert('No Data', 'No ATAR data to export');
+      return;
+    }
+
+    const exportData = {
+      name: user.email,
+      atar: prediction.atar,
+      aggregate: prediction.aggregate,
+      subjects: subjectScores.map(score => {
+        const subject = userSubjects.find(s => s.id === score.subjectId);
+        return {
+          code: subject?.code || score.subjectId,
+          name: subject?.name || 'Unknown',
+          sacAverage: score.sacAverage,
+          examPrediction: score.examPrediction,
+          studyRank: score.studyRank,
+          predictedStudyScore: score.predictedStudyScore,
+        };
+      }),
+      stateConfig,
+    };
+
+    const result = await exportATARToPDF(exportData);
+
+    if (result.success) {
+      showAlert('Success', result.message);
+    } else {
+      showAlert('Error', result.message);
+    }
+  }
+
   // Get state-specific warning message
   function getStateWarning(state: StateID): string | null {
     const warnings: Record<StateID, string | null> = {
@@ -396,11 +432,19 @@ export default function ATARScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>ATAR Predictor</Text>
-          <Text style={styles.stateBadge}>
-            {stateConfig.stateName} ({stateConfig.scalingAuthority})
-          </Text>
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <Text style={styles.title}>ATAR Predictor</Text>
+            <Text style={styles.stateBadge}>
+              {stateConfig.stateName} ({stateConfig.scalingAuthority})
+            </Text>
+          </View>
+          {!isLoading && subjectScores.length > 0 && (
+            <Pressable style={styles.exportPdfButton} onPress={handleExportPDF}>
+              <MaterialIcons name="picture-as-pdf" size={20} color={colors.background} />
+              <Text style={styles.exportPdfButtonText}>Export PDF</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* State-Specific Warnings */}
@@ -1006,10 +1050,29 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingBottom: spacing.xxl,
   },
+  headerContainer: {
+    marginBottom: spacing.lg,
+  },
   header: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  exportPdfButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'center',
+  },
+  exportPdfButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
   title: {
     fontSize: typography.h1,
