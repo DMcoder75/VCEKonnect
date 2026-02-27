@@ -415,81 +415,114 @@ export default function DashboardScreen() {
           />
         )}
 
-        {/* Multi-Period Goals */}
-        {activeGoals && (activeGoals.weekly || activeGoals.monthly || activeGoals.term) && (
-          <View style={styles.goalsCard}>
-            <View style={styles.goalsHeader}>
-              <View style={styles.goalsHeaderLeft}>
-                <MaterialIcons name="flag" size={20} color={colors.primary} />
-                <Text style={styles.goalsTitle}>Goal Progress Summary</Text>
-                {isRunning && (
-                  <View style={styles.liveIndicator}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.liveText}>LIVE</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.goalsHeaderButtons}>
-                <Pressable
-                  style={styles.smallButton}
-                  onPress={() => router.push('/goals')}
-                >
-                  <MaterialIcons name="edit" size={16} color={colors.primary} />
-                </Pressable>
-                <Pressable
-                  style={styles.smallButton}
-                  onPress={() => router.push('/goals-progress')}
-                >
-                  <MaterialIcons name="visibility" size={16} color={colors.primary} />
-                </Pressable>
-                <Pressable
-                  style={styles.smallButton}
-                  onPress={() => router.push('/achievements')}
-                >
-                  <MaterialIcons name="emoji-events" size={16} color={colors.premium} />
-                </Pressable>
-              </View>
+        {/* Multi-Period Goals - Always visible */}
+        <View style={styles.goalsCard}>
+          <View style={styles.goalsHeader}>
+            <View style={styles.goalsHeaderLeft}>
+              <MaterialIcons name="flag" size={20} color={colors.primary} />
+              <Text style={styles.goalsTitle}>Goal Progress Summary</Text>
+              {isRunning && (
+                <View style={styles.liveIndicator}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>LIVE</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.goalsRings}>
-              {activeGoals.weekly && (
-                <StudyGoalRing
-                  label="Week"
-                  targetHours={activeGoals.weekly.targetHours}
-                  achievedHours={activeGoals.weekly.achievedHours}
-                  progressPercent={activeGoals.weekly.progressPercent}
-                  size="large"
-                  icon="calendar-today"
-                  isActive={isRunning}
-                  liveProgress={calculateLiveProgress(activeGoals.weekly, activeSubject)}
-                />
-              )}
-              {activeGoals.monthly && (
-                <StudyGoalRing
-                  label="Month"
-                  targetHours={activeGoals.monthly.targetHours}
-                  achievedHours={activeGoals.monthly.achievedHours}
-                  progressPercent={activeGoals.monthly.progressPercent}
-                  size="medium"
-                  icon="event-note"
-                  isActive={isRunning}
-                  liveProgress={calculateLiveProgress(activeGoals.monthly, activeSubject)}
-                />
-              )}
-              {activeGoals.term && (
-                <StudyGoalRing
-                  label="Term"
-                  targetHours={activeGoals.term.targetHours}
-                  achievedHours={activeGoals.term.achievedHours}
-                  progressPercent={activeGoals.term.progressPercent}
-                  size="medium"
-                  icon="school"
-                  isActive={isRunning}
-                  liveProgress={calculateLiveProgress(activeGoals.term, activeSubject)}
-                />
-              )}
+            <View style={styles.goalsHeaderButtons}>
+              <Pressable
+                style={styles.smallButton}
+                onPress={() => router.push('/goals')}
+              >
+                <MaterialIcons name="edit" size={16} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                style={styles.smallButton}
+                onPress={() => router.push('/goals-progress')}
+              >
+                <MaterialIcons name="visibility" size={16} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                style={styles.smallButton}
+                onPress={() => router.push('/achievements')}
+              >
+                <MaterialIcons name="emoji-events" size={16} color={colors.premium} />
+              </Pressable>
             </View>
           </View>
-        )}
+          <View style={styles.goalsRings}>
+            {/* Weekly Goal or SET button */}
+            {activeGoals?.weekly ? (
+              <StudyGoalRing
+                label="Week"
+                targetHours={activeGoals.weekly.targetHours}
+                achievedHours={activeGoals.weekly.achievedHours}
+                progressPercent={activeGoals.weekly.progressPercent}
+                size="large"
+                icon="calendar-today"
+                isActive={isRunning}
+                liveProgress={calculateLiveProgress(activeGoals.weekly, activeSubject)}
+              />
+            ) : (
+              <Pressable
+                style={styles.setGoalButton}
+                onPress={() => router.push('/goals')}
+              >
+                <View style={styles.setGoalCircle}>
+                  <Text style={styles.setGoalText}>SET</Text>
+                </View>
+                <Text style={styles.setGoalLabel}>Week</Text>
+              </Pressable>
+            )}
+
+            {/* Monthly Goal or SET button */}
+            {activeGoals?.monthly ? (
+              <StudyGoalRing
+                label="Month"
+                targetHours={activeGoals.monthly.targetHours}
+                achievedHours={activeGoals.monthly.achievedHours}
+                progressPercent={activeGoals.monthly.progressPercent}
+                size="medium"
+                icon="event-note"
+                isActive={isRunning}
+                liveProgress={calculateLiveProgress(activeGoals.monthly, activeSubject)}
+              />
+            ) : (
+              <Pressable
+                style={styles.setGoalButton}
+                onPress={() => router.push('/goals')}
+              >
+                <View style={styles.setGoalCircle}>
+                  <Text style={styles.setGoalText}>SET</Text>
+                </View>
+                <Text style={styles.setGoalLabel}>Month</Text>
+              </Pressable>
+            )}
+
+            {/* Term Goal or SET button */}
+            {activeGoals?.term ? (
+              <StudyGoalRing
+                label="Term"
+                targetHours={activeGoals.term.targetHours}
+                achievedHours={activeGoals.term.achievedHours}
+                progressPercent={activeGoals.term.progressPercent}
+                size="medium"
+                icon="school"
+                isActive={isRunning}
+                liveProgress={calculateLiveProgress(activeGoals.term, activeSubject)}
+              />
+            ) : (
+              <Pressable
+                style={styles.setGoalButton}
+                onPress={() => router.push('/goals')}
+              >
+                <View style={styles.setGoalCircle}>
+                  <Text style={styles.setGoalText}>SET</Text>
+                </View>
+                <Text style={styles.setGoalLabel}>Term</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
 
         {/* 2. Upcoming Assessments */}
         {upcomingEvents.filter(e => !e.is_completed).length > 0 && (
@@ -582,17 +615,7 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* Study Goals Card - Always visible */}
-        {!activeGoals?.weekly && !activeGoals?.monthly && !activeGoals?.term && (
-          <Pressable
-            style={styles.setGoalsCard}
-            onPress={() => router.push('/goals')}
-          >
-            <MaterialIcons name="flag" size={32} color={colors.warning} />
-            <Text style={styles.setGoalsTitle}>Set Study Goals</Text>
-            <Text style={styles.setGoalsDesc}>Set weekly, monthly & term targets</Text>
-          </Pressable>
-        )}
+
 
         {/* Action Cards */}
         <View style={styles.actionGrid}>
@@ -1055,27 +1078,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  setGoalsCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+  setGoalButton: {
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.warning,
+    justifyContent: 'center',
+  },
+  setGoalCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.primary,
     borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
-  setGoalsTitle: {
-    fontSize: typography.h3,
+  setGoalText: {
+    fontSize: typography.h2,
     fontWeight: typography.bold,
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
+    color: colors.primary,
   },
-  setGoalsDesc: {
+  setGoalLabel: {
     fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
     color: colors.textSecondary,
     marginTop: spacing.xs,
-    textAlign: 'center',
   },
   liveIndicator: {
     flexDirection: 'row',
