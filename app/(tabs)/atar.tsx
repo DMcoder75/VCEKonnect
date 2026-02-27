@@ -859,11 +859,11 @@ export default function ATARScreen() {
                 
                 {/* Scenario Cards Grid */}
                 <View style={styles.scenariosGrid}>
-                  {/* Best Case - Premium Only */}
-                  {limits.atarSubjectScoreEditing && (
-                    <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
-                      <MaterialIcons name="trending-up" size={20} color={colors.success} />
-                      <Text style={styles.scenarioLabel}>Best Case</Text>
+                  {/* Best Case */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
+                    <MaterialIcons name="trending-up" size={20} color={colors.success} />
+                    <Text style={styles.scenarioLabel}>Best Case</Text>
+                    {limits.atarSubjectScoreEditing ? (
                       <Text style={[styles.scenarioATAR, { color: colors.success }]}>
                         {getPredictionFromScores(
                           subjectScores.map(s => ({
@@ -873,12 +873,16 @@ export default function ATARScreen() {
                           }))
                         ).atar.toFixed(2)}
                       </Text>
-                      <Text style={styles.scenarioDesc}>All 100%</Text>
-                    </View>
-                  )}
+                    ) : (
+                      <View style={styles.scenarioLocked}>
+                        <MaterialIcons name="lock" size={32} color={colors.textTertiary} />
+                      </View>
+                    )}
+                    <Text style={styles.scenarioDesc}>All 100%</Text>
+                  </View>
 
                   {/* Current - Always visible */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent, !limits.atarSubjectScoreEditing && { flex: 1 }]}>
+                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent]}>
                     <MaterialIcons name="show-chart" size={20} color={colors.primary} />
                     <Text style={styles.scenarioLabel}>Current</Text>
                     <Text style={[styles.scenarioATAR, { color: colors.primary }]}>
@@ -887,11 +891,11 @@ export default function ATARScreen() {
                     <Text style={styles.scenarioDesc}>As entered</Text>
                   </View>
 
-                  {/* Worst Case - Premium Only */}
-                  {limits.atarSubjectScoreEditing && (
-                    <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
-                      <MaterialIcons name="trending-down" size={20} color={colors.error} />
-                      <Text style={styles.scenarioLabel}>Worst Case</Text>
+                  {/* Worst Case */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
+                    <MaterialIcons name="trending-down" size={20} color={colors.error} />
+                    <Text style={styles.scenarioLabel}>Worst Case</Text>
+                    {limits.atarSubjectScoreEditing ? (
                       <Text style={[styles.scenarioATAR, { color: colors.error }]}>
                         {getPredictionFromScores(
                           subjectScores.map(s => ({
@@ -901,9 +905,13 @@ export default function ATARScreen() {
                           }))
                         ).atar.toFixed(2)}
                       </Text>
-                      <Text style={styles.scenarioDesc}>All 70%</Text>
-                    </View>
-                  )}
+                    ) : (
+                      <View style={styles.scenarioLocked}>
+                        <MaterialIcons name="lock" size={32} color={colors.textTertiary} />
+                      </View>
+                    )}
+                    <Text style={styles.scenarioDesc}>All 70%</Text>
+                  </View>
                 </View>
               </View>
             )}
@@ -2042,5 +2050,11 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textTertiary,
     marginTop: spacing.xs,
+  },
+  scenarioLocked: {
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.5,
   },
 });
