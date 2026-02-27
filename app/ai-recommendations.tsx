@@ -22,7 +22,7 @@ export default function AIRecommendationsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { error, getRecommendations } = useAI();
-  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading, getRecommendationUsage } = usePremium();
   const { showAlert } = useAlert();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);

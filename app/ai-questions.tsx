@@ -53,7 +53,7 @@ export default function AIQuestionsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isLoading, error, response, generateQuestions } = useAI();
-  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading, getPracticeQuestionsUsage } = usePremium();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<VCESubject | null>(null);
