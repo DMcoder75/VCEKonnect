@@ -1,18 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components';
+import { usePremium } from '@/hooks/usePremium';
+
+type PlanType = 'basic' | 'pro';
 
 export default function PremiumScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { tier } = usePremium();
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>('basic');
 
-  function handleSubscribe() {
-    // Mock Stripe payment - V1.0
-    alert('Premium subscription coming soon! This will integrate with Stripe payments.');
+  function handleSubscribe(plan: PlanType) {
+    // TODO: Stripe payment integration
+    alert(`${plan === 'basic' ? 'Basic' : 'Pro'} subscription coming soon! This will integrate with Stripe payments.`);
   }
 
   return (
@@ -28,82 +33,258 @@ export default function PremiumScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <MaterialIcons name="star" size={64} color={colors.premium} />
-          <Text style={styles.title}>Go Premium</Text>
-          <Text style={styles.subtitle}>Unlock your full ATAR potential</Text>
+          <MaterialIcons name="workspace-premium" size={64} color={colors.premium} />
+          <Text style={styles.title}>Upgrade to Premium</Text>
+          <Text style={styles.subtitle}>Choose the plan that fits your needs</Text>
+          {tier !== 'free' && (
+            <View style={styles.currentPlanBadge}>
+              <MaterialIcons name="check-circle" size={16} color={colors.success} />
+              <Text style={styles.currentPlanText}>Current: {tier === 'basic' ? 'Basic Plan' : 'Pro Plan'}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Pricing */}
-        <View style={styles.pricingCard}>
-          <Text style={styles.price}>$20 AUD</Text>
+        {/* Plan Selection Toggle */}
+        <View style={styles.planToggle}>
+          <Pressable
+            style={[styles.planToggleButton, selectedPlan === 'basic' && styles.planToggleButtonActive]}
+            onPress={() => setSelectedPlan('basic')}
+          >
+            <Text style={[styles.planToggleText, selectedPlan === 'basic' && styles.planToggleTextActive]}>Basic</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.planToggleButton, selectedPlan === 'pro' && styles.planToggleButtonActivePro]}
+            onPress={() => setSelectedPlan('pro')}
+          >
+            <Text style={[styles.planToggleText, selectedPlan === 'pro' && styles.planToggleTextActive]}>Pro</Text>
+          </Pressable>
+        </View>
+
+        {/* Pricing Card */}
+        <View style={[
+          styles.pricingCard,
+          selectedPlan === 'pro' && styles.pricingCardPro,
+        ]}>
+          <View style={styles.pricingHeader}>
+            <Text style={styles.planName}>{selectedPlan === 'basic' ? 'Basic Plan' : 'Pro Plan'}</Text>
+            {selectedPlan === 'pro' && (
+              <View style={styles.popularBadge}>
+                <Text style={styles.popularText}>MOST POPULAR</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.price}>${selectedPlan === 'basic' ? '20' : '40'} AUD</Text>
           <Text style={styles.period}>per 6 months</Text>
-          <Text style={styles.trial}>1 month free trial included</Text>
+          <Text style={styles.perMonth}>${selectedPlan === 'basic' ? '3.33' : '6.67'}/month</Text>
         </View>
 
-        {/* Features */}
+        {/* Features List */}
         <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Premium Features</Text>
+          <Text style={styles.featuresTitle}>What's Included</Text>
           
+          {/* AI Study Plans */}
           <View style={styles.feature}>
-            <MaterialIcons name="check-circle" size={24} color={colors.success} />
+            <MaterialIcons 
+              name={selectedPlan === 'basic' ? 'check-circle' : 'check-circle'} 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>AI Study Plans</Text>
+              <Text style={styles.featureDesc}>
+                {selectedPlan === 'basic' ? '5 stored plans' : 'Unlimited plans'}
+              </Text>
+            </View>
+          </View>
+
+          {/* AI Recommendations */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name={selectedPlan === 'basic' ? 'check-circle' : 'check-circle'} 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>AI Study Recommendations</Text>
+              <Text style={styles.featureDesc}>
+                {selectedPlan === 'basic' ? '5 recommendations per subject' : 'Unlimited recommendations'}
+              </Text>
+            </View>
+          </View>
+
+          {/* AI Practice Questions */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name={selectedPlan === 'basic' ? 'check-circle' : 'check-circle'} 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>AI Practice Questions</Text>
+              <Text style={styles.featureDesc}>
+                {selectedPlan === 'basic' ? '5 question sets per subject' : 'Unlimited practice questions'}
+              </Text>
+            </View>
+          </View>
+
+          {/* What-If Scenarios */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name={selectedPlan === 'basic' ? 'check-circle' : 'check-circle'} 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>ATAR What-If Scenarios</Text>
+              <Text style={styles.featureDesc}>
+                {selectedPlan === 'basic' ? '3 scenarios per month' : 'Unlimited scenarios'}
+              </Text>
+            </View>
+          </View>
+
+          {/* PDF Export */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name="check-circle" 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>PDF Export</Text>
+              <Text style={styles.featureDesc}>Export study plans, ATAR predictions, and all data</Text>
+            </View>
+          </View>
+
+          {/* Advanced Analytics */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name="check-circle" 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>Advanced Analytics</Text>
+              <Text style={styles.featureDesc}>Detailed insights into study patterns and progress</Text>
+            </View>
+          </View>
+
+          {/* Study Goals & Tracking */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name="check-circle" 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>Study Goals & Tracking</Text>
+              <Text style={styles.featureDesc}>Weekly, monthly, and term goal management</Text>
+            </View>
+          </View>
+
+          {/* Unlimited Subjects */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name="check-circle" 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>Unlimited Subjects</Text>
-              <Text style={styles.featureDesc}>Track all your VCE subjects without limits</Text>
+              <Text style={styles.featureDesc}>Track all VCE subjects without limits</Text>
             </View>
           </View>
 
+          {/* Notes System */}
           <View style={styles.feature}>
-            <MaterialIcons name="check-circle" size={24} color={colors.success} />
+            <MaterialIcons 
+              name="check-circle" 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Advanced ATAR Predictions</Text>
-              <Text style={styles.featureDesc}>Detailed breakdowns with scenario modeling</Text>
+              <Text style={styles.featureTitle}>Enhanced Notes System</Text>
+              <Text style={styles.featureDesc}>Rich text, tags, and advanced search</Text>
             </View>
           </View>
 
+          {/* Achievements */}
           <View style={styles.feature}>
-            <MaterialIcons name="check-circle" size={24} color={colors.success} />
+            <MaterialIcons 
+              name="check-circle" 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Export PDF Reports</Text>
-              <Text style={styles.featureDesc}>Share progress with parents and teachers</Text>
+              <Text style={styles.featureTitle}>Achievements & Streaks</Text>
+              <Text style={styles.featureDesc}>Gamified motivation system with milestones</Text>
             </View>
           </View>
 
-          <View style={styles.feature}>
-            <MaterialIcons name="check-circle" size={24} color={colors.success} />
-            <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Unlimited Notes Storage</Text>
-              <Text style={styles.featureDesc}>Store all your study notes with photos</Text>
+          {/* Priority Support - Pro Only */}
+          {selectedPlan === 'pro' && (
+            <View style={styles.feature}>
+              <MaterialIcons 
+                name="stars" 
+                size={24} 
+                color={colors.premium} 
+              />
+              <View style={styles.featureText}>
+                <Text style={styles.featureTitle}>Priority Support</Text>
+                <Text style={styles.featureDesc}>Fast response times for technical issues</Text>
+              </View>
             </View>
-          </View>
+          )}
 
-          <View style={styles.feature}>
-            <MaterialIcons name="check-circle" size={24} color={colors.success} />
-            <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Voice-to-Text Notes</Text>
-              <Text style={styles.featureDesc}>Record notes hands-free during study</Text>
+          {/* Early Access - Pro Only */}
+          {selectedPlan === 'pro' && (
+            <View style={styles.feature}>
+              <MaterialIcons 
+                name="stars" 
+                size={24} 
+                color={colors.premium} 
+              />
+              <View style={styles.featureText}>
+                <Text style={styles.featureTitle}>Early Access</Text>
+                <Text style={styles.featureDesc}>Be first to try new features before everyone else</Text>
+              </View>
             </View>
-          </View>
-
-          <View style={styles.feature}>
-            <MaterialIcons name="check-circle" size={24} color={colors.success} />
-            <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Community Access</Text>
-              <Text style={styles.featureDesc}>Compare ATAR predictions anonymously</Text>
-            </View>
-          </View>
+          )}
         </View>
 
-        {/* CTA */}
-        <Button
-          title="Start Free Trial"
-          onPress={handleSubscribe}
-          size="large"
-          fullWidth
-        />
+        {/* CTA Button */}
+        <Pressable
+          style={[
+            styles.subscribeButton,
+            selectedPlan === 'pro' && styles.subscribeButtonPro,
+            tier === selectedPlan && styles.subscribeButtonDisabled,
+          ]}
+          onPress={() => handleSubscribe(selectedPlan)}
+          disabled={tier === selectedPlan}
+        >
+          <MaterialIcons name="workspace-premium" size={24} color={colors.background} />
+          <Text style={styles.subscribeButtonText}>
+            {tier === selectedPlan 
+              ? `Current Plan: ${selectedPlan === 'basic' ? 'Basic' : 'Pro'}` 
+              : tier === 'pro' && selectedPlan === 'basic'
+              ? 'Downgrade to Basic'
+              : tier === 'basic' && selectedPlan === 'pro'
+              ? 'Upgrade to Pro'
+              : `Subscribe to ${selectedPlan === 'basic' ? 'Basic' : 'Pro'}`
+            }
+          </Text>
+        </Pressable>
 
         <Text style={styles.disclaimer}>
-          Cancel anytime. Auto-renews after 6 months unless cancelled.
+          Cancel anytime. Auto-renews after 6 months unless cancelled. All prices in AUD.
         </Text>
+
+        {/* Comparison Note */}
+        <View style={styles.comparisonNote}>
+          <MaterialIcons name="info-outline" size={20} color={colors.primary} />
+          <Text style={styles.comparisonText}>
+            Free tier includes: 1 AI study plan trial, 1 AI recommendation trial, 1 AI questions trial, basic ATAR prediction, and limited study tracking.
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -130,7 +311,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   title: {
     fontSize: typography.h1,
@@ -142,6 +323,50 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+    textAlign: 'center',
+  },
+  currentPlanBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  currentPlanText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.success,
+  },
+  planToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xs,
+    marginBottom: spacing.lg,
+    gap: spacing.xs,
+  },
+  planToggleButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  planToggleButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  planToggleButtonActivePro: {
+    backgroundColor: colors.premium,
+  },
+  planToggleText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  planToggleTextActive: {
+    color: colors.background,
   },
   pricingCard: {
     backgroundColor: colors.surfaceElevated,
@@ -150,23 +375,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xl,
     borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  pricingCardPro: {
     borderColor: colors.premium,
   },
-  price: {
-    fontSize: 48,
+  pricingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  planName: {
+    fontSize: typography.h2,
     fontWeight: typography.bold,
-    color: colors.premium,
+    color: colors.textPrimary,
+  },
+  popularBadge: {
+    backgroundColor: colors.premium,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  popularText: {
+    fontSize: 10,
+    fontWeight: typography.bold,
+    color: colors.background,
+    letterSpacing: 0.5,
+  },
+  price: {
+    fontSize: 56,
+    fontWeight: typography.bold,
+    color: colors.primary,
   },
   period: {
     fontSize: typography.body,
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-  trial: {
+  perMonth: {
     fontSize: typography.bodySmall,
-    color: colors.success,
-    marginTop: spacing.sm,
-    fontWeight: typography.semibold,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
   featuresContainer: {
     marginBottom: spacing.xl,
@@ -180,7 +430,7 @@ const styles = StyleSheet.create({
   feature: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   featureText: {
     flex: 1,
@@ -189,17 +439,55 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   featureDesc: {
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
+  },
+  subscribeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  subscribeButtonPro: {
+    backgroundColor: colors.premium,
+  },
+  subscribeButtonDisabled: {
+    opacity: 0.5,
+  },
+  subscribeButtonText: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.background,
   },
   disclaimer: {
     fontSize: typography.caption,
     color: colors.textTertiary,
     textAlign: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
+    lineHeight: 18,
+  },
+  comparisonNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+  },
+  comparisonText: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 });
