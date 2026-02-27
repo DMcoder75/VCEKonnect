@@ -889,12 +889,12 @@ export default function ATARScreen() {
                       {getPredictionFromScores(
                         subjectScores.map(s => ({
                           ...s,
-                          sacAverage: 50,
-                          examPrediction: 50,
+                          sacAverage: 70,
+                          examPrediction: 70,
                         }))
                       ).atar.toFixed(2)}
                     </Text>
-                    <Text style={styles.scenarioDesc}>All 50%</Text>
+                    <Text style={styles.scenarioDesc}>All 70%</Text>
                   </View>
                 </View>
               </View>
