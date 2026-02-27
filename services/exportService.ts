@@ -569,22 +569,29 @@ export async function exportStudyPlanToPDF(
           <meta charset="utf-8">
           <title>AI Study Plan</title>
           <style>
+            @page {
+              size: A4;
+              margin: 20mm;
+            }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              padding: 40px;
               color: #1a1a1a;
               line-height: 1.6;
+              margin: 0;
+              padding: 0;
             }
             h1 {
               color: #6366f1;
               font-size: 28px;
               margin-bottom: 16px;
+              page-break-after: avoid;
             }
             .metadata {
               background: #f3f4f6;
               padding: 16px;
               border-radius: 8px;
               margin-bottom: 24px;
+              page-break-inside: avoid;
             }
             .metadata p {
               margin: 4px 0;
@@ -595,6 +602,7 @@ export async function exportStudyPlanToPDF(
               word-wrap: break-word;
               font-size: 14px;
               line-height: 1.8;
+              page-break-inside: auto;
             }
             .footer {
               margin-top: 40px;
@@ -603,6 +611,7 @@ export async function exportStudyPlanToPDF(
               color: #9ca3af;
               font-size: 12px;
               text-align: center;
+              page-break-before: avoid;
             }
           </style>
         </head>
