@@ -72,6 +72,9 @@ export default function AIQuestionsScreen() {
   const [canGenerate, setCanGenerate] = useState(true);
   const [isCheckingLimits, setIsCheckingLimits] = useState(true);
   
+  // Usage tracking for display
+  const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } | null>(null);
+  
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
 
@@ -94,6 +97,11 @@ export default function AIQuestionsScreen() {
     if (!user || !selectedSubject) return;
     
     setIsCheckingLimits(true);
+    
+    // Get usage info
+    const usage = await getPracticeQuestionsUsage(selectedSubject.id);
+    setUsageInfo(usage);
+    
     const check = await canCreateAIPracticeQuestions(user.id, selectedSubject.id);
     setCanGenerate(check.allowed);
     if (!check.allowed) {
@@ -293,12 +301,23 @@ export default function AIQuestionsScreen() {
           tier === 'basic' && styles.premiumBadgeBasic,
         ]}>
           <MaterialIcons name="auto-awesome" size={20} color={tier === 'free' ? colors.warning : colors.background} />
-          <Text style={[
-            styles.premiumText,
-            tier !== 'free' && styles.premiumTextActive,
-          ]}>
-            {tier === 'pro' ? 'Pro Plan - Unlimited Questions' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
-          </Text>
+          <View style={styles.premiumTextContainer}>
+            <Text style={[
+              styles.premiumText,
+              tier !== 'free' && styles.premiumTextActive,
+            ]}>
+              {tier === 'pro' ? 'Pro Plan - Unlimited Questions' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
+            </Text>
+            {selectedSubject && usageInfo && usageInfo.limit !== 'unlimited' && (
+              <Text style={[
+                styles.usageText,
+                tier !== 'free' && styles.usageTextActive,
+                usageInfo.remaining === 0 && styles.usageTextDepleted,
+              ]}>
+                {usageInfo.remaining} {usageInfo.remaining === 1 ? 'try' : 'tries'} left ({usageInfo.used}/{usageInfo.limit} used)
+              </Text>
+            )}
+          </View>
         </View>
 
         {isLoadingData || isPremiumLoading || isCheckingLimits ? (
@@ -543,7 +562,6 @@ const styles = StyleSheet.create({
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.md,
@@ -560,6 +578,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.premium,
     borderColor: colors.premium,
   },
+  premiumTextContainer: {
+    flex: 1,
+  },
   premiumText: {
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
@@ -567,6 +588,20 @@ const styles = StyleSheet.create({
   },
   premiumTextActive: {
     color: colors.background,
+  },
+  usageText: {
+    fontSize: 11,
+    fontWeight: typography.medium,
+    color: colors.warning,
+    marginTop: 2,
+    opacity: 0.9,
+  },
+  usageTextActive: {
+    color: colors.background,
+  },
+  usageTextDepleted: {
+    color: colors.error,
+    fontWeight: typography.bold,
   },
   section: {
     marginBottom: spacing.lg,

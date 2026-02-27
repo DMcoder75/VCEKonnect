@@ -37,6 +37,9 @@ export default function AIRecommendationsScreen() {
   const [disabledSubjects, setDisabledSubjects] = useState<Set<string>>(new Set());
   const [isGeneratingForFree, setIsGeneratingForFree] = useState(false); // Track if free user is generating
   const [isCheckingLimits, setIsCheckingLimits] = useState(true); // Track initial limit check
+  
+  // Usage tracking for display
+  const [usageBySubject, setUsageBySubject] = useState<{ [subjectId: string]: { used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } }>({});
 
   useEffect(() => {
     if (user) {
@@ -51,20 +54,30 @@ export default function AIRecommendationsScreen() {
   }, [user, userSubjects, tier]);
 
   async function checkFreeTrialUsed() {
-    if (!user || tier !== 'free') {
+    if (!user) {
       setIsCheckingLimits(false);
       return;
     }
     
     setIsCheckingLimits(true);
-    // For free tier, check if ANY subject has been used
+    
+    // Load usage info for all subjects
+    const usageMap: { [subjectId: string]: { used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } } = {};
     const disabledSet = new Set<string>();
+    
     for (const subject of userSubjects) {
+      const usage = await getRecommendationUsage(subject.id);
+      if (usage) {
+        usageMap[subject.id] = usage;
+      }
+      
       const check = await canCreateAIRecommendation(user.id, subject.id);
       if (!check.allowed) {
         disabledSet.add(subject.id);
       }
     }
+    
+    setUsageBySubject(usageMap);
     setDisabledSubjects(disabledSet);
     setIsCheckingLimits(false);
   }
@@ -228,12 +241,14 @@ export default function AIRecommendationsScreen() {
           tier === 'basic' && styles.premiumBadgeBasic,
         ]}>
           <MaterialIcons name="auto-awesome" size={20} color={tier === 'free' ? colors.warning : colors.background} />
-          <Text style={[
-            styles.premiumText,
-            tier !== 'free' && styles.premiumTextActive,
-          ]}>
-            {tier === 'pro' ? 'Pro Plan - Unlimited Recommendations' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
-          </Text>
+          <View style={styles.premiumTextContainer}>
+            <Text style={[
+              styles.premiumText,
+              tier !== 'free' && styles.premiumTextActive,
+            ]}>
+              {tier === 'pro' ? 'Pro Plan - Unlimited Recommendations' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
+            </Text>
+          </View>
         </View>
 
         <Text style={styles.description}>
@@ -287,6 +302,7 @@ export default function AIRecommendationsScreen() {
               const isLoadingSubject = loadingSubjects[subject.id] || false;
               const isDisabled = isLoadingSubject || disabledSubjects.has(subject.id) || isGeneratingForFree;
               const isLocked = disabledSubjects.has(subject.id);
+              const usage = usageBySubject[subject.id];
               
               return (
                 <View key={subject.id} style={styles.subjectCard}>
@@ -294,6 +310,14 @@ export default function AIRecommendationsScreen() {
                     <View style={styles.subjectInfo}>
                       <Text style={styles.subjectName}>{subject.name}</Text>
                       <Text style={styles.subjectCode}>{subject.code}</Text>
+                      {usage && usage.limit !== 'unlimited' && (
+                        <Text style={[
+                          styles.usageText,
+                          usage.remaining === 0 && styles.usageTextDepleted,
+                        ]}>
+                          {usage.remaining} {usage.remaining === 1 ? 'try' : 'tries'} left ({usage.used}/{usage.limit} used)
+                        </Text>
+                      )}
                     </View>
                     
                     <Pressable
@@ -410,7 +434,6 @@ const styles = StyleSheet.create({
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.md,
@@ -426,6 +449,9 @@ const styles = StyleSheet.create({
   premiumBadgePro: {
     backgroundColor: colors.premium,
     borderColor: colors.premium,
+  },
+  premiumTextContainer: {
+    flex: 1,
   },
   premiumText: {
     fontSize: typography.bodySmall,
@@ -468,6 +494,16 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.primary,
     marginTop: 2,
+  },
+  usageText: {
+    fontSize: 11,
+    fontWeight: typography.medium,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  usageTextDepleted: {
+    color: colors.error,
+    fontWeight: typography.bold,
   },
   generateButton: {
     flexDirection: 'row',
