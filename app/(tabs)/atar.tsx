@@ -291,8 +291,30 @@ export default function ATARScreen() {
   const recommendations = getSubjectRecommendations();
 
   async function handleExportPDF() {
-    if (!user || subjectScores.length === 0) {
-      showAlert('No Data', 'No ATAR data to export');
+    // Validation: Check if user and data exist
+    if (!user) {
+      showAlert('Error', 'User not logged in');
+      return;
+    }
+
+    if (subjectScores.length === 0) {
+      showAlert('No Data', 'No ATAR scores to export. Please add subject scores first.');
+      return;
+    }
+
+    if (userSubjects.length === 0) {
+      showAlert('Loading', 'Subject data is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    // Validate that we have matching subject data for all scores
+    const hasValidSubjects = subjectScores.every(score => {
+      const subject = userSubjects.find(s => s.id === score.subjectId);
+      return subject && subject.code && subject.name;
+    });
+
+    if (!hasValidSubjects) {
+      showAlert('Error', 'Subject information is incomplete. Please refresh the page and try again.');
       return;
     }
 
@@ -303,12 +325,12 @@ export default function ATARScreen() {
       subjects: subjectScores.map(score => {
         const subject = userSubjects.find(s => s.id === score.subjectId);
         return {
-          code: subject?.code || score.subjectId,
-          name: subject?.name || 'Unknown',
-          sacAverage: score.sacAverage,
-          examPrediction: score.examPrediction,
-          studyRank: score.studyRank,
-          predictedStudyScore: score.predictedStudyScore,
+          code: subject!.code,
+          name: subject!.name,
+          sacAverage: score.sacAverage || 0,
+          examPrediction: score.examPrediction || 0,
+          studyRank: score.studyRank || 50,
+          predictedStudyScore: score.predictedStudyScore || 0,
         };
       }),
       stateConfig,
@@ -440,7 +462,7 @@ export default function ATARScreen() {
               {stateConfig.stateName} ({stateConfig.scalingAuthority})
             </Text>
           </View>
-          {!isLoading && subjectScores.length > 0 && (
+          {!isLoading && subjectScores.length > 0 && userSubjects.length > 0 && (
             <Pressable 
               style={styles.shareIconButton} 
               onPress={() => setShowExportMenu(!showExportMenu)}
@@ -451,7 +473,7 @@ export default function ATARScreen() {
         </View>
 
         {/* Export Menu */}
-        {showExportMenu && !isLoading && subjectScores.length > 0 && (
+        {showExportMenu && !isLoading && subjectScores.length > 0 && userSubjects.length > 0 && (
           <View style={styles.exportMenu}>
             <Pressable 
               style={styles.exportMenuItem} 
