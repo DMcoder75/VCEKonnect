@@ -386,9 +386,32 @@ export async function exportATARToPDF(
   }
 ): Promise<{ success: boolean; message: string; uri?: string }> {
   try {
+    // Validation
     if (!userData || !userData.subjects || userData.subjects.length === 0) {
+      console.error('Export validation failed: No data available');
       return { success: false, message: 'No data available to export' };
     }
+
+    // Validate and sanitize subject data
+    const validSubjects = userData.subjects.filter(s => {
+      const isValid = s && s.code && s.name &&
+        typeof s.sacAverage === 'number' &&
+        typeof s.examPrediction === 'number' &&
+        typeof s.studyRank === 'number' &&
+        typeof s.predictedStudyScore === 'number';
+      
+      if (!isValid) {
+        console.warn('Invalid subject data:', s);
+      }
+      return isValid;
+    });
+
+    if (validSubjects.length === 0) {
+      console.error('Export validation failed: No valid subjects');
+      return { success: false, message: 'No valid subject data to export' };
+    }
+
+    console.log('Generating PDF for', validSubjects.length, 'subjects');
 
     const html = `
       <!DOCTYPE html>
@@ -461,8 +484,8 @@ export async function exportATARToPDF(
           </div>
 
           <div class="atar-box">
-            <div class="atar-value">${userData.atar.toFixed(2)}</div>
-            <div class="aggregate">Aggregate: ${userData.aggregate.toFixed(1)}</div>
+            <div class="atar-value">${(userData.atar || 0).toFixed(2)}</div>
+            <div class="aggregate">Aggregate: ${(userData.aggregate || 0).toFixed(1)}</div>
           </div>
 
           <h2>Subject Breakdown</h2>
@@ -477,13 +500,13 @@ export async function exportATARToPDF(
               </tr>
             </thead>
             <tbody>
-              ${userData.subjects.map(s => `
+              ${validSubjects.map(s => `
                 <tr>
                   <td><strong>${s.code}</strong><br/>${s.name}</td>
-                  <td>${s.sacAverage}%</td>
-                  <td>${s.examPrediction}%</td>
-                  <td>${s.studyRank}</td>
-                  <td><strong>${s.predictedStudyScore.toFixed(1)}</strong></td>
+                  <td>${(s.sacAverage || 0).toFixed(1)}%</td>
+                  <td>${(s.examPrediction || 0).toFixed(1)}%</td>
+                  <td>${s.studyRank || 50}</td>
+                  <td><strong>${(s.predictedStudyScore || 0).toFixed(1)}</strong></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -497,25 +520,34 @@ export async function exportATARToPDF(
       </html>
     `;
 
+    console.log('Calling Print.printToFileAsync...');
     const printResult = await Print.printToFileAsync({ html });
+    console.log('Print result:', printResult);
     
     if (!printResult || !printResult.uri) {
+      console.error('Print failed - no URI returned:', printResult);
       return { success: false, message: 'Failed to generate PDF file' };
     }
 
     const { uri } = printResult;
+    console.log('PDF generated at:', uri);
     
     const isAvailable = await Sharing.isAvailableAsync();
     if (isAvailable) {
+      console.log('Sharing PDF...');
       await Sharing.shareAsync(uri, {
         mimeType: 'application/pdf',
         dialogTitle: 'Share ATAR Report',
       });
+      console.log('Share completed');
+    } else {
+      console.warn('Sharing not available on this platform');
     }
 
     return { success: true, message: 'ATAR report exported successfully', uri };
   } catch (error: any) {
     console.error('PDF export error:', error);
+    console.error('Error stack:', error.stack);
     return { success: false, message: error.message || 'Failed to export PDF' };
   }
 }
