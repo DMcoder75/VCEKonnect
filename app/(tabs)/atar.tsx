@@ -423,7 +423,7 @@ export default function ATARScreen() {
   function handleEditSubject(subjectId: string) {
     // Check premium limits for score editing
     if (!limits.atarSubjectScoreEditing) {
-      alert('Subject score editing is a premium feature. Upgrade to Basic plan to unlock!');
+      showAlert('Premium Feature', 'Subject score editing is available in Basic and Pro plans. Upgrade to unlock!');
       return;
     }
 
@@ -855,24 +855,26 @@ export default function ATARScreen() {
                 
                 {/* Scenario Cards Grid */}
                 <View style={styles.scenariosGrid}>
-                  {/* Best Case */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
-                    <MaterialIcons name="trending-up" size={20} color={colors.success} />
-                    <Text style={styles.scenarioLabel}>Best Case</Text>
-                    <Text style={[styles.scenarioATAR, { color: colors.success }]}>
-                      {getPredictionFromScores(
-                        subjectScores.map(s => ({
-                          ...s,
-                          sacAverage: 100,
-                          examPrediction: 100,
-                        }))
-                      ).atar.toFixed(2)}
-                    </Text>
-                    <Text style={styles.scenarioDesc}>All 100%</Text>
-                  </View>
+                  {/* Best Case - Premium Only */}
+                  {isPremium && (
+                    <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
+                      <MaterialIcons name="trending-up" size={20} color={colors.success} />
+                      <Text style={styles.scenarioLabel}>Best Case</Text>
+                      <Text style={[styles.scenarioATAR, { color: colors.success }]}>
+                        {getPredictionFromScores(
+                          subjectScores.map(s => ({
+                            ...s,
+                            sacAverage: 100,
+                            examPrediction: 100,
+                          }))
+                        ).atar.toFixed(2)}
+                      </Text>
+                      <Text style={styles.scenarioDesc}>All 100%</Text>
+                    </View>
+                  )}
 
-                  {/* Current */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent]}>
+                  {/* Current - Always Visible */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent, !isPremium && styles.scenarioCardFullWidth]}>
                     <MaterialIcons name="show-chart" size={20} color={colors.primary} />
                     <Text style={styles.scenarioLabel}>Current</Text>
                     <Text style={[styles.scenarioATAR, { color: colors.primary }]}>
@@ -881,22 +883,34 @@ export default function ATARScreen() {
                     <Text style={styles.scenarioDesc}>As entered</Text>
                   </View>
 
-                  {/* Worst Case */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
-                    <MaterialIcons name="trending-down" size={20} color={colors.error} />
-                    <Text style={styles.scenarioLabel}>Worst Case</Text>
-                    <Text style={[styles.scenarioATAR, { color: colors.error }]}>
-                      {getPredictionFromScores(
-                        subjectScores.map(s => ({
-                          ...s,
-                          sacAverage: 70,
-                          examPrediction: 70,
-                        }))
-                      ).atar.toFixed(2)}
-                    </Text>
-                    <Text style={styles.scenarioDesc}>All 70%</Text>
-                  </View>
+                  {/* Worst Case - Premium Only */}
+                  {isPremium && (
+                    <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
+                      <MaterialIcons name="trending-down" size={20} color={colors.error} />
+                      <Text style={styles.scenarioLabel}>Worst Case</Text>
+                      <Text style={[styles.scenarioATAR, { color: colors.error }]}>
+                        {getPredictionFromScores(
+                          subjectScores.map(s => ({
+                            ...s,
+                            sacAverage: 70,
+                            examPrediction: 70,
+                          }))
+                        ).atar.toFixed(2)}
+                      </Text>
+                      <Text style={styles.scenarioDesc}>All 70%</Text>
+                    </View>
+                  )}
                 </View>
+                
+                {/* Premium Upsell for Free Tier */}
+                {!isPremium && (
+                  <View style={styles.scenarioUpsell}>
+                    <MaterialIcons name="lock" size={16} color={colors.warning} />
+                    <Text style={styles.scenarioUpsellText}>
+                      Unlock Best & Worst case scenarios with Premium
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
             
@@ -988,15 +1002,23 @@ export default function ATARScreen() {
                       </View>
                     </View>
                   ) : !isEditing && score ? (
-                    <Pressable onPress={() => handleEditSubject(subject.id)}>
-                      <SubjectScoreCard
-                        subjectId={subject.id}
-                        subjectName={subject.name}
-                        subjectCode={subject.code}
-                        sacAverage={score.sacAverage}
-                        examPrediction={score.examPrediction}
-                        predictedStudyScore={score.predictedStudyScore}
-                      />
+                    <Pressable onPress={() => handleEditSubject(subject.id)} disabled={!limits.atarSubjectScoreEditing}>
+                      <View style={styles.scoreCardWrapper}>
+                        <SubjectScoreCard
+                          subjectId={subject.id}
+                          subjectName={subject.name}
+                          subjectCode={subject.code}
+                          sacAverage={score.sacAverage}
+                          examPrediction={score.examPrediction}
+                          predictedStudyScore={score.predictedStudyScore}
+                        />
+                        {!limits.atarSubjectScoreEditing && (
+                          <View style={styles.scoreCardLockOverlay}>
+                            <MaterialIcons name="lock" size={24} color={colors.warning} />
+                            <Text style={styles.scoreCardLockText}>Premium</Text>
+                          </View>
+                        )}
+                      </View>
                     </Pressable>
                   ) : isEditing ? (
                     <View style={styles.editCard}>
@@ -2027,5 +2049,42 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textTertiary,
     marginTop: spacing.xs,
+  },
+  scenarioCardFullWidth: {
+    flex: 1,
+  },
+  scenarioUpsell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  scenarioUpsellText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+  },
+  scoreCardWrapper: {
+    position: 'relative',
+  },
+  scoreCardLockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(10, 10, 10, 0.85)',
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  scoreCardLockText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.warning,
   },
 });
