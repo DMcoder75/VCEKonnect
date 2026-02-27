@@ -246,6 +246,44 @@ export async function getUserWhatIfScenarios(userId: string): Promise<WhatIfScen
 // =====================================================
 
 /**
+ * Get current usage count and limit for AI study plans
+ */
+export async function getAIStudyPlanUsage(userId: string): Promise<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' }> {
+  try {
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
+    
+    if (limits.aiStudyPlansTotal === 'unlimited') {
+      return { used: 0, limit: 'unlimited', remaining: 'unlimited' };
+    }
+    
+    // Get current count
+    let count = 0;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('count_ai_study_plans', {
+      p_user_id: userId,
+    });
+    
+    if (rpcError) {
+      const { count: directCount } = await supabase
+        .from('vk_ai_study_plans')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      count = directCount || 0;
+    } else {
+      count = rpcData || 0;
+    }
+    
+    const limit = limits.aiStudyPlansTotal as number;
+    const remaining = Math.max(0, limit - count);
+    
+    return { used: count, limit, remaining };
+  } catch (error) {
+    console.error('Error getting AI study plan usage:', error);
+    return { used: 0, limit: 1, remaining: 1 };
+  }
+}
+
+/**
  * Check if user can create a new AI study plan
  */
 export async function canCreateAIStudyPlan(userId: string): Promise<{ allowed: boolean; reason?: string }> {
@@ -267,16 +305,12 @@ export async function canCreateAIStudyPlan(userId: string): Promise<{ allowed: b
     if (rpcError) {
       // Fallback to direct query if RPC function doesn't exist
       console.warn('RPC function not available, using direct query:', rpcError);
-      const { data: directData, error: directError } = await supabase
+      const { count: directCount } = await supabase
         .from('vk_ai_study_plans')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      if (directError) {
-        console.error('Error counting AI study plans (direct query):', directError);
-        return { allowed: false, reason: 'Error checking limit' };
-      }
-      count = directData || 0;
+      count = directCount || 0;
     } else {
       count = rpcData || 0;
     }
@@ -367,6 +401,46 @@ export async function saveAIStudyPlan(plan: {
 // =====================================================
 // AI RECOMMENDATIONS
 // =====================================================
+
+/**
+ * Get current usage count for AI recommendations (per subject)
+ */
+export async function getAIRecommendationUsage(userId: string, subjectId: string): Promise<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' }> {
+  try {
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
+    
+    if (limits.aiRecommendationsPerSubject === 'unlimited') {
+      return { used: 0, limit: 'unlimited', remaining: 'unlimited' };
+    }
+    
+    // Get count for this subject
+    let count = 0;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('count_ai_recommendations_for_subject', {
+      p_user_id: userId,
+      p_subject_id: subjectId,
+    });
+    
+    if (rpcError) {
+      const { count: directCount } = await supabase
+        .from('vk_ai_recommendations')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('subject_id', subjectId);
+      count = directCount || 0;
+    } else {
+      count = rpcData || 0;
+    }
+    
+    const limit = limits.aiRecommendationsPerSubject as number;
+    const remaining = Math.max(0, limit - count);
+    
+    return { used: count, limit, remaining };
+  } catch (error) {
+    console.error('Error getting AI recommendation usage:', error);
+    return { used: 0, limit: 1, remaining: 1 };
+  }
+}
 
 /**
  * Check if user can create AI recommendation for subject
@@ -469,6 +543,46 @@ export async function saveAIRecommendation(recommendation: {
 // =====================================================
 // AI PRACTICE QUESTIONS
 // =====================================================
+
+/**
+ * Get current usage count for AI practice questions (per subject)
+ */
+export async function getAIPracticeQuestionsUsage(userId: string, subjectId: string): Promise<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' }> {
+  try {
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
+    
+    if (limits.aiPracticeQuestionsPerSubject === 'unlimited') {
+      return { used: 0, limit: 'unlimited', remaining: 'unlimited' };
+    }
+    
+    // Get count for this subject
+    let count = 0;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('count_ai_practice_questions_for_subject', {
+      p_user_id: userId,
+      p_subject_id: subjectId,
+    });
+    
+    if (rpcError) {
+      const { count: directCount } = await supabase
+        .from('vk_ai_practice_questions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('subject_id', subjectId);
+      count = directCount || 0;
+    } else {
+      count = rpcData || 0;
+    }
+    
+    const limit = limits.aiPracticeQuestionsPerSubject as number;
+    const remaining = Math.max(0, limit - count);
+    
+    return { used: count, limit, remaining };
+  } catch (error) {
+    console.error('Error getting AI practice questions usage:', error);
+    return { used: 0, limit: 1, remaining: 1 };
+  }
+}
 
 /**
  * Check if user can create AI practice questions for subject

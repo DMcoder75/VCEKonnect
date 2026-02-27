@@ -42,7 +42,7 @@ export default function AIStudyPlanScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isLoading, error, response, setResponse, createStudyPlan } = useAI();
-  const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
+  const { tier, limits, isPremium, isLoading: isPremiumLoading, getStudyPlanUsage } = usePremium();
   const { showAlert } = useAlert();
   
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
@@ -62,6 +62,9 @@ export default function AIStudyPlanScreen() {
   const [paywallMessage, setPaywallMessage] = useState('');
   const [canGenerate, setCanGenerate] = useState(true); // Track if user can generate based on limits
   const [isCheckingLimits, setIsCheckingLimits] = useState(true); // Track initial limit check
+  
+  // Usage tracking for display
+  const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } | null>(null);
   
   // Background completion tracking (no state updates, no re-renders)
   const completionInProgress = React.useRef(false);
@@ -87,46 +90,15 @@ export default function AIStudyPlanScreen() {
     
     setIsCheckingLimits(true);
     
-    // DEBUG: Fetch raw subscription data
-    const { supabase } = require('@/services/supabase');
-    const { data: subscriptions, error: subError } = await supabase
-      .from('vk_premium_subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('payment_status', 'completed')
-      .order('end_date', { ascending: false });
-    
-    // DEBUG: Call RPC function directly
-    const { data: tierFromRPC, error: rpcError } = await supabase.rpc('get_user_premium_tier', {
-      p_user_id: user.id,
-    });
-    
-    // DEBUG: Check active premium
-    const { data: hasPremiumFromRPC, error: premiumError } = await supabase.rpc('has_active_premium', {
-      p_user_id: user.id,
-    });
+    // Get usage info
+    const usage = await getStudyPlanUsage();
+    setUsageInfo(usage);
     
     const check = await canCreateAIStudyPlan(user.id);
     setCanGenerate(check.allowed);
     if (!check.allowed) {
       setPaywallMessage(check.reason || 'Upgrade to generate more AI study plans');
     }
-    
-    // Set debug info
-    setDebugInfo({
-      userId: user.id,
-      currentTier: tier,
-      isPremium: isPremium,
-      subscriptions: subscriptions || [],
-      subscriptionError: subError?.message,
-      tierFromRPC: tierFromRPC,
-      rpcError: rpcError?.message,
-      hasPremiumFromRPC: hasPremiumFromRPC,
-      premiumError: premiumError?.message,
-      canGenerate: check.allowed,
-      limits: limits,
-      timestamp: new Date().toISOString(),
-    });
     
     setIsCheckingLimits(false);
   }
@@ -396,19 +368,30 @@ export default function AIStudyPlanScreen() {
           <View style={styles.headerPlaceholder} />
         </View>
 
-        {/* Premium Badge */}
+        {/* Premium Badge with Usage Counter */}
         <View style={[
           styles.premiumBadge,
           tier === 'pro' && styles.premiumBadgePro,
           tier === 'basic' && styles.premiumBadgeBasic,
         ]}>
           <MaterialIcons name="auto-awesome" size={20} color={tier === 'free' ? colors.warning : colors.background} />
-          <Text style={[
-            styles.premiumText,
-            tier !== 'free' && styles.premiumTextActive,
-          ]}>
-            {tier === 'pro' ? 'Pro Plan - Unlimited AI Plans' : tier === 'basic' ? 'Basic Plan - 5 Plans Stored' : 'Free: 1 Trial Only'}
-          </Text>
+          <View style={styles.premiumTextContainer}>
+            <Text style={[
+              styles.premiumText,
+              tier !== 'free' && styles.premiumTextActive,
+            ]}>
+              {tier === 'pro' ? 'Pro Plan - Unlimited AI Plans' : tier === 'basic' ? 'Basic Plan - 5 Plans Stored' : 'Free: 1 Trial Only'}
+            </Text>
+            {usageInfo && usageInfo.limit !== 'unlimited' && (
+              <Text style={[
+                styles.usageText,
+                tier !== 'free' && styles.usageTextActive,
+                usageInfo.remaining === 0 && styles.usageTextDepleted,
+              ]}>
+                {usageInfo.remaining} {usageInfo.remaining === 1 ? 'try' : 'tries'} left ({usageInfo.used}/{usageInfo.limit} used)
+              </Text>
+            )}
+          </View>
         </View>
 
         {isLoadingData || isPremiumLoading || isCheckingLimits ? (
@@ -454,6 +437,24 @@ export default function AIStudyPlanScreen() {
                 />
               </View>
             </View>
+
+            {/* Debug Panel */}
+            {showDebugPanel && debugInfo && (
+              <View style={styles.debugPanel}>
+                <View style={styles.debugHeader}>
+                  <MaterialIcons name="bug-report" size={20} color={colors.warning} />
+                  <Text style={styles.debugTitle}>Debug Panel</Text>
+                  <Pressable onPress={() => setShowDebugPanel(false)}>
+                    <MaterialIcons name="close" size={20} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+                <ScrollView style={styles.debugContent} nestedScrollEnabled>
+                  <Text style={styles.debugText}>
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </Text>
+                </ScrollView>
+              </View>
+            )}
 
             {/* Debug Panel */}
             {showDebugPanel && debugInfo && (
@@ -640,7 +641,6 @@ const styles = StyleSheet.create({
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.xs,
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.md,
@@ -657,6 +657,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.premium,
     borderColor: colors.premium,
   },
+  premiumTextContainer: {
+    flex: 1,
+  },
   premiumText: {
     fontSize: typography.bodySmall,
     fontWeight: typography.semibold,
@@ -664,6 +667,20 @@ const styles = StyleSheet.create({
   },
   premiumTextActive: {
     color: colors.background,
+  },
+  usageText: {
+    fontSize: 11,
+    fontWeight: typography.medium,
+    color: colors.warning,
+    marginTop: 2,
+    opacity: 0.9,
+  },
+  usageTextActive: {
+    color: colors.background,
+  },
+  usageTextDepleted: {
+    color: colors.error,
+    fontWeight: typography.bold,
   },
   section: {
     marginBottom: spacing.lg,

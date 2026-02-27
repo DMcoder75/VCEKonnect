@@ -6,6 +6,9 @@ import {
   getUserPremiumTier,
   getUserPremiumLimits,
   hasActivePremium,
+  getAIStudyPlanUsage,
+  getAIRecommendationUsage,
+  getAIPracticeQuestionsUsage,
   PREMIUM_TIER_LIMITS,
 } from '@/services/premiumService';
 
@@ -15,6 +18,9 @@ export function usePremium() {
   const [limits, setLimits] = useState<PremiumLimits>(PREMIUM_TIER_LIMITS.free);
   const [isPremium, setIsPremium] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Usage tracking for display
+  const [studyPlanUsage, setStudyPlanUsage] = useState<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -52,11 +58,33 @@ export function usePremium() {
     await loadPremiumStatus();
   }
 
+  // Get usage for specific features
+  async function getStudyPlanUsage() {
+    if (!user) return null;
+    const usage = await getAIStudyPlanUsage(user.id);
+    setStudyPlanUsage(usage);
+    return usage;
+  }
+
+  async function getRecommendationUsage(subjectId: string) {
+    if (!user) return null;
+    return await getAIRecommendationUsage(user.id, subjectId);
+  }
+
+  async function getPracticeQuestionsUsage(subjectId: string) {
+    if (!user) return null;
+    return await getAIPracticeQuestionsUsage(user.id, subjectId);
+  }
+
   return {
     tier,
     limits,
     isPremium,
     isLoading,
     refresh,
+    studyPlanUsage,
+    getStudyPlanUsage,
+    getRecommendationUsage,
+    getPracticeQuestionsUsage,
   };
 }
