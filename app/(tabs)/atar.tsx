@@ -851,28 +851,34 @@ export default function ATARScreen() {
                   <MaterialIcons name="compare-arrows" size={24} color={colors.primary} />
                   <Text style={styles.scenariosTitle}>ATAR Scenarios</Text>
                 </View>
-                <Text style={styles.scenariosDesc}>Compare best case, current, and worst case outcomes</Text>
+                <Text style={styles.scenariosDesc}>
+                  {limits.atarSubjectScoreEditing 
+                    ? 'Compare best case, current, and worst case outcomes'
+                    : 'Current ATAR prediction (Premium unlocks Best/Worst scenarios)'}
+                </Text>
                 
                 {/* Scenario Cards Grid */}
                 <View style={styles.scenariosGrid}>
-                  {/* Best Case */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
-                    <MaterialIcons name="trending-up" size={20} color={colors.success} />
-                    <Text style={styles.scenarioLabel}>Best Case</Text>
-                    <Text style={[styles.scenarioATAR, { color: colors.success }]}>
-                      {getPredictionFromScores(
-                        subjectScores.map(s => ({
-                          ...s,
-                          sacAverage: 100,
-                          examPrediction: 100,
-                        }))
-                      ).atar.toFixed(2)}
-                    </Text>
-                    <Text style={styles.scenarioDesc}>All 100%</Text>
-                  </View>
+                  {/* Best Case - Premium Only */}
+                  {limits.atarSubjectScoreEditing && (
+                    <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
+                      <MaterialIcons name="trending-up" size={20} color={colors.success} />
+                      <Text style={styles.scenarioLabel}>Best Case</Text>
+                      <Text style={[styles.scenarioATAR, { color: colors.success }]}>
+                        {getPredictionFromScores(
+                          subjectScores.map(s => ({
+                            ...s,
+                            sacAverage: 100,
+                            examPrediction: 100,
+                          }))
+                        ).atar.toFixed(2)}
+                      </Text>
+                      <Text style={styles.scenarioDesc}>All 100%</Text>
+                    </View>
+                  )}
 
-                  {/* Current */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent]}>
+                  {/* Current - Always visible */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent, !limits.atarSubjectScoreEditing && { flex: 1 }]}>
                     <MaterialIcons name="show-chart" size={20} color={colors.primary} />
                     <Text style={styles.scenarioLabel}>Current</Text>
                     <Text style={[styles.scenarioATAR, { color: colors.primary }]}>
@@ -881,21 +887,23 @@ export default function ATARScreen() {
                     <Text style={styles.scenarioDesc}>As entered</Text>
                   </View>
 
-                  {/* Worst Case */}
-                  <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
-                    <MaterialIcons name="trending-down" size={20} color={colors.error} />
-                    <Text style={styles.scenarioLabel}>Worst Case</Text>
-                    <Text style={[styles.scenarioATAR, { color: colors.error }]}>
-                      {getPredictionFromScores(
-                        subjectScores.map(s => ({
-                          ...s,
-                          sacAverage: 70,
-                          examPrediction: 70,
-                        }))
-                      ).atar.toFixed(2)}
-                    </Text>
-                    <Text style={styles.scenarioDesc}>All 70%</Text>
-                  </View>
+                  {/* Worst Case - Premium Only */}
+                  {limits.atarSubjectScoreEditing && (
+                    <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
+                      <MaterialIcons name="trending-down" size={20} color={colors.error} />
+                      <Text style={styles.scenarioLabel}>Worst Case</Text>
+                      <Text style={[styles.scenarioATAR, { color: colors.error }]}>
+                        {getPredictionFromScores(
+                          subjectScores.map(s => ({
+                            ...s,
+                            sacAverage: 70,
+                            examPrediction: 70,
+                          }))
+                        ).atar.toFixed(2)}
+                      </Text>
+                      <Text style={styles.scenarioDesc}>All 70%</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -966,23 +974,25 @@ export default function ATARScreen() {
                         <View style={styles.whatIfInputGroup}>
                           <Text style={styles.whatIfInputLabel}>SAC %</Text>
                           <TextInput
-                            style={styles.whatIfInput}
+                            style={[styles.whatIfInput, !limits.atarSubjectScoreEditing && styles.whatIfInputDisabled]}
                             value={whatIf?.sac?.toString() || (score.sacAverage || 0).toString()}
-                            onChangeText={(v) => setWhatIfScore(subject.id, 'sac', v)}
+                            onChangeText={(v) => limits.atarSubjectScoreEditing && setWhatIfScore(subject.id, 'sac', v)}
                             keyboardType="numeric"
                             placeholder={(score.sacAverage || 0).toString()}
                             placeholderTextColor={colors.textTertiary}
+                            editable={limits.atarSubjectScoreEditing}
                           />
                         </View>
                         <View style={styles.whatIfInputGroup}>
                           <Text style={styles.whatIfInputLabel}>Exam %</Text>
                           <TextInput
-                            style={styles.whatIfInput}
+                            style={[styles.whatIfInput, !limits.atarSubjectScoreEditing && styles.whatIfInputDisabled]}
                             value={whatIf?.exam?.toString() || (score.examPrediction || 0).toString()}
-                            onChangeText={(v) => setWhatIfScore(subject.id, 'exam', v)}
+                            onChangeText={(v) => limits.atarSubjectScoreEditing && setWhatIfScore(subject.id, 'exam', v)}
                             keyboardType="numeric"
                             placeholder={(score.examPrediction || 0).toString()}
                             placeholderTextColor={colors.textTertiary}
+                            editable={limits.atarSubjectScoreEditing}
                           />
                         </View>
                       </View>
@@ -1527,6 +1537,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  whatIfInputDisabled: {
+    backgroundColor: colors.surface,
+    color: colors.textTertiary,
+    opacity: 0.6,
   },
   loadingContainer: {
     alignItems: 'center',
