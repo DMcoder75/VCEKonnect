@@ -472,9 +472,9 @@ export default function ATARScreen() {
           )}
         </View>
 
-        {/* Export Menu */}
+        {/* Export Menu Overlay */}
         {showExportMenu && !isLoading && subjectScores.length > 0 && userSubjects.length > 0 && (
-          <View style={styles.exportMenu}>
+          <View style={styles.exportMenuOverlay}>
             <Pressable 
               style={styles.exportMenuItem} 
               onPress={() => {
@@ -1110,19 +1110,29 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
   },
-  exportMenu: {
+  exportMenuOverlay: {
+    position: 'absolute',
+    top: 56,
+    right: spacing.md,
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.lg,
     padding: spacing.xs,
-    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+    minWidth: 160,
   },
   exportMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderRadius: borderRadius.md,
   },
   exportMenuText: {
