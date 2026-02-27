@@ -256,13 +256,28 @@ export default function AIRecommendationsScreen() {
               <View style={styles.limitReachedBanner}>
                 <MaterialIcons name="lock" size={20} color={colors.warning} />
                 <Text style={styles.limitReachedText}>
-                  Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!
+                  Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each or Pro ($40/6m) for unlimited!
                 </Text>
                 <Pressable
                   style={styles.upgradeButtonSmall}
                   onPress={() => setShowPaywall(true)}
                 >
                   <Text style={styles.upgradeButtonSmallText}>Upgrade Now</Text>
+                </Pressable>
+              </View>
+            )}
+            {/* Basic Tier Limit Banner */}
+            {disabledSubjects.size > 0 && tier === 'basic' && (
+              <View style={styles.limitReachedBanner}>
+                <MaterialIcons name="lock" size={20} color={colors.premium} />
+                <Text style={styles.limitReachedText}>
+                  Basic plan limit reached for some subjects (5/5 used). Upgrade to Pro ($40/6m) for unlimited AI recommendations on all subjects!
+                </Text>
+                <Pressable
+                  style={[styles.upgradeButtonSmall, styles.upgradeButtonPro]}
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <Text style={styles.upgradeButtonSmallText}>Upgrade to Pro</Text>
                 </Pressable>
               </View>
             )}
@@ -521,6 +536,9 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     fontWeight: typography.bold,
     color: colors.background,
+  },
+  upgradeButtonPro: {
+    backgroundColor: colors.premium,
   },
   exportAllButton: {
     flexDirection: 'row',

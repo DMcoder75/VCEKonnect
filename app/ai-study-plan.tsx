@@ -505,6 +505,21 @@ export default function AIStudyPlanScreen() {
                 </Pressable>
               </View>
             )}
+            {!canGenerate && tier === 'basic' && (
+              <View style={styles.limitReachedCard}>
+                <MaterialIcons name="lock" size={24} color={colors.premium} />
+                <Text style={styles.limitReachedText}>
+                  Basic plan limit reached (5/5 used). Upgrade to Pro ($40/6 months) for unlimited personalized AI study plans!
+                </Text>
+                <Pressable
+                  style={[styles.upgradeButton, styles.upgradeButtonPro]}
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <MaterialIcons name="workspace-premium" size={20} color={colors.background} />
+                  <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+                </Pressable>
+              </View>
+            )}
             <Button
               title={isLoading ? "Generating Plan..." : canGenerate ? "Generate Study Plan" : "Limit Reached - Upgrade"}
               onPress={canGenerate ? handleGeneratePlan : () => setShowPaywall(true)}
@@ -925,6 +940,9 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: typography.bold,
     color: colors.background,
+  },
+  upgradeButtonPro: {
+    backgroundColor: colors.premium,
   },
   debugPanel: {
     backgroundColor: colors.surface,

@@ -384,11 +384,11 @@ export default function AIQuestionsScreen() {
             </View>
 
             {/* Generate Button */}
-            {!canGenerate && (
+            {!canGenerate && tier === 'free' && (
               <View style={styles.limitReachedCard}>
                 <MaterialIcons name="lock" size={24} color={colors.warning} />
                 <Text style={styles.limitReachedText}>
-                  {paywallMessage}
+                  Free trial used. Upgrade to Basic ($20/6m) for all subjects with 5 question sets each or Pro ($40/6m) for unlimited!
                 </Text>
                 <Pressable
                   style={styles.upgradeButton}
@@ -396,6 +396,21 @@ export default function AIQuestionsScreen() {
                 >
                   <MaterialIcons name="workspace-premium" size={20} color={colors.background} />
                   <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+                </Pressable>
+              </View>
+            )}
+            {!canGenerate && tier === 'basic' && selectedSubject && (
+              <View style={styles.limitReachedCard}>
+                <MaterialIcons name="lock" size={24} color={colors.premium} />
+                <Text style={styles.limitReachedText}>
+                  Basic plan limit reached for {selectedSubject.code} (5/5 used). Upgrade to Pro ($40/6m) for unlimited AI practice questions on all subjects!
+                </Text>
+                <Pressable
+                  style={[styles.upgradeButton, styles.upgradeButtonPro]}
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <MaterialIcons name="workspace-premium" size={20} color={colors.background} />
+                  <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
                 </Pressable>
               </View>
             )}
@@ -792,5 +807,8 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     fontWeight: typography.bold,
     color: colors.background,
+  },
+  upgradeButtonPro: {
+    backgroundColor: colors.premium,
   },
 });
