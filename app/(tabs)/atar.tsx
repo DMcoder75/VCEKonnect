@@ -1004,8 +1004,8 @@ export default function ATARScreen() {
               </View>
             )}
 
-            {/* Subject Scores - Hidden when Scaling view is active */}
-            {!showScaling && (
+            {/* Subject Scores - Only shown in What-If tab and default view */}
+            {!showRoadmap && !showRecommendations && !showScaling && (
               <>
                 <Text style={styles.sectionTitle}>Subject Scores</Text>
                 <Text style={styles.sectionDesc}>
@@ -1016,7 +1016,7 @@ export default function ATARScreen() {
               </>
             )}
 
-            {!showScaling && userSubjects.map(subject => {
+            {!showRoadmap && !showRecommendations && !showScaling && userSubjects.map(subject => {
               const score = subjectScores.find(s => s.subjectId === subject.id);
               const isEditing = editingSubject === subject.id;
               const whatIf = whatIfScores[subject.id];
@@ -1120,7 +1120,7 @@ export default function ATARScreen() {
               );
             })}
 
-            {!showScaling && userSubjects.length === 0 && (
+            {!showRoadmap && !showRecommendations && !showScaling && userSubjects.length === 0 && (
               <View style={styles.emptyState}>
                 <MaterialIcons name="assessment" size={64} color={colors.textTertiary} />
                 <Text style={styles.emptyText}>No subjects selected</Text>
