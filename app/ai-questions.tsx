@@ -88,26 +88,31 @@ export default function AIQuestionsScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (user && selectedSubject) {
+    if (user && selectedSubject && !isPremiumLoading) {
       checkInitialLimits();
     }
-  }, [user, selectedSubject]);
+  }, [user, selectedSubject, isPremiumLoading]);
 
   async function checkInitialLimits() {
-    if (!user || !selectedSubject) return;
+    if (!user || !selectedSubject || !getPracticeQuestionsUsage) return;
     
     setIsCheckingLimits(true);
     
-    // Get usage info
-    const usage = await getPracticeQuestionsUsage(selectedSubject.id);
-    setUsageInfo(usage);
-    
-    const check = await canCreateAIPracticeQuestions(user.id, selectedSubject.id);
-    setCanGenerate(check.allowed);
-    if (!check.allowed) {
-      setPaywallMessage(check.reason || 'Upgrade to generate more practice questions');
+    try {
+      // Get usage info
+      const usage = await getPracticeQuestionsUsage(selectedSubject.id);
+      setUsageInfo(usage);
+      
+      const check = await canCreateAIPracticeQuestions(user.id, selectedSubject.id);
+      setCanGenerate(check.allowed);
+      if (!check.allowed) {
+        setPaywallMessage(check.reason || 'Upgrade to generate more practice questions');
+      }
+    } catch (error) {
+      console.error('Error checking limits:', error);
+    } finally {
+      setIsCheckingLimits(false);
     }
-    setIsCheckingLimits(false);
   }
 
   async function loadUserData() {

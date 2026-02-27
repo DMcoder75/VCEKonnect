@@ -48,38 +48,43 @@ export default function AIRecommendationsScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (user && userSubjects.length > 0 && tier === 'free') {
+    if (user && userSubjects.length > 0 && !isPremiumLoading) {
       checkFreeTrialUsed();
     }
-  }, [user, userSubjects, tier]);
+  }, [user, userSubjects, isPremiumLoading]);
 
   async function checkFreeTrialUsed() {
-    if (!user) {
+    if (!user || !getRecommendationUsage) {
       setIsCheckingLimits(false);
       return;
     }
     
     setIsCheckingLimits(true);
     
-    // Load usage info for all subjects
-    const usageMap: { [subjectId: string]: { used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } } = {};
-    const disabledSet = new Set<string>();
-    
-    for (const subject of userSubjects) {
-      const usage = await getRecommendationUsage(subject.id);
-      if (usage) {
-        usageMap[subject.id] = usage;
+    try {
+      // Load usage info for all subjects
+      const usageMap: { [subjectId: string]: { used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } } = {};
+      const disabledSet = new Set<string>();
+      
+      for (const subject of userSubjects) {
+        const usage = await getRecommendationUsage(subject.id);
+        if (usage) {
+          usageMap[subject.id] = usage;
+        }
+        
+        const check = await canCreateAIRecommendation(user.id, subject.id);
+        if (!check.allowed) {
+          disabledSet.add(subject.id);
+        }
       }
       
-      const check = await canCreateAIRecommendation(user.id, subject.id);
-      if (!check.allowed) {
-        disabledSet.add(subject.id);
-      }
+      setUsageBySubject(usageMap);
+      setDisabledSubjects(disabledSet);
+    } catch (error) {
+      console.error('Error checking limits:', error);
+    } finally {
+      setIsCheckingLimits(false);
     }
-    
-    setUsageBySubject(usageMap);
-    setDisabledSubjects(disabledSet);
-    setIsCheckingLimits(false);
   }
 
   async function loadUserData() {
