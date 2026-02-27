@@ -49,6 +49,7 @@ export default function ATARScreen() {
   const [showAIStrategyPaywall, setShowAIStrategyPaywall] = useState(false);
   const [showAIAdvancedPaywall, setShowAIAdvancedPaywall] = useState(false);
   const [requiredAITier, setRequiredAITier] = useState<'basic' | 'pro'>('basic');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
@@ -440,12 +441,30 @@ export default function ATARScreen() {
             </Text>
           </View>
           {!isLoading && subjectScores.length > 0 && (
-            <Pressable style={styles.exportPdfButton} onPress={handleExportPDF}>
-              <MaterialIcons name="picture-as-pdf" size={20} color={colors.background} />
-              <Text style={styles.exportPdfButtonText}>Export PDF</Text>
+            <Pressable 
+              style={styles.shareIconButton} 
+              onPress={() => setShowExportMenu(!showExportMenu)}
+            >
+              <MaterialIcons name="share" size={24} color={colors.primary} />
             </Pressable>
           )}
         </View>
+
+        {/* Export Menu */}
+        {showExportMenu && !isLoading && subjectScores.length > 0 && (
+          <View style={styles.exportMenu}>
+            <Pressable 
+              style={styles.exportMenuItem} 
+              onPress={() => {
+                setShowExportMenu(false);
+                handleExportPDF();
+              }}
+            >
+              <MaterialIcons name="picture-as-pdf" size={20} color={colors.error} />
+              <Text style={styles.exportMenuText}>Export as PDF</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* State-Specific Warnings */}
         {getStateWarning(stateId) && (
@@ -1051,28 +1070,43 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.lg,
   },
   header: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
   },
-  exportPdfButton: {
+  shareIconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+  },
+  exportMenu: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xs,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  exportMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignSelf: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
   },
-  exportPdfButtonText: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.bold,
-    color: colors.background,
+  exportMenuText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
   },
   title: {
     fontSize: typography.h1,

@@ -386,6 +386,10 @@ export async function exportATARToPDF(
   }
 ): Promise<{ success: boolean; message: string; uri?: string }> {
   try {
+    if (!userData || !userData.subjects || userData.subjects.length === 0) {
+      return { success: false, message: 'No data available to export' };
+    }
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -493,7 +497,13 @@ export async function exportATARToPDF(
       </html>
     `;
 
-    const { uri } = await Print.printToFileAsync({ html });
+    const printResult = await Print.printToFileAsync({ html });
+    
+    if (!printResult || !printResult.uri) {
+      return { success: false, message: 'Failed to generate PDF file' };
+    }
+
+    const { uri } = printResult;
     
     const isAvailable = await Sharing.isAvailableAsync();
     if (isAvailable) {
