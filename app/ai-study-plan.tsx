@@ -911,7 +911,7 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
   limitReachedCard: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.lg,
@@ -922,19 +922,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   limitReachedText: {
-    flex: 1,
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+    textAlign: 'center',
   },
   upgradeButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
+    width: '100%',
   },
   upgradeButtonText: {
     fontSize: typography.bodySmall,

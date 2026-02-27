@@ -274,7 +274,7 @@ export default function AIRecommendationsScreen() {
             {/* Limit Reached Banner - Show above subject list for free tier */}
             {disabledSubjects.size > 0 && tier === 'free' && (
               <View style={styles.limitReachedBanner}>
-                <MaterialIcons name="lock" size={20} color={colors.warning} />
+                <MaterialIcons name="lock" size={24} color={colors.warning} />
                 <Text style={styles.limitReachedText}>
                   Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each or Pro ($40/6m) for unlimited!
                 </Text>
@@ -282,6 +282,7 @@ export default function AIRecommendationsScreen() {
                   style={styles.upgradeButtonSmall}
                   onPress={() => setShowPaywall(true)}
                 >
+                  <MaterialIcons name="workspace-premium" size={18} color={colors.background} />
                   <Text style={styles.upgradeButtonSmallText}>Upgrade Now</Text>
                 </Pressable>
               </View>
@@ -289,7 +290,7 @@ export default function AIRecommendationsScreen() {
             {/* Basic Tier Limit Banner */}
             {disabledSubjects.size > 0 && tier === 'basic' && (
               <View style={styles.limitReachedBanner}>
-                <MaterialIcons name="lock" size={20} color={colors.premium} />
+                <MaterialIcons name="lock" size={24} color={colors.premium} />
                 <Text style={styles.limitReachedText}>
                   Basic plan limit reached for some subjects (5/5 used). Upgrade to Pro ($40/6m) for unlimited AI recommendations on all subjects!
                 </Text>
@@ -297,6 +298,7 @@ export default function AIRecommendationsScreen() {
                   style={[styles.upgradeButtonSmall, styles.upgradeButtonPro]}
                   onPress={() => setShowPaywall(true)}
                 >
+                  <MaterialIcons name="workspace-premium" size={18} color={colors.background} />
                   <Text style={styles.upgradeButtonSmallText}>Upgrade to Pro</Text>
                 </Pressable>
               </View>
@@ -551,30 +553,35 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
   },
   limitReachedBanner: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.warning,
     gap: spacing.sm,
   },
   limitReachedText: {
-    flex: 1,
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   upgradeButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    width: '100%',
   },
   upgradeButtonSmallText: {
-    fontSize: typography.caption,
+    fontSize: typography.bodySmall,
     fontWeight: typography.bold,
     color: colors.background,
   },
