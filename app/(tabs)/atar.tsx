@@ -101,11 +101,14 @@ export default function ATARScreen() {
         const exam = typeof s.examPrediction === 'number' ? s.examPrediction : 0;
         const rank = typeof s.studyRank === 'number' ? s.studyRank : 50;
         
-        // Simple weighted average
-        const rawScore = sac * 0.4 + exam * 0.6;
+        // Weighted average of SAC and exam (0-100 percentage scale)
+        const rawPercentage = sac * 0.4 + exam * 0.6;
+        
+        // Convert percentage to study score scale (0-50)
+        const rawStudyScore = rawPercentage / 2;
         
         // Apply cohort scaling (simplified)
-        const scaledScore = rawScore * (1 + (rank - 50) / 200);
+        const scaledScore = rawStudyScore * (1 + (rank - 50) / 200);
         
         return Math.max(0, Math.min(50, scaledScore));
       })
