@@ -246,7 +246,8 @@ export default function GoalsProgressScreen() {
           <View style={styles.ringsCard}>
             <Text style={styles.sectionTitle}>Overall Progress</Text>
             <View style={styles.ringsContainer}>
-              {activeGoals.weekly && (
+              {/* Weekly Goal or SET button */}
+              {activeGoals.weekly ? (
                 <StudyGoalRing
                   label="Weekly"
                   targetHours={activeGoals.weekly.targetHours}
@@ -255,8 +256,20 @@ export default function GoalsProgressScreen() {
                   size="large"
                   icon="calendar-today"
                 />
+              ) : (
+                <Pressable
+                  style={styles.setGoalButton}
+                  onPress={() => router.push('/goals')}
+                >
+                  <View style={styles.setGoalCircle}>
+                    <Text style={styles.setGoalText}>SET</Text>
+                  </View>
+                  <Text style={styles.setGoalLabel}>Weekly</Text>
+                </Pressable>
               )}
-              {activeGoals.monthly && (
+
+              {/* Monthly Goal or SET button */}
+              {activeGoals.monthly ? (
                 <StudyGoalRing
                   label="Monthly"
                   targetHours={activeGoals.monthly.targetHours}
@@ -265,8 +278,20 @@ export default function GoalsProgressScreen() {
                   size="large"
                   icon="event-note"
                 />
+              ) : (
+                <Pressable
+                  style={styles.setGoalButton}
+                  onPress={() => router.push('/goals')}
+                >
+                  <View style={styles.setGoalCircle}>
+                    <Text style={styles.setGoalText}>SET</Text>
+                  </View>
+                  <Text style={styles.setGoalLabel}>Monthly</Text>
+                </Pressable>
               )}
-              {activeGoals.term && (
+
+              {/* Term Goal or SET button */}
+              {activeGoals.term ? (
                 <StudyGoalRing
                   label="Term"
                   targetHours={activeGoals.term.targetHours}
@@ -275,6 +300,16 @@ export default function GoalsProgressScreen() {
                   size="large"
                   icon="school"
                 />
+              ) : (
+                <Pressable
+                  style={styles.setGoalButton}
+                  onPress={() => router.push('/goals')}
+                >
+                  <View style={styles.setGoalCircle}>
+                    <Text style={styles.setGoalText}>SET</Text>
+                  </View>
+                  <Text style={styles.setGoalLabel}>Term</Text>
+                </Pressable>
               )}
             </View>
           </View>
@@ -661,5 +696,32 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.background,
+  },
+  setGoalButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setGoalCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  setGoalText: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+    color: colors.primary,
+  },
+  setGoalLabel: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
 });
