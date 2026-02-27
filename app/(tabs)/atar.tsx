@@ -841,6 +841,62 @@ export default function ATARScreen() {
               </View>
             )}
             
+            {/* What-If Scenarios: Best/Worst/Current Display */}
+            {showWhatIf && (
+              <View style={styles.scenariosCard}>
+                <View style={styles.scenariosHeader}>
+                  <MaterialIcons name="compare-arrows" size={24} color={colors.primary} />
+                  <Text style={styles.scenariosTitle}>ATAR Scenarios</Text>
+                </View>
+                <Text style={styles.scenariosDesc}>Compare best case, current, and worst case outcomes</Text>
+                
+                {/* Scenario Cards Grid */}
+                <View style={styles.scenariosGrid}>
+                  {/* Best Case */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardBest]}>
+                    <MaterialIcons name="trending-up" size={20} color={colors.success} />
+                    <Text style={styles.scenarioLabel}>Best Case</Text>
+                    <Text style={[styles.scenarioATAR, { color: colors.success }]}>
+                      {getPredictionFromScores(
+                        subjectScores.map(s => ({
+                          ...s,
+                          sacAverage: 100,
+                          examPrediction: 100,
+                        }))
+                      ).atar.toFixed(2)}
+                    </Text>
+                    <Text style={styles.scenarioDesc}>All 100%</Text>
+                  </View>
+
+                  {/* Current */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardCurrent]}>
+                    <MaterialIcons name="show-chart" size={20} color={colors.primary} />
+                    <Text style={styles.scenarioLabel}>Current</Text>
+                    <Text style={[styles.scenarioATAR, { color: colors.primary }]}>
+                      {prediction.atar.toFixed(2)}
+                    </Text>
+                    <Text style={styles.scenarioDesc}>As entered</Text>
+                  </View>
+
+                  {/* Worst Case */}
+                  <View style={[styles.scenarioCard, styles.scenarioCardWorst]}>
+                    <MaterialIcons name="trending-down" size={20} color={colors.error} />
+                    <Text style={styles.scenarioLabel}>Worst Case</Text>
+                    <Text style={[styles.scenarioATAR, { color: colors.error }]}>
+                      {getPredictionFromScores(
+                        subjectScores.map(s => ({
+                          ...s,
+                          sacAverage: 50,
+                          examPrediction: 50,
+                        }))
+                      ).atar.toFixed(2)}
+                    </Text>
+                    <Text style={styles.scenarioDesc}>All 50%</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+            
             {/* What-If Results */}
             {showWhatIf && whatIfPrediction && (
               <View style={styles.whatIfCard}>
@@ -1906,5 +1962,67 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  
+  // ATAR Scenarios (Best/Worst/Current)
+  scenariosCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  scenariosHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  scenariosTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  scenariosDesc: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  scenariosGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  scenarioCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  scenarioCardBest: {
+    borderColor: colors.success,
+  },
+  scenarioCardCurrent: {
+    borderColor: colors.primary,
+  },
+  scenarioCardWorst: {
+    borderColor: colors.error,
+  },
+  scenarioLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  scenarioATAR: {
+    fontSize: typography.h2,
+    fontWeight: typography.bold,
+  },
+  scenarioDesc: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
 });
