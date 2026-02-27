@@ -21,6 +21,7 @@ import { useMotivationalMessage } from '@/hooks/useMotivationalMessage';
 import { useCalendar } from '@/hooks/useCalendar';
 import { getAllVCESubjects, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
+import { usePremium } from '@/hooks/usePremium';
 
 
 // Helper function to capitalize first letter of name
@@ -56,6 +57,7 @@ export default function DashboardScreen() {
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
   const prediction = getPrediction();
+  const { tier, isPremium } = usePremium();
 
   // Generate motivational message
   const motivationalMessage = useMotivationalMessage({
@@ -285,6 +287,24 @@ export default function DashboardScreen() {
           <View style={styles.headerContent}>
             <Text style={styles.greeting}>G'day, {capitalizeFirstLetter(user.name)}!</Text>
             <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
+            {/* Subscription Badge */}
+            <View style={[
+              styles.subscriptionBadge,
+              tier === 'pro' && styles.subscriptionBadgePro,
+              tier === 'basic' && styles.subscriptionBadgeBasic,
+            ]}>
+              <MaterialIcons 
+                name={tier === 'free' ? 'info-outline' : 'workspace-premium'} 
+                size={14} 
+                color={tier === 'free' ? colors.textSecondary : colors.background} 
+              />
+              <Text style={[
+                styles.subscriptionText,
+                tier !== 'free' && styles.subscriptionTextActive,
+              ]}>
+                {tier === 'pro' ? 'Pro Plan' : tier === 'basic' ? 'Basic Plan' : 'Free Plan'}
+              </Text>
+            </View>
           </View>
           <Pressable
             onPress={() => router.push('/settings')}
@@ -724,6 +744,34 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
     textAlign: 'center',
+  },
+  subscriptionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    marginTop: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  subscriptionBadgeBasic: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  subscriptionBadgePro: {
+    backgroundColor: colors.premium,
+    borderColor: colors.premium,
+  },
+  subscriptionText: {
+    fontSize: 11,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  subscriptionTextActive: {
+    color: colors.background,
   },
   settingsButton: {
     position: 'absolute',

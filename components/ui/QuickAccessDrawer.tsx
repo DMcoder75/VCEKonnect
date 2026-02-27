@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 
 const DRAWER_WIDTH = 280;
 
@@ -18,6 +19,7 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const { tier } = usePremium();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
   // Helper function to capitalize first letter
@@ -138,6 +140,23 @@ export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawer
             <Text style={styles.profileMeta}>
               Year {user.yearLevel} · {getStateDisplayName(user.stateId)}
             </Text>
+            <View style={[
+              styles.subscriptionBadge,
+              tier === 'pro' && styles.subscriptionBadgePro,
+              tier === 'basic' && styles.subscriptionBadgeBasic,
+            ]}>
+              <MaterialIcons 
+                name={tier === 'free' ? 'info-outline' : 'workspace-premium'} 
+                size={12} 
+                color={tier === 'free' ? colors.textSecondary : colors.background} 
+              />
+              <Text style={[
+                styles.subscriptionText,
+                tier !== 'free' && styles.subscriptionTextActive,
+              ]}>
+                {tier === 'pro' ? 'Pro Plan' : tier === 'basic' ? 'Basic Plan' : 'Free Plan'}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -278,6 +297,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     fontWeight: typography.medium,
+  },
+  subscriptionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  subscriptionBadgeBasic: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  subscriptionBadgePro: {
+    backgroundColor: colors.premium,
+    borderColor: colors.premium,
+  },
+  subscriptionText: {
+    fontSize: 10,
+    fontWeight: typography.semibold,
+    color: colors.textSecondary,
+  },
+  subscriptionTextActive: {
+    color: colors.background,
   },
   menuList: {
     flex: 1,

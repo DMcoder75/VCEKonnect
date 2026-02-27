@@ -9,6 +9,7 @@ import { VCESubject, AustralianState } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
+import { usePremium } from '@/hooks/usePremium';
 import { Button } from '@/components';
 
 export default function SettingsScreen() {
@@ -16,6 +17,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
+  const { tier, isPremium } = usePremium();
   
   const { userSubjects, allStateSubjects, allStates, refreshSubjects } = useAuth();
   
@@ -121,6 +123,40 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Subscription Status - Highlighted */}
+        <View style={[
+          styles.subscriptionCard,
+          tier === 'pro' && styles.subscriptionCardPro,
+          tier === 'basic' && styles.subscriptionCardBasic,
+        ]}>
+          <View style={styles.subscriptionLeft}>
+            <MaterialIcons 
+              name={tier === 'free' ? 'info-outline' : 'workspace-premium'} 
+              size={32} 
+              color={tier === 'free' ? colors.textSecondary : tier === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={[
+                styles.subscriptionTitle,
+                tier !== 'free' && styles.subscriptionTitleActive,
+              ]}>
+                {tier === 'pro' ? 'Pro Plan Active' : tier === 'basic' ? 'Basic Plan Active' : 'Free Plan'}
+              </Text>
+              <Text style={styles.subscriptionDesc}>
+                {tier === 'pro' ? 'Unlimited AI features, advanced analytics' : tier === 'basic' ? 'Premium features, limited AI usage' : 'Limited features, upgrade to unlock more'}
+              </Text>
+            </View>
+          </View>
+          {tier === 'free' && (
+            <Pressable
+              style={styles.upgradeButton}
+              onPress={() => router.push('/premium')}
+            >
+              <Text style={styles.upgradeButtonText}>Upgrade</Text>
+            </Pressable>
+          )}
+        </View>
+
         {/* State Section - Read Only Display */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My State</Text>
@@ -867,5 +903,54 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
+  },
+  subscriptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  subscriptionCardBasic: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}15`,
+  },
+  subscriptionCardPro: {
+    borderColor: colors.premium,
+    backgroundColor: `${colors.premium}15`,
+  },
+  subscriptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  subscriptionTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.textSecondary,
+  },
+  subscriptionTitleActive: {
+    color: colors.textPrimary,
+  },
+  subscriptionDesc: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  upgradeButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  upgradeButtonText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.background,
   },
 });
