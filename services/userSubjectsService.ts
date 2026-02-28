@@ -41,7 +41,7 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
 
     // Step 2: Get full subject details from unified catalog
     const { data: subjectsData, error: subjectsError } = await supabase
-      .from('vk_vce_subjects')
+      .from('vk_subjects')
       .select('*')
       .in('id', subjectIds);
 
@@ -53,7 +53,7 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
     console.log('📦 Subjects data:', subjectsData);
 
     if (!subjectsData || subjectsData.length === 0) {
-      console.warn('⚠️ No matching subjects found in vk_vce_subjects table for IDs:', subjectIds);
+      console.warn('⚠️ No matching subjects found in vk_subjects table for IDs:', subjectIds);
       return [];
     }
 

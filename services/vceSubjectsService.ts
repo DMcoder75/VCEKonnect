@@ -65,7 +65,7 @@ export async function getAllStates(): Promise<AustralianState[]> {
 export async function getSubjectsByState(stateId: string): Promise<VCESubject[]> {
   try {
     const { data, error } = await supabase
-      .from('vk_vce_subjects')
+      .from('vk_subjects')
       .select('*')
       .eq('state_id', stateId.toLowerCase())
       .order('category', { ascending: true })
@@ -106,7 +106,7 @@ export async function getAllVCESubjects(): Promise<VCESubject[]> {
 export async function getSubjectsByCategory(category: string, stateId: string = 'vic'): Promise<VCESubject[]> {
   try {
     const { data, error } = await supabase
-      .from('vk_vce_subjects')
+      .from('vk_subjects')
       .select('*')
       .eq('state_id', stateId.toLowerCase())
       .eq('category', category)
@@ -139,7 +139,7 @@ export async function getSubjectsByCategory(category: string, stateId: string = 
 export async function getSubjectCategories(stateId: string = 'vic'): Promise<string[]> {
   try {
     const { data, error } = await supabase
-      .from('vk_vce_subjects')
+      .from('vk_subjects')
       .select('category')
       .eq('state_id', stateId.toLowerCase())
       .order('category', { ascending: true });
@@ -166,7 +166,7 @@ export async function searchSubjects(query: string, stateId: string = 'vic'): Pr
     const searchTerm = `%${query.toLowerCase()}%`;
     
     const { data, error } = await supabase
-      .from('vk_vce_subjects')
+      .from('vk_subjects')
       .select('*')
       .eq('state_id', stateId.toLowerCase())
       .or(`name.ilike.${searchTerm},code.ilike.${searchTerm}`)
