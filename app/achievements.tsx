@@ -70,8 +70,9 @@ export default function AchievementsScreen() {
     setUserSubjects(subjects);
   }
 
-  function getSubjectName(subjectId: string): string {
-    const subject = userSubjects.find(s => s.id === subjectId);
+  function getSubjectName(subjectId: string | undefined): string {
+    if (!subjectId) return 'Unknown Subject';
+    const subject = userSubjects.find(s => s && s.id === subjectId);
     return subject?.code || subjectId;
   }
 
@@ -142,11 +143,32 @@ export default function AchievementsScreen() {
       return null;
     }
 
+    // Filter out invalid subjects and ensure all required properties exist
+    const validSubjects = subjects.filter(s => 
+      s && 
+      s.subjectId && 
+      typeof s.targetHours === 'number' && 
+      typeof s.achievedMinutes === 'number'
+    );
+
+    if (validSubjects.length === 0) {
+      if (showEmptyState) {
+        return (
+          <Text style={styles.noSubjectsText}>No subjects set for this goal</Text>
+        );
+      }
+      return null;
+    }
+
     return (
       <View style={styles.subjectBreakdown}>
-        {subjects.filter(s => s && s.subjectId).map(subject => {
-          const subjectProgress = subject.targetHours > 0
-            ? ((subject.achievedMinutes / 60) / subject.targetHours) * 100
+        {validSubjects.map(subject => {
+          // Safe numeric operations with proper null checks
+          const achievedMinutes = subject.achievedMinutes || 0;
+          const targetHours = subject.targetHours || 0;
+          
+          const subjectProgress = targetHours > 0
+            ? ((achievedMinutes / 60) / targetHours) * 100
             : 0;
           const isCompleted = subjectProgress >= 100;
           
@@ -170,7 +192,7 @@ export default function AchievementsScreen() {
                     style={[
                       styles.subjectProgressFill,
                       { 
-                        width: `${Math.min(subjectProgress, 100)}%`,
+                        width: `${Math.min(100, Math.max(0, subjectProgress))}%`,
                         backgroundColor: isCompleted ? colors.success : colors.primary,
                       }
                     ]} 
@@ -428,8 +450,10 @@ export default function AchievementsScreen() {
               </View>
               
               {weeklyHistory.filter(p => p && p.id).map(period => {
-                const progressPercent = period.targetHours > 0
-                  ? (period.achievedHours / period.targetHours) * 100
+                const targetHours = period.targetHours || 0;
+                const achievedHours = period.achievedHours || 0;
+                const progressPercent = targetHours > 0
+                  ? (achievedHours / targetHours) * 100
                   : 0;
                 const icon = getCompletionIcon(progressPercent);
                 
@@ -439,7 +463,7 @@ export default function AchievementsScreen() {
                       <View style={styles.historyInfo}>
                         <Text style={styles.historyDate}>{formatPeriodDate(period)}</Text>
                         <Text style={styles.historyProgress}>
-                          {period.achievedHours.toFixed(1)}/{period.targetHours}h
+                          {achievedHours.toFixed(1)}/{targetHours}h
                         </Text>
                       </View>
                       <View style={styles.historyCompletion}>
@@ -467,8 +491,10 @@ export default function AchievementsScreen() {
               </View>
               
               {monthlyHistory.filter(p => p && p.id).map(period => {
-                const progressPercent = period.targetHours > 0
-                  ? (period.achievedHours / period.targetHours) * 100
+                const targetHours = period.targetHours || 0;
+                const achievedHours = period.achievedHours || 0;
+                const progressPercent = targetHours > 0
+                  ? (achievedHours / targetHours) * 100
                   : 0;
                 const icon = getCompletionIcon(progressPercent);
                 
@@ -478,7 +504,7 @@ export default function AchievementsScreen() {
                       <View style={styles.historyInfo}>
                         <Text style={styles.historyDate}>{formatPeriodDate(period)}</Text>
                         <Text style={styles.historyProgress}>
-                          {period.achievedHours.toFixed(1)}/{period.targetHours}h
+                          {achievedHours.toFixed(1)}/{targetHours}h
                         </Text>
                       </View>
                       <View style={styles.historyCompletion}>
@@ -506,8 +532,10 @@ export default function AchievementsScreen() {
               </View>
               
               {termHistory.filter(p => p && p.id).map(period => {
-                const progressPercent = period.targetHours > 0
-                  ? (period.achievedHours / period.targetHours) * 100
+                const targetHours = period.targetHours || 0;
+                const achievedHours = period.achievedHours || 0;
+                const progressPercent = targetHours > 0
+                  ? (achievedHours / targetHours) * 100
                   : 0;
                 const icon = getCompletionIcon(progressPercent);
                 
@@ -517,7 +545,7 @@ export default function AchievementsScreen() {
                       <View style={styles.historyInfo}>
                         <Text style={styles.historyDate}>{formatPeriodDate(period)}</Text>
                         <Text style={styles.historyProgress}>
-                          {period.achievedHours.toFixed(1)}/{period.targetHours}h
+                          {achievedHours.toFixed(1)}/{targetHours}h
                         </Text>
                       </View>
                       <View style={styles.historyCompletion}>
