@@ -63,6 +63,9 @@ export async function registerUser(
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
         state_id: data.state_id,
+        clientAppVersion: data.client_app_version,
+        clientPlatform: data.client_platform,
+        clientAppVersionUpdatedAt: data.client_app_version_updated_at,
       },
       error: null,
     };
@@ -94,6 +97,11 @@ export async function loginUser(
       return { user: null, error: 'Invalid email or password' };
     }
 
+    // Check if email is verified
+    if (!data.is_verified) {
+      return { user: null, error: 'Please verify your email before logging in. Check your inbox for the verification code.' };
+    }
+
     // Save session
     await saveSession(data.id);
 
@@ -117,6 +125,9 @@ export async function loginUser(
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
         state_id: data.state_id,
+        clientAppVersion: data.client_app_version,
+        clientPlatform: data.client_platform,
+        clientAppVersionUpdatedAt: data.client_app_version_updated_at,
       },
       error: null,
     };
@@ -153,6 +164,9 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       isPremium: data.is_premium,
       premiumExpiry: data.premium_expiry,
       state_id: data.state_id,
+      clientAppVersion: data.client_app_version,
+      clientPlatform: data.client_platform,
+      clientAppVersionUpdatedAt: data.client_app_version_updated_at,
     };
   } catch (err) {
     return null;

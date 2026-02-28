@@ -63,6 +63,9 @@ export async function registerUser(
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
         state_id: data.state_id,
+        clientAppVersion: data.client_app_version,
+        clientPlatform: data.client_platform,
+        clientAppVersionUpdatedAt: data.client_app_version_updated_at,
       },
       error: null,
     };
@@ -134,6 +137,9 @@ export async function loginUser(
         isPremium: data.is_premium,
         premiumExpiry: data.premium_expiry,
         state_id: data.state_id,
+        clientAppVersion: data.client_app_version,
+        clientPlatform: data.client_platform,
+        clientAppVersionUpdatedAt: data.client_app_version_updated_at,
       },
       error: null,
     };
@@ -170,6 +176,9 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       isPremium: data.is_premium,
       premiumExpiry: data.premium_expiry,
       state_id: data.state_id,
+      clientAppVersion: data.client_app_version,
+      clientPlatform: data.client_platform,
+      clientAppVersionUpdatedAt: data.client_app_version_updated_at,
     };
   } catch (err) {
     return null;

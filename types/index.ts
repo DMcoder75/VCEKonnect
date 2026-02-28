@@ -9,6 +9,9 @@ export interface UserProfile {
   isPremium: boolean;
   premiumExpiry?: string;
   state_id?: string; // Australian state/territory: vic, nsw, qld, wa, sa, tas, act, nt
+  clientAppVersion?: string; // Current app version user is on
+  clientPlatform?: 'ios' | 'android' | 'web'; // Platform user is using
+  clientAppVersionUpdatedAt?: string; // Last time version was tracked
 }
 
 export interface SubjectScore {
