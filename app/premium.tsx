@@ -92,7 +92,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>AI Study Plans</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '5 stored plans' : 'Unlimited plans'}
+                {selectedPlan === 'basic' ? '5 AI plans' : 'Unlimited plans'}
               </Text>
             </View>
           </View>
@@ -107,7 +107,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>AI Study Recommendations</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '5 recommendations per subject' : 'Unlimited recommendations'}
+                {selectedPlan === 'basic' ? '2 recommendations per subject' : 'Unlimited recommendations'}
               </Text>
             </View>
           </View>
@@ -122,7 +122,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>AI Practice Questions</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '5 question sets per subject' : 'Unlimited practice questions'}
+                {selectedPlan === 'basic' ? '3 question sets per subject' : 'Unlimited practice questions'}
               </Text>
             </View>
           </View>
@@ -163,7 +163,7 @@ export default function PremiumScreen() {
               color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
             />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Advanced Analytics</Text>
+              <Text style={styles.featureTitle}>Advanced Analytics (Free)</Text>
               <Text style={styles.featureDesc}>Detailed insights into study patterns and progress</Text>
             </View>
           </View>
@@ -176,7 +176,7 @@ export default function PremiumScreen() {
               color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
             />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Study Goals & Tracking</Text>
+              <Text style={styles.featureTitle}>Study Goals & Tracking (Free)</Text>
               <Text style={styles.featureDesc}>Weekly, monthly, and term goal management</Text>
             </View>
           </View>
@@ -189,7 +189,7 @@ export default function PremiumScreen() {
               color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
             />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Unlimited Subjects</Text>
+              <Text style={styles.featureTitle}>Unlimited Subjects (Free)</Text>
               <Text style={styles.featureDesc}>Track all VCE subjects without limits</Text>
             </View>
           </View>
@@ -202,7 +202,7 @@ export default function PremiumScreen() {
               color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
             />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Enhanced Notes System</Text>
+              <Text style={styles.featureTitle}>Enhanced Notes System (Free)</Text>
               <Text style={styles.featureDesc}>Rich text, tags, and advanced search</Text>
             </View>
           </View>
@@ -215,7 +215,7 @@ export default function PremiumScreen() {
               color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
             />
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>Achievements & Streaks</Text>
+              <Text style={styles.featureTitle}>Achievements & Streaks (Free)</Text>
               <Text style={styles.featureDesc}>Gamified motivation system with milestones</Text>
             </View>
           </View>

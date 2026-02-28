@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
-    width: '100%',
+    alignSelf: 'center',
   },
   upgradeButtonSmallText: {
     fontSize: typography.bodySmall,
