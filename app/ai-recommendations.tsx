@@ -251,7 +251,7 @@ export default function AIRecommendationsScreen() {
               styles.premiumText,
               tier !== 'free' && styles.premiumTextActive,
             ]}>
-              {tier === 'pro' ? 'Pro Plan - Unlimited Recommendations' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
+              {tier === 'pro' ? 'Pro Plan - Unlimited Recommendations' : tier === 'basic' ? 'Basic Plan - 2 Per Subject' : 'Free: 1 Subject Only'}
             </Text>
           </View>
         </View>
@@ -276,7 +276,7 @@ export default function AIRecommendationsScreen() {
               <View style={styles.limitReachedBanner}>
                 <MaterialIcons name="lock" size={24} color={colors.warning} />
                 <Text style={styles.limitReachedText}>
-                  Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each or Pro ($40/6m) for unlimited!
+                  Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 2 tries each or Pro ($40/6m) for unlimited!
                 </Text>
                 <Pressable
                   style={styles.upgradeButtonSmall}
@@ -292,7 +292,7 @@ export default function AIRecommendationsScreen() {
               <View style={styles.limitReachedBanner}>
                 <MaterialIcons name="lock" size={24} color={colors.premium} />
                 <Text style={styles.limitReachedText}>
-                  Basic plan limit reached for some subjects (5/5 used). Upgrade to Pro ($40/6m) for unlimited AI recommendations on all subjects!
+                  Basic plan limit reached for some subjects (2/2 used). Upgrade to Pro ($40/6m) for unlimited AI recommendations on all subjects!
                 </Text>
                 <Pressable
                   style={[styles.upgradeButtonSmall, styles.upgradeButtonPro]}

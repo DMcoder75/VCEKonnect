@@ -57,10 +57,10 @@ export const PREMIUM_TIER_LIMITS: Record<PremiumTier, PremiumLimits> = {
     whatifScenariosPerMonth: 'unlimited',
     aiStudyPlansTotal: 5,
     aiStudyPlansPersonalized: false,
-    aiRecommendationsPerSubject: 5,
+    aiRecommendationsPerSubject: 2,
     aiRecommendationsSubjects: 'all',
     aiRecommendationsStorage: true,
-    aiPracticeQuestionsPerSubject: 5,
+    aiPracticeQuestionsPerSubject: 3,
     aiPracticeQuestionsSubjects: 'all',
     aiPracticeQuestionsStorage: true,
     atarBestWorstCaseVisible: true,
@@ -465,7 +465,7 @@ export async function canCreateAIRecommendation(userId: string, subjectId: strin
       if (count && count > 0) {
         return { 
           allowed: false, 
-          reason: 'Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
+          reason: 'Free tier limited to 1 subject recommendation. Upgrade to Basic ($20/6m) for all subjects with 2 tries each!' 
         };
       }
       return { allowed: true };
@@ -499,7 +499,7 @@ export async function canCreateAIRecommendation(userId: string, subjectId: strin
     if (count >= limits.aiRecommendationsPerSubject) {
       return { 
         allowed: false, 
-        reason: `Basic tier limited to ${limits.aiRecommendationsPerSubject} recommendations per subject. Upgrade to Pro ($40/6m) for unlimited!` 
+        reason: `Basic tier limited to ${limits.aiRecommendationsPerSubject} recommendations per subject. Upgrade to Pro ($40/6m) for unlimited AI study recommendations!` 
       };
     }
     
@@ -607,7 +607,7 @@ export async function canCreateAIPracticeQuestions(userId: string, subjectId: st
       if (count && count > 0) {
         return { 
           allowed: false, 
-          reason: 'Free tier limited to 1 subject practice questions. Upgrade to Basic ($20/6m) for all subjects with 5 tries each!' 
+          reason: 'Free tier limited to 1 subject practice questions. Upgrade to Basic ($20/6m) for all subjects with 3 question sets each!' 
         };
       }
       return { allowed: true };
@@ -641,7 +641,7 @@ export async function canCreateAIPracticeQuestions(userId: string, subjectId: st
     if (count >= limits.aiPracticeQuestionsPerSubject) {
       return { 
         allowed: false, 
-        reason: `Basic tier limited to ${limits.aiPracticeQuestionsPerSubject} practice question sets per subject. Upgrade to Pro ($40/6m) for unlimited!` 
+        reason: `Basic tier limited to ${limits.aiPracticeQuestionsPerSubject} question sets per subject. Upgrade to Pro ($40/6m) for unlimited AI practice questions!` 
       };
     }
     

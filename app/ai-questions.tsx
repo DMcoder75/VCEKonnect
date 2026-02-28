@@ -311,7 +311,7 @@ export default function AIQuestionsScreen() {
               styles.premiumText,
               tier !== 'free' && styles.premiumTextActive,
             ]}>
-              {tier === 'pro' ? 'Pro Plan - Unlimited Questions' : tier === 'basic' ? 'Basic Plan - 5 Per Subject' : 'Free: 1 Subject Only'}
+              {tier === 'pro' ? 'Pro Plan - Unlimited Questions' : tier === 'basic' ? 'Basic Plan - 3 Per Subject' : 'Free: 1 Subject Only'}
             </Text>
             {selectedSubject && usageInfo && usageInfo.limit !== 'unlimited' && (
               <Text style={[
@@ -412,7 +412,7 @@ export default function AIQuestionsScreen() {
               <View style={styles.limitReachedCard}>
                 <MaterialIcons name="lock" size={24} color={colors.warning} />
                 <Text style={styles.limitReachedText}>
-                  Free trial used. Upgrade to Basic ($20/6m) for all subjects with 5 question sets each or Pro ($40/6m) for unlimited!
+                  Free trial used. Upgrade to Basic ($20/6m) for all subjects with 3 question sets each or Pro ($40/6m) for unlimited!
                 </Text>
                 <Pressable
                   style={styles.upgradeButton}
@@ -427,7 +427,7 @@ export default function AIQuestionsScreen() {
               <View style={styles.limitReachedCard}>
                 <MaterialIcons name="lock" size={24} color={colors.premium} />
                 <Text style={styles.limitReachedText}>
-                  Basic plan limit reached for {selectedSubject.code} (5/5 used). Upgrade to Pro ($40/6m) for unlimited AI practice questions on all subjects!
+                  Basic plan limit reached for {selectedSubject.code} (3/3 used). Upgrade to Pro ($40/6m) for unlimited AI practice questions on all subjects!
                 </Text>
                 <Pressable
                   style={[styles.upgradeButton, styles.upgradeButtonPro]}

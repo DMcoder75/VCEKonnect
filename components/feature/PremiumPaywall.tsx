@@ -26,7 +26,10 @@ export function PremiumPaywall({
 
   function handleUpgrade() {
     onClose();
-    router.push('/premium');
+    router.push({
+      pathname: '/premium',
+      params: { requiredTier },
+    });
   }
 
   const tierInfo = {

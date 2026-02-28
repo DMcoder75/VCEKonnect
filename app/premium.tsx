@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -11,9 +11,19 @@ type PlanType = 'basic' | 'pro';
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const insets = useSafeInsets();
   const { tier } = usePremium();
+  const params = useLocalSearchParams();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('basic');
+
+  // Set initial tab based on requiredTier from paywall
+  useEffect(() => {
+    if (params.requiredTier === 'pro') {
+      setSelectedPlan('pro');
+    } else if (params.requiredTier === 'basic') {
+      setSelectedPlan('basic');
+    }
+  }, [params.requiredTier]);
 
   function handleSubscribe(plan: PlanType) {
     // TODO: Stripe payment integration
@@ -92,7 +102,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>AI Study Plans</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '5 AI plans' : 'Unlimited plans'}
+                {selectedPlan === 'basic' ? '5 AI plans' : 'Unlimited AI plans'}
               </Text>
             </View>
           </View>
@@ -107,7 +117,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>AI Study Recommendations</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '2 recommendations per subject' : 'Unlimited recommendations'}
+                {selectedPlan === 'basic' ? '2 recommendations per subject' : 'Unlimited AI recommendations'}
               </Text>
             </View>
           </View>
@@ -122,7 +132,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>AI Practice Questions</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '3 question sets per subject' : 'Unlimited practice questions'}
+                {selectedPlan === 'basic' ? '3 question sets per subject' : 'Unlimited AI practice questions'}
               </Text>
             </View>
           </View>
@@ -137,7 +147,7 @@ export default function PremiumScreen() {
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>ATAR What-If Scenarios</Text>
               <Text style={styles.featureDesc}>
-                {selectedPlan === 'basic' ? '3 scenarios per month' : 'Unlimited scenarios'}
+                {selectedPlan === 'basic' ? 'Unlimited scenarios' : 'Unlimited scenarios'}
               </Text>
             </View>
           </View>
