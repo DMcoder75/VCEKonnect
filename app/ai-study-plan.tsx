@@ -49,7 +49,7 @@ export default function AIStudyPlanScreen() {
   const [currentScores, setCurrentScores] = useState<{ [key: string]: number }>({});
   const [targetATAR, setTargetATAR] = useState('');
   const [hoursPerWeek, setHoursPerWeek] = useState('');
-  const [examDate, setExamDate] = useState('2026-11-01'); // Default VCE exam date
+  const [examDate, setExamDate] = useState('2026-11-01'); // Default exam date
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [fullResponse, setFullResponse] = useState(''); // Complete accumulated response

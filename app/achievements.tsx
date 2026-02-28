@@ -76,6 +76,10 @@ export default function AchievementsScreen() {
     } else if (period.periodType === 'monthly') {
       return start.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
     } else {
+      // Use period name from database if available, otherwise calculate term
+      if (period.periodName) {
+        return period.periodName;
+      }
       return `Term ${Math.ceil((start.getMonth() + 1) / 3)} ${start.getFullYear()}`;
     }
   }
@@ -400,8 +404,8 @@ export default function AchievementsScreen() {
               </View>
               
               {weeklyHistory.map(period => {
-                const progressPercent = period.totalHoursTarget > 0
-                  ? ((period.totalMinutesAchieved / 60) / period.totalHoursTarget) * 100
+                const progressPercent = period.targetHours > 0
+                  ? (period.achievedHours / period.targetHours) * 100
                   : 0;
                 const icon = getCompletionIcon(progressPercent);
                 
@@ -411,7 +415,7 @@ export default function AchievementsScreen() {
                       <View style={styles.historyInfo}>
                         <Text style={styles.historyDate}>{formatPeriodDate(period)}</Text>
                         <Text style={styles.historyProgress}>
-                          {(period.totalMinutesAchieved / 60).toFixed(1)}/{period.totalHoursTarget}h
+                          {period.achievedHours.toFixed(1)}/{period.targetHours}h
                         </Text>
                       </View>
                       <View style={styles.historyCompletion}>
@@ -439,8 +443,8 @@ export default function AchievementsScreen() {
               </View>
               
               {monthlyHistory.map(period => {
-                const progressPercent = period.totalHoursTarget > 0
-                  ? ((period.totalMinutesAchieved / 60) / period.totalHoursTarget) * 100
+                const progressPercent = period.targetHours > 0
+                  ? (period.achievedHours / period.targetHours) * 100
                   : 0;
                 const icon = getCompletionIcon(progressPercent);
                 
@@ -450,7 +454,7 @@ export default function AchievementsScreen() {
                       <View style={styles.historyInfo}>
                         <Text style={styles.historyDate}>{formatPeriodDate(period)}</Text>
                         <Text style={styles.historyProgress}>
-                          {(period.totalMinutesAchieved / 60).toFixed(1)}/{period.totalHoursTarget}h
+                          {period.achievedHours.toFixed(1)}/{period.targetHours}h
                         </Text>
                       </View>
                       <View style={styles.historyCompletion}>
@@ -478,8 +482,8 @@ export default function AchievementsScreen() {
               </View>
               
               {termHistory.map(period => {
-                const progressPercent = period.totalHoursTarget > 0
-                  ? ((period.totalMinutesAchieved / 60) / period.totalHoursTarget) * 100
+                const progressPercent = period.targetHours > 0
+                  ? (period.achievedHours / period.targetHours) * 100
                   : 0;
                 const icon = getCompletionIcon(progressPercent);
                 
@@ -489,7 +493,7 @@ export default function AchievementsScreen() {
                       <View style={styles.historyInfo}>
                         <Text style={styles.historyDate}>{formatPeriodDate(period)}</Text>
                         <Text style={styles.historyProgress}>
-                          {(period.totalMinutesAchieved / 60).toFixed(1)}/{period.totalHoursTarget}h
+                          {period.achievedHours.toFixed(1)}/{period.targetHours}h
                         </Text>
                       </View>
                       <View style={styles.historyCompletion}>

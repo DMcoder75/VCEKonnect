@@ -128,7 +128,10 @@ export default function AIQuestionsScreen() {
   }
 
   // Placeholder text for loading state
-  const placeholderText = useMemo(() => `🎯 Analyzing topic complexity...\n📚 Consulting VCE study design...\n✍️ Crafting ${questionCount} practice questions...\n📊 Setting difficulty level...\n✅ Adding solutions and marking criteria...`, [questionCount]);
+  const placeholderText = useMemo(() => {
+    const stateName = user?.stateId?.toUpperCase() || 'VCE';
+    return `🎯 Analyzing topic complexity...\n📚 Consulting ${stateName} study design...\n✍️ Crafting ${questionCount} practice questions...\n📊 Setting difficulty level...\n✅ Adding solutions and marking criteria...`;
+  }, [questionCount, user]);
 
   const placeholderTypewriter = useTypewriter({
     text: showPlaceholder ? placeholderText : '',
@@ -471,7 +474,7 @@ export default function AIQuestionsScreen() {
                 {isLoading && (
                   <View style={styles.placeholderFooter}>
                     <LoadingSpinner message="" />
-                    <Text style={styles.placeholderFooterText}>Powered by AI • Creating VCE-style questions...</Text>
+                    <Text style={styles.placeholderFooterText}>Powered by AI • Creating {user?.stateId?.toUpperCase() || 'VCE'}-style questions...</Text>
                   </View>
                 )}
               </View>
@@ -524,7 +527,7 @@ export default function AIQuestionsScreen() {
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
         feature="AI Practice Questions"
-        description={paywallMessage || "Get AI-generated VCE-style practice questions for all your subjects"}
+        description={paywallMessage || "Get AI-generated practice questions for all your subjects"}
         requiredTier={tier === 'free' ? 'basic' : 'pro'}
         currentTier={tier}
       />

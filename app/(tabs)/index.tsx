@@ -286,7 +286,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Text style={styles.greeting}>G'day, {capitalizeFirstLetter(user.name)}!</Text>
-            <Text style={styles.subtitle}>Year {user.yearLevel} VCE Student</Text>
+            <Text style={styles.subtitle}>Year {user.yearLevel} Student</Text>
             {/* Subscription Badge */}
             <View style={[
               styles.subscriptionBadge,

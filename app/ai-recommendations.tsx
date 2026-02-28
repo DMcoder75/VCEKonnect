@@ -161,7 +161,7 @@ export default function AIRecommendationsScreen() {
       const score = scores.find(s => s.subjectId === subjectId);
       const currentScore = score ? (score.sacAverage + score.examPrediction) / 2 : 0;
       
-      // Calculate days until exam (VCE exams typically in November)
+      // Calculate days until exam
       const examDate = new Date('2026-11-01');
       const today = new Date();
       const daysUntilExam = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));

@@ -479,12 +479,6 @@ export default function ATARScreen() {
   }
 
   function handleEditSubject(subjectId: string) {
-    // Check premium limits for score editing
-    if (!limits.atarSubjectScoreEditing) {
-      alert('Subject score editing is a premium feature. Upgrade to Basic plan to unlock!');
-      return;
-    }
-
     const existing = subjectScores.find(s => s.subjectId === subjectId);
     setEditingSubject(subjectId);
     setSacInput(existing?.sacAverage.toString() || '');
@@ -760,7 +754,7 @@ export default function ATARScreen() {
                   <MaterialIcons name="trending-up" size={24} color={colors.warning} />
                   <Text style={styles.recommendationsTitle}>Subject Strategy Tips</Text>
                 </View>
-                <Text style={styles.recommendationsDesc}>Smart recommendations based on VCE scaling</Text>
+                <Text style={styles.recommendationsDesc}>Smart recommendations based on {stateConfig.scalingAuthority} scaling</Text>
                 
                 {recommendations.map((rec, idx) => (
                   <View key={rec.subject.id} style={[
@@ -843,7 +837,7 @@ export default function ATARScreen() {
               <View style={styles.scalingCard}>
                 <View style={styles.scalingHeader}>
                   <MaterialIcons name="show-chart" size={24} color={colors.error} />
-                  <Text style={styles.scalingTitle}>VCE Scaling Data (2024)</Text>
+                  <Text style={styles.scalingTitle}>{stateConfig.stateName} Scaling Data (2024)</Text>
                 </View>
                 <Text style={styles.scalingDesc}>Compare your subjects' scaling metrics</Text>
                 
@@ -1009,9 +1003,7 @@ export default function ATARScreen() {
               <>
                 <Text style={styles.sectionTitle}>Subject Scores</Text>
                 <Text style={styles.sectionDesc}>
-                  {limits.atarSubjectScoreEditing 
-                    ? 'Enter your SAC averages and predicted exam scores'
-                    : '🔒 Score editing available in Premium plan'}
+                  Enter your SAC averages and predicted exam scores
                 </Text>
               </>
             )}
@@ -1106,13 +1098,10 @@ export default function ATARScreen() {
                       style={styles.addScoreCard}
                       onPress={() => handleEditSubject(subject.id)}
                     >
-                      {!limits.atarSubjectScoreEditing && (
-                        <MaterialIcons name="lock" size={24} color={colors.textTertiary} style={styles.addScoreLock} />
-                      )}
                       <MaterialIcons name="add-circle-outline" size={32} color={colors.primary} />
                       <Text style={styles.addScoreText}>{subject.name}</Text>
                       <Text style={styles.addScoreDesc}>
-                        {limits.atarSubjectScoreEditing ? 'Tap to add scores' : 'Premium feature'}
+                        Tap to add scores
                       </Text>
                     </Pressable>
                   )}

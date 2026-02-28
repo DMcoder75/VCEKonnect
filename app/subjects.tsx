@@ -31,7 +31,7 @@ export default function SubjectsScreen() {
     
     setIsLoading(true);
     // Get user's state from profile (default to 'vic' for backward compatibility)
-    const userState = (user as any).state_id || 'vic';
+    const userState = (user as any).stateId || (user as any).state_id || 'vic';
     
     const [subjects, userSubjectIds] = await Promise.all([
       getSubjectsByState(userState),
