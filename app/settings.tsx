@@ -37,13 +37,6 @@ export default function SettingsScreen() {
     }
   }, [userSubjects.length]);
 
-  // Fix state_id if missing (backward compatibility)
-  useEffect(() => {
-    if (user && !user.state_id) {
-      updateProfile({ state_id: 'vic' } as any);
-    }
-  }, [user?.state_id]);
-
   // Get current state from cached states
   const userStateId = user?.state_id || 'vic';
   const userState = allStates.find(s => s.id === userStateId) || null;

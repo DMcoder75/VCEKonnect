@@ -177,6 +177,7 @@ export async function updateUserProfile(
     if (updates.yearLevel !== undefined) updateData.year_level = updates.yearLevel;
     if (updates.targetCareer !== undefined) updateData.target_career = updates.targetCareer;
     if (updates.targetUniversities !== undefined) updateData.target_universities = updates.targetUniversities;
+    if (updates.state_id !== undefined) updateData.state_id = updates.state_id;
 
     // Only update if there are fields to update
     if (Object.keys(updateData).length > 0) {
