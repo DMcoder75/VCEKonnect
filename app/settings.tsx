@@ -41,8 +41,6 @@ export default function SettingsScreen() {
   const userStateId = user?.state_id || 'vic';
   const userState = allStates.find(s => s.id === userStateId) || null;
 
-
-
   function toggleSubject(subjectId: string) {
     setSelectedSubjects(prev =>
       prev.includes(subjectId)
