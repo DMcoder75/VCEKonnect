@@ -28,7 +28,15 @@ export default function LoginScreen() {
       router.replace('/');
     } catch (error: any) {
       console.error('Login error:', error);
-      alert(error.message || 'Login failed');
+      const errorMessage = error.message || 'Login failed';
+      
+      // Check if error is due to unverified email
+      if (errorMessage.includes('verify your email')) {
+        alert(errorMessage + '\n\nClick OK to go to the verification page.');
+        router.push('/verify-email');
+      } else {
+        alert(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

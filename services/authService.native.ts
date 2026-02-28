@@ -103,6 +103,12 @@ export async function loginUser(
       return { user: null, error: 'Invalid email or password' };
     }
 
+    // Check if email is verified
+    if (!data.is_verified) {
+      console.error('Email not verified');
+      return { user: null, error: 'Please verify your email before logging in. Check your inbox for the verification code.' };
+    }
+
     console.log('Login successful!');
 
     // Save session
