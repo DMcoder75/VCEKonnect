@@ -16,18 +16,30 @@ export function useStudyGoals() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    let isMounted = true;
+
+    if (user && isMounted) {
       loadActiveGoals();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   const loadActiveGoals = useCallback(async () => {
     if (!user) return;
     
-    setIsLoading(true);
-    const goals = await getActiveGoals(user.id);
-    setActiveGoals(goals);
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const goals = await getActiveGoals(user.id);
+      setActiveGoals(goals || null);
+    } catch (error) {
+      console.error('Error loading active goals:', error);
+      setActiveGoals(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
   async function saveUserGoals(payload: SaveGoalsPayload): Promise<{ error: string | null }> {

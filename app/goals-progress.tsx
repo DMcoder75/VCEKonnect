@@ -29,9 +29,15 @@ export default function GoalsProgressScreen() {
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
   useEffect(() => {
-    if (user) {
+    let isMounted = true;
+
+    if (user && isMounted) {
       loadSubjects();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
   
   // Monitor goal completion and trigger celebrations
@@ -115,10 +121,16 @@ export default function GoalsProgressScreen() {
 
   async function loadSubjects() {
     if (!user) return;
-    setIsLoadingSubjects(true);
-    const subjects = await getUserSubjects(user.id);
-    setUserSubjects(subjects);
-    setIsLoadingSubjects(false);
+    try {
+      setIsLoadingSubjects(true);
+      const subjects = await getUserSubjects(user.id);
+      setUserSubjects(subjects || []);
+    } catch (error) {
+      console.error('Error loading subjects:', error);
+      setUserSubjects([]);
+    } finally {
+      setIsLoadingSubjects(false);
+    }
   }
 
   function getSubjectName(subjectId: string): string {

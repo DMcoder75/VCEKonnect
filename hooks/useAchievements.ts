@@ -22,30 +22,45 @@ export function useAchievements() {
   const loadAchievements = useCallback(async () => {
     if (!user) return;
 
-    setIsLoading(true);
-    const [
-      achievementsData,
-      streaksData,
-      subjectCompletionsData,
-      subjectStreaksData,
-    ] = await Promise.all([
-      getUserAchievements(user.id),
-      getUserStreaks(user.id),
-      getSubjectCompletions(user.id),
-      getSubjectStreaks(user.id),
-    ]);
+    try {
+      setIsLoading(true);
+      const [
+        achievementsData,
+        streaksData,
+        subjectCompletionsData,
+        subjectStreaksData,
+      ] = await Promise.all([
+        getUserAchievements(user.id),
+        getUserStreaks(user.id),
+        getSubjectCompletions(user.id),
+        getSubjectStreaks(user.id),
+      ]);
 
-    setAchievements(achievementsData);
-    setStreaks(streaksData);
-    setSubjectCompletions(subjectCompletionsData);
-    setSubjectStreaks(subjectStreaksData);
-    setIsLoading(false);
+      setAchievements(achievementsData || []);
+      setStreaks(streaksData || []);
+      setSubjectCompletions(subjectCompletionsData || []);
+      setSubjectStreaks(subjectStreaksData || []);
+    } catch (error) {
+      console.error('Error loading achievements:', error);
+      setAchievements([]);
+      setStreaks([]);
+      setSubjectCompletions([]);
+      setSubjectStreaks([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
+    let isMounted = true;
+
+    if (user && isMounted) {
       loadAchievements();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, loadAchievements]);
 
   function getWeeklyStreak(): GoalStreak | undefined {

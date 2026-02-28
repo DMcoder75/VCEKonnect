@@ -34,10 +34,26 @@ export default function AchievementsScreen() {
   const [userSubjects, setUserSubjects] = useState<VCESubject[]>([]);
 
   useEffect(() => {
-    if (user) {
-      loadAllHistory();
-      loadSubjects();
+    let isMounted = true;
+
+    async function loadData() {
+      if (!user || !isMounted) return;
+      
+      try {
+        await Promise.all([
+          loadAllHistory(),
+          loadSubjects(),
+        ]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   async function loadAllHistory() {
@@ -66,8 +82,13 @@ export default function AchievementsScreen() {
 
   async function loadSubjects() {
     if (!user) return;
-    const subjects = await getUserSubjects(user.id);
-    setUserSubjects(subjects);
+    try {
+      const subjects = await getUserSubjects(user.id);
+      setUserSubjects(subjects || []);
+    } catch (error) {
+      console.error('Error loading subjects:', error);
+      setUserSubjects([]);
+    }
   }
 
   function getSubjectName(subjectId: string | undefined): string {
