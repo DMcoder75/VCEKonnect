@@ -200,7 +200,7 @@ export default function PremiumScreen() {
             />
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>Unlimited Subjects (Free)</Text>
-              <Text style={styles.featureDesc}>Track all VCE subjects without limits</Text>
+              <Text style={styles.featureDesc}>Track all subjects without limits</Text>
             </View>
           </View>
 

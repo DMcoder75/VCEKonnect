@@ -44,16 +44,24 @@ export default function AchievementsScreen() {
     if (!user) return;
     
     setIsLoadingHistory(true);
-    const [weekly, monthly, term] = await Promise.all([
-      loadHistory('weekly', 10),
-      loadHistory('monthly', 6),
-      loadHistory('term', 4),
-    ]);
-    
-    setWeeklyHistory(weekly);
-    setMonthlyHistory(monthly);
-    setTermHistory(term);
-    setIsLoadingHistory(false);
+    try {
+      const [weekly, monthly, term] = await Promise.all([
+        loadHistory('weekly', 10),
+        loadHistory('monthly', 6),
+        loadHistory('term', 4),
+      ]);
+      
+      setWeeklyHistory(weekly || []);
+      setMonthlyHistory(monthly || []);
+      setTermHistory(term || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+      setWeeklyHistory([]);
+      setMonthlyHistory([]);
+      setTermHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
   }
 
   async function loadSubjects() {
@@ -167,8 +175,8 @@ export default function AchievementsScreen() {
     );
   }
 
-  const weeklyStreak = streaks.find(s => s.streakType === 'weekly');
-  const monthlyStreak = streaks.find(s => s.streakType === 'monthly');
+  const weeklyStreak = streaks?.find(s => s?.streakType === 'weekly');
+  const monthlyStreak = streaks?.find(s => s?.streakType === 'monthly');
 
   const isLoading = achievementsLoading || isLoadingHistory || goalsLoading;
 
@@ -226,7 +234,7 @@ export default function AchievementsScreen() {
 
 
           {/* Subject Achievements 🎉 */}
-          {achievements.filter(a => a.achievementType.startsWith('subject_')).length > 0 && (
+          {achievements && achievements.length > 0 && achievements.filter(a => a?.achievementType?.startsWith('subject_')).length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="emoji-events" size={24} color={colors.success} />
@@ -235,8 +243,8 @@ export default function AchievementsScreen() {
               
               <View style={styles.achievementsGrid}>
                 {achievements
-                  .filter(a => a.achievementType.startsWith('subject_'))
-                  .map(achievement => (
+                  .filter(a => a?.achievementType?.startsWith('subject_'))
+                  .map(achievement => achievement && (
                     <View key={achievement.id} style={styles.achievementCard}>
                       <MaterialIcons
                         name={achievement.iconName as any}
@@ -259,14 +267,14 @@ export default function AchievementsScreen() {
           )}
 
           {/* Subject Streaks 🔥 */}
-          {subjectStreaks.length > 0 && (
+          {subjectStreaks && subjectStreaks.length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
                 <Text style={styles.sectionTitle}>Subject Streaks 🔥</Text>
               </View>
               
-              {subjectStreaks.map(streak => (
+              {subjectStreaks.map(streak => streak && (
                 <View key={streak.id} style={styles.subjectStreakCard}>
                   <View style={styles.subjectStreakInfo}>
                     <Text style={styles.subjectStreakName}>
@@ -361,7 +369,7 @@ export default function AchievementsScreen() {
 
 
           {/* Period Achievements (Weekly/Monthly/Term streaks) */}
-          {achievements.filter(a => !a.achievementType.startsWith('subject_')).length > 0 && (
+          {achievements && achievements.length > 0 && achievements.filter(a => a && !a.achievementType?.startsWith('subject_')).length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="emoji-events" size={24} color={colors.premium} />
@@ -370,8 +378,8 @@ export default function AchievementsScreen() {
               
               <View style={styles.achievementsGrid}>
                 {achievements
-                  .filter(a => !a.achievementType.startsWith('subject_'))
-                  .map(achievement => (
+                  .filter(a => a && !a.achievementType?.startsWith('subject_'))
+                  .map(achievement => achievement && (
                     <View key={achievement.id} style={styles.achievementCard}>
                       <MaterialIcons
                         name={achievement.iconName as any}
