@@ -76,19 +76,33 @@ export default function AchievementsScreen() {
   }
 
   function formatPeriodDate(period: GoalPeriod): string {
-    const start = new Date(period.startDate);
-    const end = new Date(period.endDate);
-    
-    if (period.periodType === 'weekly') {
-      return `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}`;
-    } else if (period.periodType === 'monthly') {
-      return start.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
-    } else {
-      // Use period name from database if available, otherwise calculate term
-      if (period.periodName) {
-        return period.periodName;
+    try {
+      if (!period || !period.startDate || !period.endDate) {
+        return 'Unknown Period';
       }
-      return `Term ${Math.ceil((start.getMonth() + 1) / 3)} ${start.getFullYear()}`;
+      
+      const start = new Date(period.startDate);
+      const end = new Date(period.endDate);
+      
+      // Check for invalid dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      if (period.periodType === 'weekly') {
+        return `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}`;
+      } else if (period.periodType === 'monthly') {
+        return start.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+      } else {
+        // Use period name from database if available, otherwise calculate term
+        if (period.periodName) {
+          return period.periodName;
+        }
+        return `Term ${Math.ceil((start.getMonth() + 1) / 3)} ${start.getFullYear()}`;
+      }
+    } catch (error) {
+      console.error('Error formatting period date:', error);
+      return 'Unknown Period';
     }
   }
 
@@ -118,7 +132,8 @@ export default function AchievementsScreen() {
 
   // Helper to render subject breakdown
   function renderSubjectBreakdown(subjects: GoalSubject[] | undefined, showEmptyState = false) {
-    if (!subjects || subjects.length === 0) {
+    // Robust null/undefined check
+    if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
       if (showEmptyState) {
         return (
           <Text style={styles.noSubjectsText}>No subjects set for this goal</Text>
@@ -129,7 +144,7 @@ export default function AchievementsScreen() {
 
     return (
       <View style={styles.subjectBreakdown}>
-        {subjects.map(subject => {
+        {subjects.filter(s => s && s.subjectId).map(subject => {
           const subjectProgress = subject.targetHours > 0
             ? ((subject.achievedMinutes / 60) / subject.targetHours) * 100
             : 0;
@@ -175,8 +190,9 @@ export default function AchievementsScreen() {
     );
   }
 
-  const weeklyStreak = streaks?.find(s => s?.streakType === 'weekly');
-  const monthlyStreak = streaks?.find(s => s?.streakType === 'monthly');
+  // Safe streak lookup with null checks
+  const weeklyStreak = Array.isArray(streaks) ? streaks.find(s => s && s.streakType === 'weekly') : null;
+  const monthlyStreak = Array.isArray(streaks) ? streaks.find(s => s && s.streakType === 'monthly') : null;
 
   const isLoading = achievementsLoading || isLoadingHistory || goalsLoading;
 
@@ -234,7 +250,7 @@ export default function AchievementsScreen() {
 
 
           {/* Subject Achievements 🎉 */}
-          {achievements && achievements.length > 0 && achievements.filter(a => a?.achievementType?.startsWith('subject_')).length > 0 && (
+          {Array.isArray(achievements) && achievements.length > 0 && achievements.filter(a => a && a.achievementType && a.achievementType.startsWith('subject_')).length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="emoji-events" size={24} color={colors.success} />
@@ -243,8 +259,8 @@ export default function AchievementsScreen() {
               
               <View style={styles.achievementsGrid}>
                 {achievements
-                  .filter(a => a?.achievementType?.startsWith('subject_'))
-                  .map(achievement => achievement && (
+                  .filter(a => a && a.achievementType && a.achievementType.startsWith('subject_'))
+                  .map(achievement => achievement && achievement.id && (
                     <View key={achievement.id} style={styles.achievementCard}>
                       <MaterialIcons
                         name={achievement.iconName as any}
@@ -267,14 +283,14 @@ export default function AchievementsScreen() {
           )}
 
           {/* Subject Streaks 🔥 */}
-          {subjectStreaks && subjectStreaks.length > 0 && (
+          {Array.isArray(subjectStreaks) && subjectStreaks.length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="local-fire-department" size={24} color={colors.warning} />
                 <Text style={styles.sectionTitle}>Subject Streaks 🔥</Text>
               </View>
               
-              {subjectStreaks.map(streak => streak && (
+              {subjectStreaks.filter(s => s && s.id && s.subjectId).map(streak => (
                 <View key={streak.id} style={styles.subjectStreakCard}>
                   <View style={styles.subjectStreakInfo}>
                     <Text style={styles.subjectStreakName}>
@@ -369,7 +385,7 @@ export default function AchievementsScreen() {
 
 
           {/* Period Achievements (Weekly/Monthly/Term streaks) */}
-          {achievements && achievements.length > 0 && achievements.filter(a => a && !a.achievementType?.startsWith('subject_')).length > 0 && (
+          {Array.isArray(achievements) && achievements.length > 0 && achievements.filter(a => a && a.achievementType && !a.achievementType.startsWith('subject_')).length > 0 && (
             <View style={styles.achievementsSection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="emoji-events" size={24} color={colors.premium} />
@@ -378,8 +394,8 @@ export default function AchievementsScreen() {
               
               <View style={styles.achievementsGrid}>
                 {achievements
-                  .filter(a => a && !a.achievementType?.startsWith('subject_'))
-                  .map(achievement => achievement && (
+                  .filter(a => a && a.achievementType && !a.achievementType.startsWith('subject_'))
+                  .map(achievement => achievement && achievement.id && (
                     <View key={achievement.id} style={styles.achievementCard}>
                       <MaterialIcons
                         name={achievement.iconName as any}
@@ -404,14 +420,14 @@ export default function AchievementsScreen() {
 
 
           {/* Weekly History */}
-          {weeklyHistory.length > 0 && (
+          {Array.isArray(weeklyHistory) && weeklyHistory.length > 0 && (
             <View style={styles.historySection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="history" size={24} color={colors.primary} />
                 <Text style={styles.sectionTitle}>Weekly History</Text>
               </View>
               
-              {weeklyHistory.map(period => {
+              {weeklyHistory.filter(p => p && p.id).map(period => {
                 const progressPercent = period.targetHours > 0
                   ? (period.achievedHours / period.targetHours) * 100
                   : 0;
@@ -443,14 +459,14 @@ export default function AchievementsScreen() {
           )}
 
           {/* Monthly History */}
-          {monthlyHistory.length > 0 && (
+          {Array.isArray(monthlyHistory) && monthlyHistory.length > 0 && (
             <View style={styles.historySection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="calendar-month" size={24} color={colors.success} />
                 <Text style={styles.sectionTitle}>Monthly History</Text>
               </View>
               
-              {monthlyHistory.map(period => {
+              {monthlyHistory.filter(p => p && p.id).map(period => {
                 const progressPercent = period.targetHours > 0
                   ? (period.achievedHours / period.targetHours) * 100
                   : 0;
@@ -482,14 +498,14 @@ export default function AchievementsScreen() {
           )}
 
           {/* Term History */}
-          {termHistory.length > 0 && (
+          {Array.isArray(termHistory) && termHistory.length > 0 && (
             <View style={styles.historySection}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="school" size={24} color={colors.warning} />
                 <Text style={styles.sectionTitle}>Term History</Text>
               </View>
               
-              {termHistory.map(period => {
+              {termHistory.filter(p => p && p.id).map(period => {
                 const progressPercent = period.targetHours > 0
                   ? (period.achievedHours / period.targetHours) * 100
                   : 0;
@@ -522,7 +538,9 @@ export default function AchievementsScreen() {
 
           {/* Empty State */}
           {!activeGoals?.weekly && !activeGoals?.monthly && !activeGoals?.term && 
-           weeklyHistory.length === 0 && monthlyHistory.length === 0 && termHistory.length === 0 && (
+           (!Array.isArray(weeklyHistory) || weeklyHistory.length === 0) && 
+           (!Array.isArray(monthlyHistory) || monthlyHistory.length === 0) && 
+           (!Array.isArray(termHistory) || termHistory.length === 0) && (
             <View style={styles.emptyState}>
               <MaterialIcons name="history" size={64} color={colors.textTertiary} />
               <Text style={styles.emptyText}>No goals yet</Text>
