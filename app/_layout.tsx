@@ -13,7 +13,6 @@ export default function RootLayout() {
           <StudyTimerProvider>
             <StatusBar style="light" />
             <Stack
-              initialRouteName="index"
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: '#0a0a0a' },
