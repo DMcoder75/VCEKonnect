@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -23,11 +23,25 @@ export default function SettingsScreen() {
   
   // Use cached subjects DIRECTLY - no local state needed!
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [targetCareer, setTargetCareer] = useState<string>(user?.targetCareer || '');
   const [yearLevel, setYearLevel] = useState<11 | 12>(user?.yearLevel || 12);
   const [hasChanges, setHasChanges] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      async function loadLatestData() {
+        setIsRefreshing(true);
+        console.log('🔄 Settings: Refreshing subjects on focus');
+        await refreshSubjects();
+        setIsRefreshing(false);
+      }
+      loadLatestData();
+    }, [])
+  );
 
   // Initialize selected subjects from cached data
   // CRITICAL: Must sync whenever userSubjects changes, not just when length changes
@@ -107,6 +121,16 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Loading Overlay */}
+      {isRefreshing && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Refreshing data...</Text>
+          </View>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
@@ -901,6 +925,30 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  loadingCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.md,
+    minWidth: 200,
+  },
+  loadingText: {
+    fontSize: typography.body,
+    color: colors.textPrimary,
+    fontWeight: typography.medium,
   },
   subscriptionCard: {
     flexDirection: 'row',
