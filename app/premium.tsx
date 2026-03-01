@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
-import { Button } from '@/components/ui';
+import { Button } from '@/components/ui/Button';
 import { usePremium } from '@/hooks/usePremium';
 
 type PlanType = 'basic' | 'pro';

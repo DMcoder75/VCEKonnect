@@ -10,7 +10,7 @@ import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsSe
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePremium } from '@/hooks/usePremium';
-import { Button } from '@/components/ui';
+import { Button } from '@/components/ui/Button';
 
 export default function SettingsScreen() {
   const router = useRouter();

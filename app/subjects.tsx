@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui';
+import { Button } from '@/components/ui/Button';
 import { getSubjectsByState, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
 
