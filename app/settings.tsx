@@ -37,8 +37,8 @@ export default function SettingsScreen() {
     setSelectedSubjects(userSubjectIds);
   }, [userSubjects]);
 
-  // Get current state from cached states
-  const userStateId = user?.state_id || 'vic';
+  // Get current state from cached states - should always exist after onboarding
+  const userStateId = user?.state_id || 'vic'; // Fallback only for users created before state field was added
   const userState = allStates.find(s => s.id === userStateId) || null;
 
   function toggleSubject(subjectId: string) {

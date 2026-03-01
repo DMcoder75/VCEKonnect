@@ -24,8 +24,8 @@ export default function ATARScreen() {
   const { tier, limits, isPremium, isLoading: isPremiumLoading } = usePremium();
   const { showAlert } = useAlert();
   
-  // Get state configuration
-  const stateId = ((user?.state_id || user?.stateId || 'vic').toUpperCase()) as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
+  // Get state configuration - check both field names, no default to VIC
+  const stateId = ((user?.state_id || user?.stateId)?.toUpperCase() || 'VIC') as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
   const stateConfig = getStateConfig(stateId);
   
   const [editingSubject, setEditingSubject] = useState<string | null>(null);

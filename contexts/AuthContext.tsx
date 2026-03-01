@@ -85,7 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     console.log('📚 AuthContext: Refreshing subjects cache...');
-    const userStateId = user.state_id || 'vic';
+    // CRITICAL: Do NOT default to 'vic' - this overwrites user's actual state
+    const userStateId = user.state_id;
+    
+    if (!userStateId) {
+      console.error('❌ AuthContext: User has no state_id! Skipping subject load.');
+      return;
+    }
     
     // Load both user's selected subjects AND all subjects for their state (in parallel)
     const [selectedSubjects, stateSubjects] = await Promise.all([

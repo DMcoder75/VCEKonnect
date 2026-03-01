@@ -60,7 +60,7 @@ export default function DashboardScreen() {
   const { tier, isPremium } = usePremium();
   
   // Get user's state abbreviation
-  const userStateAbbr = allStates.find(s => s.id === (user?.state_id || 'vic'))?.abbreviation || 'VIC';
+  const userStateAbbr = allStates.find(s => s.id === user?.state_id)?.abbreviation || 'VIC';
 
   // Generate motivational message
   const motivationalMessage = useMotivationalMessage({
