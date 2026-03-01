@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
+import { colors, spacing, typography, borderRadius } from '@/constants/theme';
+import { useAuth } from '@/hooks/useAuth';
+import { useNotes } from '@/hooks/useNotes';
+import { useAI } from '@/hooks/useAI';
+import { canUseAINoteSummary, incrementAINoteSummaryUsage, getAINoteSummaryUsage } from '@/services/premiumService';
+import { useRouter } from 'expo-router';
+import { LoadingSpinner } from '@/components/ui';
+import { Note } from '@/types';
+import { getUserSubjects } from '@/services/userSubjectsService';
+import { VCESubject } from '@/services/vceSubjectsService';
 
 // Format AI response text for note summaries
 function formatResponseText(text: string) {
@@ -30,18 +42,6 @@ function formatResponseText(text: string) {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '@/constants/theme';
-import { useAuth } from '@/hooks/useAuth';
-import { useNotes } from '@/hooks/useNotes';
-import { useAI } from '@/hooks/useAI';
-import { canUseAINoteSummary, incrementAINoteSummaryUsage, getAINoteSummaryUsage } from '@/services/premiumService';
-import { useRouter } from 'expo-router';
-import { LoadingSpinner } from '@/components/ui';
-import { Note } from '@/types';
-import { getUserSubjects } from '@/services/userSubjectsService';
-import { VCESubject } from '@/services/vceSubjectsService';
 
 export default function NotesScreen() {
   const insets = useSafeAreaInsets();
