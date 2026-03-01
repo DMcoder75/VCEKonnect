@@ -15,7 +15,7 @@ interface QuickAccessDrawerProps {
   onClose: () => void;
 }
 
-export default function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawerProps) {
+export function QuickAccessDrawer({ isOpen, onClose }: QuickAccessDrawerProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();

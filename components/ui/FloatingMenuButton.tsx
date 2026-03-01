@@ -9,7 +9,7 @@ interface FloatingMenuButtonProps {
   onPress: () => void;
 }
 
-export default function FloatingMenuButton({ onPress }: FloatingMenuButtonProps) {
+export function FloatingMenuButton({ onPress }: FloatingMenuButtonProps) {
   const insets = useSafeAreaInsets();
 
   return (
