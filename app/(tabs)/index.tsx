@@ -33,7 +33,7 @@ function capitalizeFirstLetter(name: string): string {
 export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, userSubjects: cachedUserSubjects } = useAuth();
+  const { user, userSubjects: cachedUserSubjects, allStates } = useAuth();
   const { showAlert } = useAlert();
   const { getPrediction, subjectScores, reloadScores } = useATAR();
   const { activeSubject, startTimer, stopTimer, isRunning, getTodayStudyTime } = useStudyTimer();
@@ -58,6 +58,9 @@ export default function DashboardScreen() {
 
   const prediction = getPrediction();
   const { tier, isPremium } = usePremium();
+  
+  // Get user's state abbreviation
+  const userStateAbbr = allStates.find(s => s.id === (user?.state_id || 'vic'))?.abbreviation || 'VIC';
 
   // Generate motivational message
   const motivationalMessage = useMotivationalMessage({
@@ -286,7 +289,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Text style={styles.greeting}>G'day, {capitalizeFirstLetter(user.name)}!</Text>
-            <Text style={styles.subtitle}>Year {user.yearLevel} Student</Text>
+            <Text style={styles.subtitle}>Year {user.yearLevel} - {userStateAbbr}</Text>
             {/* Subscription Badge */}
             <View style={[
               styles.subscriptionBadge,
