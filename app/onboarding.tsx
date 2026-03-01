@@ -8,7 +8,7 @@ import { CAREER_PATHS } from '@/constants/vceData';
 import { getAllStates, getSubjectsByState, VCESubject, AustralianState } from '@/services/vceSubjectsService';
 import { updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components';
+import { Button } from '@/components/ui';
 
 export default function OnboardingScreen() {
   const router = useRouter();
