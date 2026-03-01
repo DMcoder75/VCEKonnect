@@ -33,9 +33,9 @@ export default function SettingsScreen() {
   // CRITICAL: Must sync whenever userSubjects changes, not just when length changes
   useEffect(() => {
     const userSubjectIds = userSubjects.map(s => s.id);
-    console.log('🔄 Settings: Syncing selectedSubjects:', userSubjectIds);
+    console.log('🔄 Settings: Syncing selectedSubjects from userSubjects:', userSubjectIds);
     setSelectedSubjects(userSubjectIds);
-  }, [userSubjects]);
+  }, [userSubjects.length, userSubjects.map(s => s.id).join(',')]);
 
   // Get current state from cached states - should always exist after onboarding
   const userStateId = user?.state_id || 'vic'; // Fallback only for users created before state field was added
