@@ -8,33 +8,12 @@ import { CAREER_PATHS } from '@/constants/vceData';
 import { getAllStates, getSubjectsByState, VCESubject, AustralianState } from '@/services/vceSubjectsService';
 import { updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components';
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, updateProfile, refreshSubjects, isLoading: isAuthLoading } = useAuth();
-  
-  // CRITICAL: Block rendering and redirect if not authenticated
-  // This prevents unauthorized access via deep links (QR codes)
-  useEffect(() => {
-    if (!isAuthLoading && !user) {
-      console.log('🚨 Onboarding: Unauthorized access attempt - redirecting to login');
-      router.replace('/auth/login');
-    }
-  }, [user, isAuthLoading]);
-  
-  // ALWAYS show loading while auth check is in progress OR user not found
-  // This prevents flash of onboarding content before redirect
-  if (isAuthLoading || !user) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-        <MaterialIcons name="security" size={64} color={colors.primary} />
-        <Text style={[styles.title, { marginTop: spacing.md, textAlign: 'center' }]}>Verifying Access</Text>
-        <Text style={[styles.description, { marginTop: spacing.xs, textAlign: 'center' }]}>Please wait...</Text>
-      </View>
-    );
-  }
+  const { user, updateProfile } = useAuth();
   
   const [step, setStep] = useState(1);
   const totalSteps = 4;
@@ -91,9 +70,6 @@ export default function OnboardingScreen() {
       targetCareer,
       yearLevel,
     });
-    
-    // CRITICAL: Refresh subjects cache in AuthContext so Settings page sees the changes
-    await refreshSubjects();
     
     router.replace('/(tabs)');
   }

@@ -6,8 +6,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCalendar } from '@/hooks/useCalendar';
-import { UpcomingAssessmentCard } from '@/components/feature/UpcomingAssessmentCard';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { UpcomingAssessmentCard } from '@/components/feature';
+import { LoadingSpinner } from '@/components/ui';
 import { CalendarEvent } from '@/services/calendarService';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;

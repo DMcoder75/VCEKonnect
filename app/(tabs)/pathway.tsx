@@ -7,7 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useATAR } from '@/hooks/useATAR';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LoadingSpinner } from '@/components/ui';
 import { useAlert } from '@/template';
 import { 
   getPathwaySuggestions, 
@@ -15,7 +15,7 @@ import {
   getAllCareerPaths,
   CareerPath 
 } from '@/services/pathwayService';
-import { PathwayCourseCard } from '@/components/feature/PathwayCourseCard';
+import { PathwayCourseCard } from '@/components/feature';
 
 export default function PathwayScreen() {
   const insets = useSafeAreaInsets();

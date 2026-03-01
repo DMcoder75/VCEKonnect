@@ -8,10 +8,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useStudyGoals, ActiveGoalsResponse } from '@/hooks/useStudyGoals';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
-import { StudyGoalRing } from '@/components/feature/StudyGoalRing';
-import { CelebrationOverlay } from '@/components/feature/CelebrationOverlay';
-import { GoalAlertBanner } from '@/components/feature/GoalAlertBanner';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { StudyGoalRing, CelebrationOverlay, GoalAlertBanner } from '@/components/feature';
+import { LoadingSpinner } from '@/components/ui';
 
 export default function GoalsProgressScreen() {
   const router = useRouter();
