@@ -8,7 +8,7 @@ import { useATAR } from '@/hooks/useATAR';
 import { usePremium } from '@/hooks/usePremium';
 import { useAlert } from '@/template';
 import { getStateConfig } from '@/services/atarCalculator';
-import { ATARDisplay, Input, Button, LoadingSpinner } from '@/components';
+import { ATARDisplay, Input, Button, LoadingSpinner } from '@/components/ui';
 import { SubjectScoreCard, PremiumPaywall, PremiumBlurOverlay } from '@/components/feature';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';

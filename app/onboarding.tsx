@@ -13,7 +13,26 @@ import { Button } from '@/components/ui';
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, updateProfile, refreshSubjects } = useAuth();
+  const { user, updateProfile, refreshSubjects, isLoading: isAuthLoading } = useAuth();
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.replace('/auth/login');
+    }
+  }, [user, isAuthLoading]);
+  
+  // Show loading while checking auth
+  if (isAuthLoading || !user) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.loadingContainer}>
+          <MaterialIcons name="hourglass-empty" size={48} color={colors.textTertiary} />
+          <Text style={styles.loadingText}>Checking authentication...</Text>
+        </View>
+      </View>
+    );
+  }
   
   const [step, setStep] = useState(1);
   const totalSteps = 4;
