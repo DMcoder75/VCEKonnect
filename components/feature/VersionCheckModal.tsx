@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { VersionStatus, getCurrentAppVersion, openAppStore } from '@/services/versionService';
-import { Button } from '@/components';
+import { Button } from '@/components/ui';
 
 interface VersionCheckModalProps {
   versionStatus: VersionStatus;

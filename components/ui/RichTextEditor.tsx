@@ -10,7 +10,7 @@ interface RichTextEditorProps {
   contentFormat?: 'plain' | 'markdown';
 }
 
-export default function RichTextEditor({ 
+export function RichTextEditor({ 
   value, 
   onChange, 
   placeholder = 'Start writing...',
