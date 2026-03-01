@@ -30,12 +30,12 @@ export default function SettingsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Initialize selected subjects from cached data
-  // CRITICAL: Must sync whenever userSubjects changes, not just when length changes
+  // Sync whenever userSubjects array reference changes
   useEffect(() => {
     const userSubjectIds = userSubjects.map(s => s.id);
     console.log('🔄 Settings: Syncing selectedSubjects from userSubjects:', userSubjectIds);
     setSelectedSubjects(userSubjectIds);
-  }, [userSubjects.length, userSubjects.map(s => s.id).join(',')]);
+  }, [userSubjects]);
 
   // Get current state from cached states - should always exist after onboarding
   const userStateId = user?.state_id || 'vic'; // Fallback only for users created before state field was added
