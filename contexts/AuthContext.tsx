@@ -103,13 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUserAppVersion(currentUser.id).catch(err => 
           console.warn('Failed to track version on session restore:', err)
         );
-      } else if (!cachedUser) {
-        // No user logged in and no cache
+      } else {
+        // No valid session - clear everything and force login
+        console.log('🔐 AuthContext: No valid session -> clearing cache and forcing login');
         setUser(null);
+        await clearAllCache();
       }
     } catch (error) {
       console.error('❌ AuthContext: Failed to load user from network, using cache:', error);
-      // Keep cached user if network fails
+      // Network failed - keep cached user for offline mode (only if we had one)
+      if (!cachedUser) {
+        setUser(null);
+      }
     }
     
     setIsLoading(false);
