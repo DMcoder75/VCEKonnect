@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -358,30 +359,6 @@ export default function NotesScreen() {
             )}
           </View>
         )}
-
-      {/* Go Premium Banner - when limit exhausted */}
-      {aiSummaryUsage.remaining === 0 && (
-        <Pressable onPress={handleGoPremium} style={styles.premiumBanner}>
-          <View style={styles.premiumBannerContent}>
-            <MaterialIcons name="workspace-premium" size={24} color={colors.premium} />
-            <View style={styles.premiumBannerText}>
-              <Text style={styles.premiumBannerTitle}>
-                {aiSummaryUsage.limit === 1 
-                  ? 'Free plan limit reached (1/1)' 
-                  : 'Basic plan limit reached (5/5)'
-                }
-              </Text>
-              <Text style={styles.premiumBannerSubtitle}>
-                {aiSummaryUsage.limit === 1
-                  ? 'Upgrade to Basic for 5 tries or Pro for unlimited'
-                  : 'Upgrade to Pro for unlimited AI summaries'
-                }
-              </Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color={colors.premium} />
-          </View>
-        </Pressable>
-      )}
 
       {/* Subject Filter */}
       <View style={styles.filterWrapper}>
@@ -1017,34 +994,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: typography.body,
-    color: colors.textSecondary,
-  },
-  premiumBanner: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 2,
-    borderColor: colors.premium,
-    overflow: 'hidden',
-  },
-  premiumBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  premiumBannerText: {
-    flex: 1,
-  },
-  premiumBannerTitle: {
-    fontSize: typography.body,
-    fontWeight: typography.bold,
-    color: colors.premium,
-    marginBottom: 2,
-  },
-  premiumBannerSubtitle: {
-    fontSize: typography.bodySmall,
     color: colors.textSecondary,
   },
 });
