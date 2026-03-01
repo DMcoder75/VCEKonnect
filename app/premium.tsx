@@ -11,7 +11,7 @@ type PlanType = 'basic' | 'pro';
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const insets = useSafeInsets();
+  const insets = useSafeAreaInsets();
   const { tier } = usePremium();
   const params = useLocalSearchParams();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('basic');
