@@ -24,6 +24,9 @@ export interface PremiumLimits {
   aiPracticeQuestionsSubjects: 'one' | 'all';
   aiPracticeQuestionsStorage: boolean;
   
+  // AI Note Summary
+  aiNoteSummaryTotal: number | 'unlimited';
+  
   // ATAR Features
   atarBestWorstCaseVisible: boolean;
   atarSubjectScoreEditing: boolean;
@@ -46,6 +49,7 @@ export const PREMIUM_TIER_LIMITS: Record<PremiumTier, PremiumLimits> = {
     aiPracticeQuestionsPerSubject: 1,
     aiPracticeQuestionsSubjects: 'one',
     aiPracticeQuestionsStorage: false,
+    aiNoteSummaryTotal: 1,
     atarBestWorstCaseVisible: false,
     atarSubjectScoreEditing: false,
     atarRoadmapAccess: false,
@@ -63,6 +67,7 @@ export const PREMIUM_TIER_LIMITS: Record<PremiumTier, PremiumLimits> = {
     aiPracticeQuestionsPerSubject: 3,
     aiPracticeQuestionsSubjects: 'all',
     aiPracticeQuestionsStorage: true,
+    aiNoteSummaryTotal: 5,
     atarBestWorstCaseVisible: true,
     atarSubjectScoreEditing: true,
     atarRoadmapAccess: true,
@@ -80,6 +85,7 @@ export const PREMIUM_TIER_LIMITS: Record<PremiumTier, PremiumLimits> = {
     aiPracticeQuestionsPerSubject: 'unlimited',
     aiPracticeQuestionsSubjects: 'all',
     aiPracticeQuestionsStorage: true,
+    aiNoteSummaryTotal: 'unlimited',
     atarBestWorstCaseVisible: true,
     atarSubjectScoreEditing: true,
     atarRoadmapAccess: true,
@@ -683,4 +689,110 @@ export async function saveAIPracticeQuestions(questions: {
     .single();
   
   return { data, error: error?.message || error };
+}
+
+// =====================================================
+// AI NOTE SUMMARY
+// =====================================================
+
+/**
+ * Get current usage count for AI note summaries (total across all notes)
+ */
+export async function getAINoteSummaryUsage(userId: string): Promise<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' }> {
+  try {
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
+    
+    if (limits.aiNoteSummaryTotal === 'unlimited') {
+      return { used: 0, limit: 'unlimited', remaining: 'unlimited' };
+    }
+    
+    // Track usage in user preferences
+    const { data, error } = await supabase
+      .from('vk_users')
+      .select('ai_summary_usage')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error getting AI summary usage:', error);
+      return { used: 0, limit: limits.aiNoteSummaryTotal as number, remaining: limits.aiNoteSummaryTotal as number };
+    }
+    
+    const used = data?.ai_summary_usage || 0;
+    const limit = limits.aiNoteSummaryTotal as number;
+    const remaining = Math.max(0, limit - used);
+    
+    return { used, limit, remaining };
+  } catch (error) {
+    console.error('Error getting AI note summary usage:', error);
+    return { used: 0, limit: 1, remaining: 1 };
+  }
+}
+
+/**
+ * Check if user can use AI note summary
+ */
+export async function canUseAINoteSummary(userId: string): Promise<{ allowed: boolean; reason?: string; usage?: { used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' } }> {
+  try {
+    const tier = await getUserPremiumTier(userId);
+    const limits = PREMIUM_TIER_LIMITS[tier];
+    const usage = await getAINoteSummaryUsage(userId);
+    
+    if (limits.aiNoteSummaryTotal === 'unlimited') {
+      return { allowed: true, usage };
+    }
+    
+    if (usage.remaining === 0) {
+      if (tier === 'free') {
+        return { 
+          allowed: false, 
+          reason: 'Free plan: 1 try used. Upgrade to continue!',
+          usage,
+        };
+      } else {
+        return { 
+          allowed: false, 
+          reason: 'Basic plan: 5 tries used. Upgrade to Pro for unlimited!',
+          usage,
+        };
+      }
+    }
+    
+    return { allowed: true, usage };
+  } catch (error) {
+    console.error('Unexpected error in canUseAINoteSummary:', error);
+    return { allowed: false, reason: 'Error checking limit' };
+  }
+}
+
+/**
+ * Increment AI note summary usage count
+ */
+export async function incrementAINoteSummaryUsage(userId: string): Promise<{ error: any }> {
+  try {
+    const { error } = await supabase.rpc('increment_ai_summary_usage', {
+      p_user_id: userId,
+    });
+    
+    if (error) {
+      // Fallback: manual increment
+      const { data } = await supabase
+        .from('vk_users')
+        .select('ai_summary_usage')
+        .eq('id', userId)
+        .single();
+      
+      const currentUsage = data?.ai_summary_usage || 0;
+      
+      await supabase
+        .from('vk_users')
+        .update({ ai_summary_usage: currentUsage + 1 })
+        .eq('id', userId);
+    }
+    
+    return { error: null };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to increment usage' };
+  }
 }
