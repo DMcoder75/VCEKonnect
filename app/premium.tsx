@@ -137,6 +137,21 @@ export default function PremiumScreen() {
             </View>
           </View>
 
+          {/* AI Note Summary */}
+          <View style={styles.feature}>
+            <MaterialIcons 
+              name={selectedPlan === 'basic' ? 'check-circle' : 'check-circle'} 
+              size={24} 
+              color={selectedPlan === 'basic' ? colors.primary : colors.premium} 
+            />
+            <View style={styles.featureText}>
+              <Text style={styles.featureTitle}>AI Note Summary</Text>
+              <Text style={styles.featureDesc}>
+                {selectedPlan === 'basic' ? '5 tries across all notes' : 'Unlimited AI note summaries'}
+              </Text>
+            </View>
+          </View>
+
           {/* What-If Scenarios */}
           <View style={styles.feature}>
             <MaterialIcons 
@@ -292,7 +307,7 @@ export default function PremiumScreen() {
         <View style={styles.comparisonNote}>
           <MaterialIcons name="info-outline" size={20} color={colors.primary} />
           <Text style={styles.comparisonText}>
-            Free tier includes: 1 AI study plan trial, 1 AI recommendation trial, 1 AI questions trial, basic ATAR prediction, and limited study tracking.
+            Free tier includes: 1 AI study plan trial, 1 AI recommendation trial, 1 AI questions trial, 1 AI note summary, basic ATAR prediction, and limited study tracking.
           </Text>
         </View>
       </ScrollView>

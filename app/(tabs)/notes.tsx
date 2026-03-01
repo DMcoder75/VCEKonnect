@@ -36,6 +36,8 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotes } from '@/hooks/useNotes';
 import { useAI } from '@/hooks/useAI';
+import { canUseAINoteSummary, incrementAINoteSummaryUsage, getAINoteSummaryUsage } from '@/services/premiumService';
+import { useRouter } from 'expo-router';
 import { LoadingSpinner } from '@/components/ui';
 import { Note } from '@/types';
 import { getUserSubjects } from '@/services/userSubjectsService';
@@ -63,6 +65,8 @@ export default function NotesScreen() {
   const [summarizingNoteId, setSummarizingNoteId] = useState<string | null>(null);
   const [noteSummaries, setNoteSummaries] = useState<{ [noteId: string]: string }>({});
   const { summarize, isLoading: isAILoading } = useAI();
+  const router = useRouter();
+  const [aiSummaryUsage, setAISummaryUsage] = useState<{ used: number; limit: number | 'unlimited'; remaining: number | 'unlimited' }>({ used: 0, limit: 1, remaining: 1 });
 
   // Get all unique tags from notes
   const allTags = Array.from(new Set(notes.flatMap(note => note.tags || [])));
@@ -102,7 +106,14 @@ export default function NotesScreen() {
 
   useEffect(() => {
     loadSubjects();
+    loadAISummaryUsage();
   }, [user]);
+
+  async function loadAISummaryUsage() {
+    if (!user) return;
+    const usage = await getAINoteSummaryUsage(user.id);
+    setAISummaryUsage(usage);
+  }
 
   useEffect(() => {
     if (notes !== undefined) {
@@ -162,6 +173,14 @@ export default function NotesScreen() {
   async function handleSummarizeNote(note: Note) {
     if (!user) return;
     
+    // Check usage limits
+    const { allowed, reason, usage } = await canUseAINoteSummary(user.id);
+    
+    if (!allowed) {
+      alert(reason || 'AI Summary limit reached');
+      return;
+    }
+    
     setSummarizingNoteId(note.id);
     const subject = userSubjects.find(s => s.id === note.subjectId);
     
@@ -174,6 +193,12 @@ export default function NotesScreen() {
     );
     
     if (result.data) {
+      // Increment usage count
+      await incrementAINoteSummaryUsage(user.id);
+      
+      // Refresh usage display
+      await loadAISummaryUsage();
+      
       setNoteSummaries(prev => ({
         ...prev,
         [note.id]: result.data!.response,
@@ -181,6 +206,10 @@ export default function NotesScreen() {
     }
     
     setSummarizingNoteId(null);
+  }
+  
+  function handleGoPremium() {
+    router.push('/premium?requiredTier=basic');
   }
 
   function handleEditNote(note: Note) {
@@ -215,7 +244,21 @@ export default function NotesScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerPlaceholder} />
-          <Text style={styles.title}>Notes & Progress</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Notes & Progress</Text>
+            {/* AI Summary Usage Badge */}
+            {aiSummaryUsage.limit !== 'unlimited' && (
+              <View style={styles.usageBadge}>
+                <MaterialIcons name="auto-awesome" size={14} color={colors.warning} />
+                <Text style={styles.usageText}>
+                  {aiSummaryUsage.limit === 1 
+                    ? `Free plan 1 try. Upgrade (${aiSummaryUsage.used}/${aiSummaryUsage.limit})`
+                    : `Basic plan 5 tries. Upgrade higher (${aiSummaryUsage.used}/${aiSummaryUsage.limit})`
+                  }
+                </Text>
+              </View>
+            )}
+          </View>
           <View style={styles.headerButtons}>
             <Pressable
               style={styles.iconButtonHeader}
@@ -446,12 +489,12 @@ export default function NotesScreen() {
                       <Pressable 
                         onPress={() => handleSummarizeNote(note)} 
                         style={styles.iconButton}
-                        disabled={summarizingNoteId === note.id}
+                        disabled={summarizingNoteId === note.id || aiSummaryUsage.remaining === 0}
                       >
                         <MaterialIcons 
                           name={summarizingNoteId === note.id ? "hourglass-empty" : "auto-awesome"} 
                           size={20} 
-                          color={summarizingNoteId === note.id ? colors.textTertiary : colors.warning} 
+                          color={summarizingNoteId === note.id ? colors.textTertiary : aiSummaryUsage.remaining === 0 ? colors.textTertiary : colors.warning} 
                         />
                       </Pressable>
                       <Pressable onPress={() => handleEditNote(note)} style={styles.iconButton}>
@@ -492,6 +535,15 @@ export default function NotesScreen() {
                       <ActivityIndicator size="small" color={colors.primary} />
                       <Text style={styles.summarizingText}>AI is summarizing your note...</Text>
                     </View>
+                  )}
+                  
+                  {/* Go Premium Button when limit reached */}
+                  {aiSummaryUsage.remaining === 0 && !noteSummaries[note.id] && (
+                    <Pressable onPress={handleGoPremium} style={styles.goPremiumCard}>
+                      <MaterialIcons name="workspace-premium" size={20} color={colors.premium} />
+                      <Text style={styles.goPremiumText}>Go Premium for more AI summaries</Text>
+                      <MaterialIcons name="chevron-right" size={20} color={colors.premium} />
+                    </Pressable>
                   )}
                   
                   {note.tags && note.tags.length > 0 && (
@@ -709,12 +761,46 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
   },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
   title: {
     fontSize: typography.h1,
     fontWeight: typography.bold,
     color: colors.textPrimary,
+  },
+  usageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+  },
+  usageText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontWeight: typography.medium,
+  },
+  goPremiumCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.premium,
+  },
+  goPremiumText: {
     flex: 1,
-    textAlign: 'center',
+    fontSize: typography.caption,
+    color: colors.premium,
+    fontWeight: typography.semibold,
   },
   addButton: {
     width: 40,
