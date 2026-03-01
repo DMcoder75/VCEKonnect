@@ -13,7 +13,7 @@ import { Button } from '@/components';
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshSubjects } = useAuth();
   
   const [step, setStep] = useState(1);
   const totalSteps = 4;
@@ -70,6 +70,9 @@ export default function OnboardingScreen() {
       targetCareer,
       yearLevel,
     });
+    
+    // CRITICAL: Refresh subjects cache in AuthContext so Settings page sees the changes
+    await refreshSubjects();
     
     router.replace('/(tabs)');
   }
