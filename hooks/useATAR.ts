@@ -118,12 +118,13 @@ export function useATAR() {
 
   function getPrediction() {
     // Get user's state ID from user object (default to VIC if not set)
-    const stateId = (user?.stateId || 'VIC') as StateID;
+    // Check both state_id (database) and stateId (camelCase) for compatibility
+    const stateId = ((user?.state_id || user?.stateId || 'VIC').toUpperCase()) as StateID;
     return calculateATAR(subjectScores, stateId);
   }
 
   function getScenarios() {
-    const stateId = (user?.stateId || 'VIC') as StateID;
+    const stateId = ((user?.state_id || user?.stateId || 'VIC').toUpperCase()) as StateID;
     return calculateATARScenarios(subjectScores, stateId);
   }
 
