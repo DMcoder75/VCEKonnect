@@ -25,7 +25,7 @@ export default function ATARScreen() {
   const { showAlert } = useAlert();
   
   // Get state configuration
-  const stateId = (user?.stateId || 'VIC') as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
+  const stateId = ((user?.state_id || user?.stateId || 'vic').toUpperCase()) as 'VIC' | 'NSW' | 'QLD' | 'WA' | 'SA' | 'TAS' | 'ACT' | 'NT';
   const stateConfig = getStateConfig(stateId);
   
   const [editingSubject, setEditingSubject] = useState<string | null>(null);
