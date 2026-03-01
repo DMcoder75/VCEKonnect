@@ -9,7 +9,7 @@ import { useNotes } from '@/hooks/useNotes';
 import { useAI } from '@/hooks/useAI';
 import { canUseAINoteSummary, incrementAINoteSummaryUsage, getAINoteSummaryUsage } from '@/services/premiumService';
 import { useRouter } from 'expo-router';
-import { LoadingSpinner } from '@/components/ui';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Note } from '@/types';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';

@@ -7,8 +7,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useStudyTimer, useElapsedTime } from '@/hooks/useStudyTimer';
-import { LoadingSpinner } from '@/components/ui';
-import { StudyTimerCard } from '@/components/feature';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { StudyTimerCard } from '@/components/feature/StudyTimerCard';
 import { VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 

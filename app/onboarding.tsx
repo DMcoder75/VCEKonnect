@@ -15,21 +15,23 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { user, updateProfile, refreshSubjects, isLoading: isAuthLoading } = useAuth();
   
-  // Redirect to login if not authenticated
+  // CRITICAL: Block rendering and redirect if not authenticated
+  // This prevents unauthorized access via deep links (QR codes)
   useEffect(() => {
     if (!isAuthLoading && !user) {
+      console.log('🚨 Onboarding: Unauthorized access attempt - redirecting to login');
       router.replace('/auth/login');
     }
   }, [user, isAuthLoading]);
   
-  // Show loading while checking auth
+  // ALWAYS show loading while auth check is in progress OR user not found
+  // This prevents flash of onboarding content before redirect
   if (isAuthLoading || !user) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.loadingContainer}>
-          <MaterialIcons name="hourglass-empty" size={48} color={colors.textTertiary} />
-          <Text style={styles.loadingText}>Checking authentication...</Text>
-        </View>
+      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <MaterialIcons name="security" size={64} color={colors.primary} />
+        <Text style={[styles.title, { marginTop: spacing.md, textAlign: 'center' }]}>Verifying Access</Text>
+        <Text style={[styles.description, { marginTop: spacing.xs, textAlign: 'center' }]}>Please wait...</Text>
       </View>
     );
   }

@@ -8,8 +8,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePremium } from '@/hooks/usePremium';
 import { useAlert } from '@/template';
 import { exportUserData, ExportOptions } from '@/services/exportService';
-import { LoadingSpinner } from '@/components/ui';
-import { PremiumPaywall } from '@/components/feature';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { PremiumPaywall } from '@/components/feature/PremiumPaywall';
 
 export default function ExportDataScreen() {
   const router = useRouter();
