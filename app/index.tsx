@@ -3,7 +3,6 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserSubjectIds } from '@/services/userSubjectsService';
-import { getCurrentUser } from '@/services/authService';
 import { colors } from '@/constants/theme';
 
 export default function IndexRedirect() {
@@ -17,21 +16,18 @@ export default function IndexRedirect() {
       if (isLoading || hasRouted) return;
 
       console.log('🔀 IndexRedirect: Checking auth state...');
+      console.log('🔀 IndexRedirect: User:', user ? `ID: ${user.id}` : 'None');
       
-      // Double-check current user from database (not just cache)
-      try {
-        const currentUser = await getCurrentUser();
-        console.log('🔀 IndexRedirect: Current user:', currentUser ? `ID: ${currentUser.id}` : 'None');
-        
-        if (!currentUser) {
-          console.log('🔀 IndexRedirect: No user -> Login');
-          router.replace('/auth/login');
-          setHasRouted(true);
-          return;
-        }
+      if (!user) {
+        console.log('🔀 IndexRedirect: No user -> Login');
+        router.replace('/auth/login');
+        setHasRouted(true);
+        return;
+      }
 
-        // Check if user has completed onboarding (has selected subjects)
-        const subjectIds = await getUserSubjectIds(currentUser.id);
+      // Check if user has completed onboarding (has selected subjects)
+      try {
+        const subjectIds = await getUserSubjectIds(user.id);
         console.log('🔀 IndexRedirect: User has', subjectIds.length, 'subjects');
         
         if (subjectIds.length === 0) {
@@ -43,9 +39,9 @@ export default function IndexRedirect() {
         }
         setHasRouted(true);
       } catch (error) {
-        console.error('❌ IndexRedirect: Error checking auth:', error);
-        // On error, go to login to be safe
-        router.replace('/auth/login');
+        console.error('❌ IndexRedirect: Error checking subjects:', error);
+        // On error, assume onboarding needed
+        router.replace('/onboarding');
         setHasRouted(true);
       }
     }
