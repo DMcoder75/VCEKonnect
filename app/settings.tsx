@@ -30,12 +30,12 @@ export default function SettingsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Initialize selected subjects from cached data
+  // CRITICAL: Must sync whenever userSubjects changes, not just when length changes
   useEffect(() => {
-    if (userSubjects.length > 0) {
-      const userSubjectIds = userSubjects.map(s => s.id);
-      setSelectedSubjects(userSubjectIds);
-    }
-  }, [userSubjects.length]);
+    const userSubjectIds = userSubjects.map(s => s.id);
+    console.log('🔄 Settings: Syncing selectedSubjects:', userSubjectIds);
+    setSelectedSubjects(userSubjectIds);
+  }, [userSubjects]);
 
   // Get current state from cached states
   const userStateId = user?.state_id || 'vic';
@@ -95,6 +95,13 @@ export default function SettingsScreen() {
 
   // Get selected subject details - instant from cache
   const selectedSubjectDetails = allStateSubjects.filter(s => selectedSubjects.includes(s.id));
+  
+  console.log('📊 Settings Debug:');
+  console.log('- User state_id:', userStateId);
+  console.log('- Total state subjects available:', allStateSubjects.length);
+  console.log('- Selected subject IDs:', selectedSubjects);
+  console.log('- Selected subject details found:', selectedSubjectDetails.length);
+  console.log('- Sample state subjects:', allStateSubjects.slice(0, 3).map(s => ({ id: s.id, name: s.name, state: s.stateId })));
 
   if (!user) return null;
 
