@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { checkConnection } from './networkService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface VCESubject {
   id: string;
@@ -33,29 +35,51 @@ export interface AustralianState {
  */
 export async function getAllStates(): Promise<AustralianState[]> {
   try {
-    const { data, error } = await supabase
-      .from('vk_states')
-      .select('*')
-      .order('abbreviation', { ascending: true });
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      const { data, error } = await supabase
+        .from('vk_states')
+        .select('*')
+        .order('abbreviation', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching states:', error);
-      return [];
+      if (error) {
+        console.error('Error fetching states:', error);
+        // Try offline cache
+        const cached = await AsyncStorage.getItem('fairprep_states');
+        return cached ? JSON.parse(cached) : [];
+      }
+
+      const states = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        abbreviation: row.abbreviation,
+        educationSystem: row.education_system,
+        authorityName: row.authority_name,
+        authorityWebsite: row.authority_website,
+        usesAtar: row.uses_atar,
+        scalingSystem: row.scaling_system,
+      }));
+      
+      // Cache states for offline use
+      await AsyncStorage.setItem('fairprep_states', JSON.stringify(states));
+      
+      return states;
+    } else {
+      // Offline - load from cache
+      console.log('📡 Offline: Loading states from cache');
+      const cached = await AsyncStorage.getItem('fairprep_states');
+      return cached ? JSON.parse(cached) : [];
     }
-
-    return data.map(row => ({
-      id: row.id,
-      name: row.name,
-      abbreviation: row.abbreviation,
-      educationSystem: row.education_system,
-      authorityName: row.authority_name,
-      authorityWebsite: row.authority_website,
-      usesAtar: row.uses_atar,
-      scalingSystem: row.scaling_system,
-    }));
   } catch (err) {
     console.error('getAllStates error:', err);
-    return [];
+    // Try offline cache as last resort
+    try {
+      const cached = await AsyncStorage.getItem('fairprep_states');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -64,31 +88,55 @@ export async function getAllStates(): Promise<AustralianState[]> {
  */
 export async function getSubjectsByState(stateId: string): Promise<VCESubject[]> {
   try {
-    const { data, error } = await supabase
-      .from('vk_subjects')
-      .select('*')
-      .eq('state_id', stateId.toLowerCase())
-      .order('category', { ascending: true })
-      .order('name', { ascending: true });
+    const cacheKey = `fairprep_subjects_${stateId.toLowerCase()}`;
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      const { data, error } = await supabase
+        .from('vk_subjects')
+        .select('*')
+        .eq('state_id', stateId.toLowerCase())
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
 
-    if (error) {
-      console.error(`Error fetching ${stateId} subjects:`, error);
-      return [];
+      if (error) {
+        console.error(`Error fetching ${stateId} subjects:`, error);
+        // Try offline cache
+        const cached = await AsyncStorage.getItem(cacheKey);
+        return cached ? JSON.parse(cached) : [];
+      }
+
+      const subjects = data.map(row => ({
+        id: row.id,
+        code: row.code,
+        name: row.name,
+        category: row.category,
+        scaledMean: row.scaled_mean,
+        scaledStdDev: row.scaled_std_dev,
+        stateId: row.state_id,
+        createdAt: row.created_at,
+      }));
+      
+      // Cache subjects for offline use
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(subjects));
+      
+      return subjects;
+    } else {
+      // Offline - load from cache
+      console.log(`📡 Offline: Loading ${stateId} subjects from cache`);
+      const cached = await AsyncStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
     }
-
-    return data.map(row => ({
-      id: row.id,
-      code: row.code,
-      name: row.name,
-      category: row.category,
-      scaledMean: row.scaled_mean,
-      scaledStdDev: row.scaled_std_dev,
-      stateId: row.state_id,
-      createdAt: row.created_at,
-    }));
   } catch (err) {
     console.error('getSubjectsByState error:', err);
-    return [];
+    // Try offline cache as last resort
+    try {
+      const cacheKey = `fairprep_subjects_${stateId.toLowerCase()}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
   }
 }
 

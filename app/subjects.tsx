@@ -6,13 +6,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
+import { useAlert } from '@/template';
 import { getSubjectsByState, VCESubject } from '@/services/vceSubjectsService';
 import { getUserSubjectIds, updateUserSubjects } from '@/services/userSubjectsService';
+import { NoInternetBanner } from '@/components/ui';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export default function SubjectsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, updateProfile } = useAuth();
+  const { isConnected } = useNetworkStatus();
+  const { showAlert } = useAlert();
   
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
@@ -59,15 +64,26 @@ export default function SubjectsScreen() {
   async function handleDone() {
     if (!user) return;
     
+    if (!isConnected) {
+      showAlert('No Internet Connection', 'No Internet connection! Please try after sometime!');
+      return;
+    }
+    
     setIsSaving(true);
     try {
       // Update user subjects in junction table
-      await updateUserSubjects(user.id, selectedSubjects);
+      const { error } = await updateUserSubjects(user.id, selectedSubjects);
+      
+      if (error) {
+        showAlert('Error', error);
+        return;
+      }
+      
       setHasChanges(false);
       router.back();
     } catch (error) {
       console.error('Failed to save subjects:', error);
-      alert('Failed to save subjects. Please try again.');
+      showAlert('Error', 'Failed to save subjects. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -99,6 +115,9 @@ export default function SubjectsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Offline Banner */}
+      <NoInternetBanner />
+      
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
