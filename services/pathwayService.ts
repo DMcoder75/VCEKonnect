@@ -1,4 +1,6 @@
 import { supabase } from '@/services/supabase.web';
+import { checkConnection } from './networkService';
+import { savePathwayCourses, getPathwayCourses } from './offlineDatabase';
 
 export interface CareerPath {
   id: string;
@@ -46,17 +48,59 @@ export interface PathwaySuggestion {
  * Get all career paths from external Supabase
  */
 export async function getAllCareerPaths(): Promise<CareerPath[]> {
-  const { data, error } = await supabase
-    .from('vk_career_paths')
-    .select('*')
-    .order('typical_atar', { ascending: false });
+  try {
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      const { data, error } = await supabase
+        .from('vk_career_paths')
+        .select('*')
+        .order('typical_atar', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching career paths:', error);
+      if (error) {
+        console.error('Error fetching career paths:', error);
+        // Try to load from cache
+        const cached = await getPathwayCourses();
+        return cached.map(c => ({
+          id: c.id,
+          name: c.courseName,
+          category: c.university,
+          typical_atar: c.atarRequirement || 0,
+          description: c.description || '',
+        }));
+      }
+
+      // Cache the career paths
+      const careers = data || [];
+      await savePathwayCourses(careers.map(c => ({
+        id: c.id,
+        university: c.category || '',
+        courseName: c.name,
+        atarRequirement: c.typical_atar,
+        description: c.description,
+        duration: '',
+        careerOutcomes: '',
+        location: '',
+        courseCode: '',
+      })));
+      
+      return careers;
+    } else {
+      // Offline - load from cache
+      console.log('📡 Offline: Loading career paths from cache');
+      const cached = await getPathwayCourses();
+      return cached.map(c => ({
+        id: c.id,
+        name: c.courseName,
+        category: c.university,
+        typical_atar: c.atarRequirement || 0,
+        description: c.description || '',
+      }));
+    }
+  } catch (error) {
+    console.error('Unexpected error loading career paths:', error);
     return [];
   }
-
-  return data || [];
 }
 
 /**

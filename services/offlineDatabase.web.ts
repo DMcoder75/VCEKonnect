@@ -9,6 +9,7 @@ const KEYS = {
   STUDY_SESSIONS: 'fairprep_study_sessions',
   NOTES: 'fairprep_notes',
   CALENDAR_EVENTS: 'fairprep_calendar_events',
+  PATHWAY_COURSES: 'fairprep_pathway_courses',
 };
 
 /**
@@ -87,6 +88,17 @@ export async function getCalendarEvents(userId: string): Promise<any[]> {
   return allEvents.filter((e: any) => e.userId === userId);
 }
 
+// ==================== PATHWAY COURSES ====================
+
+export async function savePathwayCourses(courses: any[]): Promise<void> {
+  await AsyncStorage.setItem(KEYS.PATHWAY_COURSES, JSON.stringify(courses));
+}
+
+export async function getPathwayCourses(): Promise<any[]> {
+  const data = await AsyncStorage.getItem(KEYS.PATHWAY_COURSES);
+  return data ? JSON.parse(data) : [];
+}
+
 // ==================== UTILITY ====================
 
 export async function clearAllData(): Promise<void> {
@@ -97,6 +109,7 @@ export async function clearAllData(): Promise<void> {
     KEYS.STUDY_SESSIONS,
     KEYS.NOTES,
     KEYS.CALENDAR_EVENTS,
+    KEYS.PATHWAY_COURSES,
   ]);
   console.log('✅ All offline data cleared (Web)');
 }

@@ -24,5 +24,7 @@ export const {
   getNotes,
   saveCalendarEvents,
   getCalendarEvents,
+  savePathwayCourses,
+  getPathwayCourses,
   clearAllData,
 } = offlineDB;
