@@ -10,6 +10,7 @@ const KEYS = {
   NOTES: 'fairprep_notes',
   CALENDAR_EVENTS: 'fairprep_calendar_events',
   PATHWAY_COURSES: 'fairprep_pathway_courses',
+  ACTIVE_GOALS: 'fairprep_active_goals',
 };
 
 /**
@@ -99,6 +100,17 @@ export async function getPathwayCourses(): Promise<any[]> {
   return data ? JSON.parse(data) : [];
 }
 
+// ==================== GOAL PERIODS ====================
+
+export async function saveActiveGoals(userId: string, goals: any): Promise<void> {
+  await AsyncStorage.setItem(`${KEYS.ACTIVE_GOALS}_${userId}`, JSON.stringify(goals));
+}
+
+export async function getActiveGoals(userId: string): Promise<any> {
+  const data = await AsyncStorage.getItem(`${KEYS.ACTIVE_GOALS}_${userId}`);
+  return data ? JSON.parse(data) : { weekly: null, monthly: null, term: null };
+}
+
 // ==================== UTILITY ====================
 
 export async function clearAllData(): Promise<void> {
@@ -110,6 +122,7 @@ export async function clearAllData(): Promise<void> {
     KEYS.NOTES,
     KEYS.CALENDAR_EVENTS,
     KEYS.PATHWAY_COURSES,
+    KEYS.ACTIVE_GOALS,
   ]);
   console.log('✅ All offline data cleared (Web)');
 }

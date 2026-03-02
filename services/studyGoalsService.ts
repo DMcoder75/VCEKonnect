@@ -1,4 +1,6 @@
 import { supabase } from './supabase.web';
+import { checkConnection } from './networkService';
+import { saveActiveGoals as saveOfflineGoals, getActiveGoals as getOfflineGoals } from './offlineDatabase';
 
 // Types
 export interface GoalPeriod {
@@ -58,50 +60,73 @@ export interface SaveGoalsPayload {
  */
 export async function getActiveGoals(userId: string): Promise<ActiveGoalsResponse | null> {
   try {
-    const { data, error } = await supabase.rpc('get_active_goals', {
-      p_user_id: userId,
-    });
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      const { data, error } = await supabase.rpc('get_active_goals', {
+        p_user_id: userId,
+      });
 
-    if (error) {
-      console.error('Failed to fetch active goals:', error);
-      return null;
-    }
+      if (error) {
+        console.error('Failed to fetch active goals:', error);
+        // Try offline cache
+        console.log('📡 Loading goals from offline cache');
+        const cachedGoals = await getOfflineGoals(userId);
+        return cachedGoals.weekly || cachedGoals.monthly || cachedGoals.term ? cachedGoals : null;
+      }
 
-    if (!data) {
-      return null;
-    }
+      if (!data) {
+        return null;
+      }
 
-    // Map database snake_case to TypeScript camelCase
-    const mapPeriod = (period: any): GoalPeriod | null => {
-      if (!period) return null;
-      return {
-        id: period.id,
-        periodType: period.period_type || 'weekly',
-        periodName: period.period_name,
-        startDate: period.start_date,
-        endDate: period.end_date,
-        targetHours: period.target_hours,
-        achievedMinutes: period.achieved_minutes,
-        achievedHours: period.achieved_hours,
-        progressPercent: period.progress_percent,
-        subjects: period.subjects?.map((s: any) => ({
-          subjectId: s.subject_id,
-          targetHours: s.target_hours,
-          achievedMinutes: s.achieved_minutes,
-          achievedHours: s.achieved_hours,
-          progressPercent: s.progress_percent,
-        })) || [],
+      // Map database snake_case to TypeScript camelCase
+      const mapPeriod = (period: any): GoalPeriod | null => {
+        if (!period) return null;
+        return {
+          id: period.id,
+          periodType: period.period_type || 'weekly',
+          periodName: period.period_name,
+          startDate: period.start_date,
+          endDate: period.end_date,
+          targetHours: period.target_hours,
+          achievedMinutes: period.achieved_minutes,
+          achievedHours: period.achieved_hours,
+          progressPercent: period.progress_percent,
+          subjects: period.subjects?.map((s: any) => ({
+            subjectId: s.subject_id,
+            targetHours: s.target_hours,
+            achievedMinutes: s.achieved_minutes,
+            achievedHours: s.achieved_hours,
+            progressPercent: s.progress_percent,
+          })) || [],
+        };
       };
-    };
 
-    return {
-      weekly: mapPeriod(data.weekly),
-      monthly: mapPeriod(data.monthly),
-      term: mapPeriod(data.term),
-    };
+      const result = {
+        weekly: mapPeriod(data.weekly),
+        monthly: mapPeriod(data.monthly),
+        term: mapPeriod(data.term),
+      };
+      
+      // Cache the goals for offline use
+      await saveOfflineGoals(userId, result);
+      
+      return result;
+    } else {
+      // Offline - load from cache
+      console.log('📡 Offline: Loading goals from cache');
+      const cachedGoals = await getOfflineGoals(userId);
+      return cachedGoals.weekly || cachedGoals.monthly || cachedGoals.term ? cachedGoals : null;
+    }
   } catch (err) {
     console.error('Error fetching active goals:', err);
-    return null;
+    // Try offline cache as last resort
+    try {
+      const cachedGoals = await getOfflineGoals(userId);
+      return cachedGoals.weekly || cachedGoals.monthly || cachedGoals.term ? cachedGoals : null;
+    } catch {
+      return null;
+    }
   }
 }
 

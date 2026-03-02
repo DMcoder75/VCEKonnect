@@ -17,5 +17,7 @@ export {
   getCalendarEvents,
   savePathwayCourses,
   getPathwayCourses,
+  saveActiveGoals,
+  getActiveGoals,
   clearAllData,
 } from './offlineDatabase.native';

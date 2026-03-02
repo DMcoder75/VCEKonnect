@@ -109,6 +109,22 @@ export async function initDatabase(): Promise<void> {
         course_code TEXT,
         cached_at TEXT
       );
+      
+      -- Goal periods table
+      CREATE TABLE IF NOT EXISTS goal_periods (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        period_type TEXT NOT NULL,
+        period_name TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        target_hours REAL NOT NULL,
+        achieved_minutes INTEGER DEFAULT 0,
+        achieved_hours REAL DEFAULT 0,
+        progress_percent REAL DEFAULT 0,
+        subjects_data TEXT,
+        cached_at TEXT
+      );
     `);
     
     console.log('✅ SQLite database initialized');
@@ -436,6 +452,75 @@ export async function getPathwayCourses(): Promise<any[]> {
   }));
 }
 
+// ==================== GOAL PERIODS ====================
+
+export async function saveActiveGoals(userId: string, goals: any): Promise<void> {
+  if (!db) await initDatabase();
+  
+  // Clear existing goals for this user
+  await db!.runAsync('DELETE FROM goal_periods WHERE user_id = ?', [userId]);
+  
+  // Save each active goal period
+  const periods = ['weekly', 'monthly', 'term'];
+  for (const periodType of periods) {
+    const goal = goals[periodType];
+    if (goal) {
+      await db!.runAsync(
+        `INSERT INTO goal_periods 
+        (id, user_id, period_type, period_name, start_date, end_date, target_hours, achieved_minutes, achieved_hours, progress_percent, subjects_data, cached_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          goal.id,
+          userId,
+          goal.periodType || periodType,
+          goal.periodName,
+          goal.startDate,
+          goal.endDate,
+          goal.targetHours,
+          goal.achievedMinutes || 0,
+          goal.achievedHours || 0,
+          goal.progressPercent || 0,
+          JSON.stringify(goal.subjects || []),
+          new Date().toISOString(),
+        ]
+      );
+    }
+  }
+}
+
+export async function getActiveGoals(userId: string): Promise<any> {
+  if (!db) await initDatabase();
+  
+  const results = await db!.getAllAsync<any>(
+    'SELECT * FROM goal_periods WHERE user_id = ?',
+    [userId]
+  );
+  
+  const goals: any = {
+    weekly: null,
+    monthly: null,
+    term: null,
+  };
+  
+  for (const row of results) {
+    const periodType = row.period_type;
+    goals[periodType] = {
+      id: row.id,
+      periodType: row.period_type,
+      periodName: row.period_name,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      targetHours: row.target_hours,
+      achievedMinutes: row.achieved_minutes,
+      achievedHours: row.achieved_hours,
+      progressPercent: row.progress_percent,
+      subjects: JSON.parse(row.subjects_data || '[]'),
+    };
+  }
+  
+  return goals;
+}
+
 // ==================== UTILITY ====================
 
 export async function clearAllData(): Promise<void> {
@@ -449,6 +534,7 @@ export async function clearAllData(): Promise<void> {
     DELETE FROM notes;
     DELETE FROM calendar_events;
     DELETE FROM pathway_courses;
+    DELETE FROM goal_periods;
   `);
   
   console.log('✅ All offline data cleared');

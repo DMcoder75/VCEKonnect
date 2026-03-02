@@ -321,7 +321,7 @@ export default function DashboardScreen() {
         <View style={styles.todayCard}>
           <View style={styles.todayHeader}>
             <MaterialIcons name="access-time" size={24} color={colors.primary} />
-            <Text style={styles.todayTitle}>Total Study Time (All Time)</Text>
+            <Text style={styles.todayTitle}>Total Study Time</Text>
           </View>
           <Text style={styles.todayTime}>
             {Math.floor(allTime / 60)}h {allTime % 60}m
@@ -423,7 +423,7 @@ export default function DashboardScreen() {
           <View style={styles.goalsHeader}>
             <View style={styles.goalsHeaderLeft}>
               <MaterialIcons name="flag" size={20} color={colors.primary} />
-              <Text style={styles.goalsTitle}>Goal Progress Summary</Text>
+              <Text style={styles.goalsTitle}>Goal Progress</Text>
               {isRunning && (
                 <View style={styles.liveIndicator}>
                   <View style={styles.liveDot} />
