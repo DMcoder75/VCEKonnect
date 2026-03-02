@@ -11,6 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePremium } from '@/hooks/usePremium';
 import { Button } from '@/components';
+import { useAlert } from '@/template';
+import { checkConnection } from '@/services/networkService';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function SettingsScreen() {
   const { user, updateProfile, logout } = useAuth();
   const { permissionGranted, requestPermissions, scheduledCount, scheduleDailyReminder } = useNotifications();
   const { tier, isPremium } = usePremium();
+  const { showAlert } = useAlert();
   
   const { userSubjects, allStateSubjects, allStates, refreshSubjects } = useAuth();
   
@@ -52,6 +55,13 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     if (!user) return;
+    
+    // Check network connection before saving
+    const hasConnection = await checkConnection();
+    if (!hasConnection) {
+      showAlert('No Internet Connection', 'No Internet connection! Please try after sometime!');
+      return;
+    }
     
     // Update user subjects in database (soft delete implemented in service)
     await updateUserSubjects(user.id, selectedSubjects);
