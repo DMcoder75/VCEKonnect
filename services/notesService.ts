@@ -1,8 +1,16 @@
 import { supabase } from './supabase';
 import { Note, NoteAttachment } from '@/types';
+import { requireNetwork, isOnline } from './networkService';
+import { getNotes as getOfflineNotes, saveNotes as saveOfflineNotes } from './offlineDatabase';
 
 // Get all notes for a user
 export async function getNotes(userId: string, subjectId?: string): Promise<Note[]> {
+  // If offline, return cached data
+  if (!isOnline()) {
+    console.log('📡 Notes: Offline - loading from SQLite');
+    return await getOfflineNotes(userId);
+  }
+
   try {
     let query = supabase
       .from('vk_notes')
@@ -18,11 +26,13 @@ export async function getNotes(userId: string, subjectId?: string): Promise<Note
 
     if (error) {
       console.error('Failed to fetch notes:', error);
-      return [];
+      // Fallback to offline data
+      return await getOfflineNotes(userId);
     }
 
-    return (data || []).map(row => ({
+    const notes = (data || []).map(row => ({
       id: row.id,
+      userId,
       subjectId: row.subject_id,
       title: row.title,
       content: row.content || '',
@@ -35,9 +45,15 @@ export async function getNotes(userId: string, subjectId?: string): Promise<Note
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
+
+    // Cache for offline use
+    await saveOfflineNotes(notes);
+
+    return notes;
   } catch (err) {
     console.error('Error fetching notes:', err);
-    return [];
+    // Fallback to offline data
+    return await getOfflineNotes(userId);
   }
 }
 
@@ -95,6 +111,13 @@ export async function saveNote(
   userId: string,
   note: Partial<Note> & { id?: string }
 ): Promise<{ error: string | null }> {
+  // Require network for write operations
+  try {
+    requireNetwork();
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
+
   try {
     const payload: any = {
       user_id: userId,
@@ -128,6 +151,13 @@ export async function deleteNote(
   userId: string,
   noteId: string
 ): Promise<{ error: string | null }> {
+  // Require network for write operations
+  try {
+    requireNetwork();
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
+
   try {
     // First, get note to delete its attachments
     const { data: note } = await supabase

@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform, View, Animated } from 'react-native';
 import { colors } from '@/constants/theme';
-import { QuickAccessDrawer, FloatingMenuButton } from '@/components/ui';
+import { QuickAccessDrawer, FloatingMenuButton, OfflineIndicator } from '@/components/ui';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
 import { VersionCheckModal } from '@/components/feature/VersionCheckModal';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
@@ -80,6 +80,7 @@ export default function TabLayout() {
 
   return (
     <View style={{ flex: 1 }}>
+      <OfflineIndicator />
       <FloatingMenuButton onPress={() => setIsDrawerOpen(true)} />
       <QuickAccessDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
       

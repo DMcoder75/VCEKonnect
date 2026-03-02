@@ -4,3 +4,5 @@ export { ATARDisplay } from './ATARDisplay';
 export { LoadingSpinner } from './LoadingSpinner';
 export { default as QuickAccessDrawer } from './QuickAccessDrawer';
 export { default as FloatingMenuButton } from './FloatingMenuButton';
+export { OfflineIndicator } from './OfflineIndicator';
+export { NoInternetBanner } from './NoInternetBanner';
