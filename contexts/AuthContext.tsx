@@ -47,12 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Initialize database first
-    initDatabase().then(() => {
-      loadUser();
-    }).catch(err => {
-      console.error('Failed to init database:', err);
-      loadUser(); // Try to load anyway
-    });
+    initDatabase()
+      .then(() => {
+        console.log('✅ Database initialized successfully');
+        loadUser();
+      })
+      .catch(err => {
+        console.error('❌ Failed to init database:', err);
+        // Force loading to false if init fails
+        setIsLoading(false);
+        loadUser(); // Try to load anyway
+      });
   }, []);
 
   // Load subjects when user changes
@@ -83,52 +88,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('🔐 AuthContext: Loading user...');
     setIsLoading(true);
     
-    // Try to load from SQLite first (offline support)
-    const cachedUser = await getUserProfile();
-    if (cachedUser) {
-      console.log('📦 AuthContext: Using cached user from SQLite (offline mode)');
-      setUser(cachedUser);
-      // Load cached subjects too
-      const cachedUserSubjects = await getOfflineUserSubjects();
-      setUserSubjects(cachedUserSubjects);
-    }
-    
-    // Check network connection
-    const hasConnection = await checkConnection();
-    
-    if (hasConnection) {
-      // Try to fetch fresh data from network
-      try {
-        const currentUser = await getCurrentUser();
-        console.log('🔐 AuthContext: User loaded:', currentUser ? `ID: ${currentUser.id}` : 'No user');
-        
-        if (currentUser) {
-          setUser(currentUser);
-          // Save to SQLite for offline use
-          await saveUserProfile(currentUser);
-          
-          // Track app version on session restore
-          updateUserAppVersion(currentUser.id).catch(err => 
-            console.warn('Failed to track version on session restore:', err)
-          );
-        } else {
-          // No valid session - clear everything and force login
-          console.log('🔐 AuthContext: No valid session -> clearing cache and forcing login');
-          setUser(null);
-          await clearAllData();
-        }
-      } catch (error) {
-        console.error('❌ AuthContext: Failed to load user from network, using SQLite cache:', error);
-        // Network failed - keep cached user for offline mode (only if we had one)
-        if (!cachedUser) {
-          setUser(null);
-        }
+    try {
+      // Try to load from SQLite first (offline support)
+      const cachedUser = await getUserProfile();
+      if (cachedUser) {
+        console.log('📦 AuthContext: Using cached user from SQLite (offline mode)');
+        setUser(cachedUser);
+        // Load cached subjects too
+        const cachedUserSubjects = await getOfflineUserSubjects();
+        setUserSubjects(cachedUserSubjects);
       }
-    } else {
-      console.log('📡 AuthContext: No network - using offline data');
+      
+      // Check network connection
+      const hasConnection = await checkConnection();
+      
+      if (hasConnection) {
+        // Try to fetch fresh data from network
+        try {
+          const currentUser = await getCurrentUser();
+          console.log('🔐 AuthContext: User loaded:', currentUser ? `ID: ${currentUser.id}` : 'No user');
+          
+          if (currentUser) {
+            setUser(currentUser);
+            // Save to SQLite for offline use
+            await saveUserProfile(currentUser);
+            
+            // Track app version on session restore
+            updateUserAppVersion(currentUser.id).catch(err => 
+              console.warn('Failed to track version on session restore:', err)
+            );
+          } else {
+            // No valid session - clear everything and force login
+            console.log('🔐 AuthContext: No valid session -> clearing cache and forcing login');
+            setUser(null);
+            await clearAllData();
+          }
+        } catch (error) {
+          console.error('❌ AuthContext: Failed to load user from network, using SQLite cache:', error);
+          // Network failed - keep cached user for offline mode (only if we had one)
+          if (!cachedUser) {
+            setUser(null);
+          }
+        }
+      } else {
+        console.log('📡 AuthContext: No network - using offline data');
+      }
+    } catch (error) {
+      console.error('❌ AuthContext: Critical error in loadUser:', error);
+      setUser(null);
+    } finally {
+      // ALWAYS set loading to false, even if errors occur
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }
 
   async function refreshSubjects() {

@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { VCESubject } from './vceSubjectsService';
+import { checkConnection } from './networkService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface UserSubject {
   id: string;
@@ -83,22 +85,46 @@ export async function getUserSubjects(userId: string): Promise<VCESubject[]> {
  */
 export async function getUserSubjectIds(userId: string): Promise<string[]> {
   try {
-    const { data, error } = await supabase
-      .from('vk_user_subjects')
-      .select('subject_id')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: true });
+    const cacheKey = `fairprep_user_subject_ids_${userId}`;
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      const { data, error } = await supabase
+        .from('vk_user_subjects')
+        .select('subject_id')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching user subject IDs:', error);
-      return [];
+      if (error) {
+        console.error('Error fetching user subject IDs:', error);
+        // Try offline cache
+        const cached = await AsyncStorage.getItem(cacheKey);
+        return cached ? JSON.parse(cached) : [];
+      }
+
+      const subjectIds = data.map(row => row.subject_id);
+      
+      // Cache for offline use
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(subjectIds));
+      
+      return subjectIds;
+    } else {
+      // Offline - load from cache
+      console.log('📡 Offline: Loading user subject IDs from cache');
+      const cached = await AsyncStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
     }
-
-    return data.map(row => row.subject_id);
   } catch (err) {
     console.error('getUserSubjectIds error:', err);
-    return [];
+    // Try offline cache as last resort
+    try {
+      const cacheKey = `fairprep_user_subject_ids_${userId}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -113,6 +139,12 @@ export async function updateUserSubjects(
   subjectIds: string[]
 ): Promise<{ error: string | null }> {
   try {
+    const hasConnection = await checkConnection();
+    
+    if (!hasConnection) {
+      return { error: 'No Internet connection! Please try after sometime!' };
+    }
+    
     // Step 1: Get all existing subjects (both active and deleted)
     const { data: existingSubjects, error: fetchError } = await supabase
       .from('vk_user_subjects')
