@@ -21,15 +21,34 @@ export function useATAR() {
   const loadData = useCallback(async () => {
     if (!user) return;
     
+    setIsLoading(true);
     try {
       const [scores, subjects] = await Promise.all([
         getSubjectScores(user.id),
         getUserSubjects(user.id)
       ]);
+      console.log('📊 useATAR loaded:', { scoresCount: scores.length, subjectsCount: subjects.length });
       setSubjectScores(scores);
       setUserSubjects(subjects);
     } catch (error) {
       console.error('Failed to load data:', error);
+      // Try to load from offline cache even if error
+      try {
+        const { getSubjectScores: getOfflineScores } = await import('@/services/offlineDatabase');
+        const cachedScores = await getOfflineScores(user.id);
+        if (cachedScores.length > 0) {
+          console.log('📦 useATAR using offline cache:', cachedScores.length, 'scores');
+          setSubjectScores(cachedScores.map(row => ({
+            subjectId: row.subjectId,
+            sacAverage: parseFloat(String(row.sacAverage)) || 0,
+            examPrediction: parseFloat(String(row.examPrediction)) || 0,
+            studyRank: parseFloat(String(row.studyRank)) || 50,
+            predictedStudyScore: parseFloat(String(row.predictedStudyScore)) || 0,
+          })));
+        }
+      } catch (cacheError) {
+        console.error('Failed to load from cache:', cacheError);
+      }
     } finally {
       setIsLoading(false);
     }
