@@ -144,63 +144,130 @@ export async function getPathwaySuggestions(
   careerPathId: string,
   predictedATAR: number
 ): Promise<PathwaySuggestion | null> {
-  // Fetch career from external Supabase
-  const { data: careerData, error: careerError } = await supabase
-    .from('vk_career_paths')
-    .select('*')
-    .eq('id', careerPathId)
-    .single();
+  try {
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      // Fetch career from external Supabase
+      const { data: careerData, error: careerError } = await supabase
+        .from('vk_career_paths')
+        .select('*')
+        .eq('id', careerPathId)
+        .single();
 
-  if (careerError || !careerData) {
-    console.error('Error fetching career:', careerError);
+      if (careerError || !careerData) {
+        console.error('Error fetching career:', careerError);
+        // Try to load from cache
+        const cached = await getPathwayCourses();
+        const careerFromCache = cached.find(c => c.id === careerPathId);
+        if (careerFromCache) {
+          return {
+            career: {
+              id: careerFromCache.id,
+              name: careerFromCache.courseName,
+              typicalATAR: careerFromCache.atarRequirement || 0,
+            },
+            courses: [{
+              id: careerFromCache.id,
+              universityName: careerFromCache.university,
+              courseName: careerFromCache.courseName,
+              atar: careerFromCache.atarRequirement || 0,
+              isEligible: predictedATAR >= (careerFromCache.atarRequirement || 0),
+              prerequisites: [],
+              pathway: careerFromCache.description,
+            }],
+          };
+        }
+        return null;
+      }
+
+      // Fetch courses that match this career from external Supabase
+      // Use cs (contains) filter for JSONB array containment
+      const { data: coursesData, error: coursesError } = await supabase
+        .from('vk_university_courses')
+        .select('*')
+        .filter('career_path_ids', 'cs', JSON.stringify([careerPathId]))
+        .order('atar', { ascending: true });
+
+      if (coursesError) {
+        console.error('Error fetching courses:', coursesError);
+        return null;
+      }
+
+      // Fetch universities from external Supabase
+      const { data: universitiesData, error: universitiesError } = await supabase
+        .from('vk_universities')
+        .select('*');
+
+      if (universitiesError) {
+        console.error('Error fetching universities:', universitiesError);
+        return null;
+      }
+
+      // Map courses with university names
+      const courses = (coursesData || []).map(course => {
+        const university = (universitiesData || []).find(u => u.id === course.university_id);
+        return {
+          id: course.id,
+          universityName: university?.short_name || 'Unknown',
+          courseName: course.name,
+          atar: course.atar,
+          isEligible: predictedATAR >= course.atar,
+          prerequisites: course.prerequisites || [],
+          pathway: course.pathway || undefined,
+        };
+      });
+      
+      // Cache the pathway courses for offline use
+      await savePathwayCourses(courses.map(c => ({
+        id: c.id,
+        university: c.universityName,
+        courseName: c.courseName,
+        atarRequirement: c.atar,
+        description: c.pathway || '',
+        duration: '',
+        careerOutcomes: careerData.name,
+        location: '',
+        courseCode: '',
+      })));
+
+      return {
+        career: {
+          id: careerData.id,
+          name: careerData.name,
+          typicalATAR: careerData.typical_atar,
+        },
+        courses,
+      };
+    } else {
+      // Offline - load from cache
+      console.log('📡 Offline: Loading pathway from cache');
+      const cached = await getPathwayCourses();
+      if (cached.length === 0) return null;
+      
+      const courses = cached.map(c => ({
+        id: c.id,
+        universityName: c.university,
+        courseName: c.courseName,
+        atar: c.atarRequirement || 0,
+        isEligible: predictedATAR >= (c.atarRequirement || 0),
+        prerequisites: [],
+        pathway: c.description,
+      }));
+      
+      return {
+        career: {
+          id: careerPathId,
+          name: cached[0]?.careerOutcomes || careerPathId,
+          typicalATAR: cached[0]?.atarRequirement || 0,
+        },
+        courses,
+      };
+    }
+  } catch (error) {
+    console.error('Unexpected error loading pathway suggestions:', error);
     return null;
   }
-
-  // Fetch courses that match this career from external Supabase
-  // Use cs (contains) filter for JSONB array containment
-  const { data: coursesData, error: coursesError } = await supabase
-    .from('vk_university_courses')
-    .select('*')
-    .filter('career_path_ids', 'cs', JSON.stringify([careerPathId]))
-    .order('atar', { ascending: true });
-
-  if (coursesError) {
-    console.error('Error fetching courses:', coursesError);
-    return null;
-  }
-
-  // Fetch universities from external Supabase
-  const { data: universitiesData, error: universitiesError } = await supabase
-    .from('vk_universities')
-    .select('*');
-
-  if (universitiesError) {
-    console.error('Error fetching universities:', universitiesError);
-    return null;
-  }
-
-  // Map courses with university names
-  const courses = (coursesData || []).map(course => {
-    const university = (universitiesData || []).find(u => u.id === course.university_id);
-    return {
-      id: course.id,
-      universityName: university?.short_name || 'Unknown',
-      courseName: course.name,
-      atar: course.atar,
-      isEligible: predictedATAR >= course.atar,
-      prerequisites: course.prerequisites || [],
-      pathway: course.pathway || undefined,
-    };
-  });
-
-  return {
-    career: {
-      id: careerData.id,
-      name: careerData.name,
-      typicalATAR: careerData.typical_atar,
-    },
-    courses,
-  };
 }
 
 /**

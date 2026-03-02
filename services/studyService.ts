@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { StudySession } from '@/types';
+import { checkConnection } from './networkService';
+import { saveStudySessions, getStudySessions as getOfflineStudySessions } from './offlineDatabase';
 
 // Helper function to get local date string in YYYY-MM-DD format (no timezone conversion)
 function getLocalDateString(date: Date): string {
@@ -16,54 +18,115 @@ export async function getStudySessions(
   endDate?: Date
 ): Promise<StudySession[]> {
   try {
-    let query = supabase
-      .from('vk_study_sessions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('start_time', { ascending: false });
+    const hasConnection = await checkConnection();
+    
+    if (hasConnection) {
+      let query = supabase
+        .from('vk_study_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('start_time', { ascending: false });
 
-    const startDateStr = startDate ? getLocalDateString(startDate) : undefined;
-    const endDateStr = endDate ? getLocalDateString(endDate) : undefined;
+      const startDateStr = startDate ? getLocalDateString(startDate) : undefined;
+      const endDateStr = endDate ? getLocalDateString(endDate) : undefined;
 
-    console.log('🔍 Querying study sessions:', {
-      userId,
-      startDate: startDateStr,
-      endDate: endDateStr,
-    });
+      console.log('🔍 Querying study sessions:', {
+        userId,
+        startDate: startDateStr,
+        endDate: endDateStr,
+      });
 
-    // Only apply date filters if dates are provided
-    if (startDate && startDateStr) {
-      query = query.gte('session_date', startDateStr);
+      // Only apply date filters if dates are provided
+      if (startDate && startDateStr) {
+        query = query.gte('session_date', startDateStr);
+      }
+      if (endDate && endDateStr) {
+        // Use lte (less than or equal) instead of lt to include the end date
+        query = query.lte('session_date', endDateStr);
+      }
+
+      const { data, error } = await query;
+
+      console.log('📊 Query result:', { count: data?.length || 0, error: error?.message });
+      if (data && data.length > 0) {
+        console.log('📝 Sample session:', data[0]);
+      }
+
+      if (error) {
+        console.error('Failed to fetch sessions:', error);
+        // Try offline cache
+        console.log('📡 Loading sessions from offline cache');
+        const cachedSessions = await getOfflineStudySessions(userId);
+        return filterSessionsByDate(cachedSessions, startDate, endDate);
+      }
+
+      const sessions = (data || []).map(row => ({
+        id: row.id,
+        subjectId: row.subject_id,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        duration: row.duration_minutes || 0,
+        date: row.session_date,
+      }));
+      
+      // Cache all sessions for offline use (cache complete dataset, not filtered)
+      const allSessionsForCache = sessions.map(s => ({
+        id: s.id,
+        userId: userId,
+        subjectId: s.subjectId,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        durationMinutes: s.duration,
+        sessionDate: s.date,
+        createdAt: s.startTime,
+      }));
+      await saveStudySessions(allSessionsForCache);
+      
+      return sessions;
+    } else {
+      // Offline - load from cache
+      console.log('📡 Offline: Loading sessions from cache');
+      const cachedSessions = await getOfflineStudySessions(userId);
+      return filterSessionsByDate(cachedSessions, startDate, endDate);
     }
-    if (endDate && endDateStr) {
-      // Use lte (less than or equal) instead of lt to include the end date
-      query = query.lte('session_date', endDateStr);
-    }
-
-    const { data, error } = await query;
-
-    console.log('📊 Query result:', { count: data?.length || 0, error: error?.message });
-    if (data && data.length > 0) {
-      console.log('📝 Sample session:', data[0]);
-    }
-
-    if (error) {
-      console.error('Failed to fetch sessions:', error);
-      return [];
-    }
-
-    return (data || []).map(row => ({
-      id: row.id,
-      subjectId: row.subject_id,
-      startTime: row.start_time,
-      endTime: row.end_time,
-      duration: row.duration_minutes || 0,
-      date: row.session_date,
-    }));
   } catch (err) {
     console.error('Error fetching sessions:', err);
-    return [];
+    // Try offline cache as last resort
+    try {
+      const cachedSessions = await getOfflineStudySessions(userId);
+      return filterSessionsByDate(cachedSessions, startDate, endDate);
+    } catch {
+      return [];
+    }
   }
+}
+
+// Helper function to filter cached sessions by date
+function filterSessionsByDate(
+  sessions: any[],
+  startDate?: Date,
+  endDate?: Date
+): StudySession[] {
+  let filtered = sessions;
+  
+  if (startDate) {
+    const startStr = getLocalDateString(startDate);
+    filtered = filtered.filter(s => s.sessionDate >= startStr);
+  }
+  
+  if (endDate) {
+    const endStr = getLocalDateString(endDate);
+    filtered = filtered.filter(s => s.sessionDate <= endStr);
+  }
+  
+  return filtered.map(s => ({
+    id: s.id,
+    subjectId: s.subjectId,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    duration: s.durationMinutes || 0,
+    date: s.sessionDate,
+  }));
 }
 
 // Start a study session
@@ -72,6 +135,12 @@ export async function startStudySession(
   subjectId: string
 ): Promise<{ sessionId: string | null; error: string | null }> {
   try {
+    const hasConnection = await checkConnection();
+    
+    if (!hasConnection) {
+      return { sessionId: null, error: 'No Internet connection! Please try after sometime!' };
+    }
+    
     const now = new Date();
     const { data, error } = await supabase
       .from('vk_study_sessions')
@@ -104,6 +173,12 @@ export async function endStudySession(
   perfectWeek?: boolean;
 }> {
   try {
+    const hasConnection = await checkConnection();
+    
+    if (!hasConnection) {
+      return { error: 'No Internet connection! Please try after sometime!' };
+    }
+    
     // Step 1: Save study session
     const { error } = await supabase
       .from('vk_study_sessions')
@@ -125,6 +200,9 @@ export async function endStudySession(
       console.error('Failed to detect achievements:', achievementError);
       // Don't fail the session save, just log the error
     }
+    
+    // Step 3: Refresh cache after session ends
+    await refreshSessionsCache(userId);
 
     return { 
       error: null,
@@ -134,6 +212,34 @@ export async function endStudySession(
     };
   } catch (err: any) {
     return { error: err.message || 'Failed to end session' };
+  }
+}
+
+// Helper function to refresh sessions cache
+async function refreshSessionsCache(userId: string): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from('vk_study_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('start_time', { ascending: false });
+    
+    if (!error && data) {
+      const sessionsForCache = data.map(row => ({
+        id: row.id,
+        userId: userId,
+        subjectId: row.subject_id,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        durationMinutes: row.duration_minutes || 0,
+        sessionDate: row.session_date,
+        createdAt: row.start_time,
+      }));
+      await saveStudySessions(sessionsForCache);
+      console.log('✅ Study sessions cache refreshed');
+    }
+  } catch (err) {
+    console.error('Failed to refresh sessions cache:', err);
   }
 }
 
