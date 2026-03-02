@@ -32,7 +32,12 @@ export function useNotes(subjectId?: string) {
 
     const { error } = await saveNoteService(user.id, note);
     if (error) {
-      alert(error);
+      // Show user-friendly error for offline operations
+      if (error.includes('No Internet connection')) {
+        alert('No Internet connection! Please try after sometime!');
+      } else {
+        alert(error);
+      }
       return;
     }
 
@@ -44,7 +49,12 @@ export function useNotes(subjectId?: string) {
 
     const { error } = await deleteNoteService(user.id, noteId);
     if (error) {
-      alert(error);
+      // Show user-friendly error for offline operations
+      if (error.includes('No Internet connection')) {
+        alert('No Internet connection! Please try after sometime!');
+      } else {
+        alert(error);
+      }
       return;
     }
 
