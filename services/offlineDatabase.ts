@@ -1,16 +1,7 @@
 // Platform-aware offline database entry point
-import { Platform } from 'react-native';
-
-// Dynamically import the correct platform implementation
-let offlineDB: any;
-
-if (Platform.OS === 'web') {
-  offlineDB = require('./offlineDatabase.web');
-} else {
-  offlineDB = require('./offlineDatabase.native');
-}
-
-export const {
+// Export everything from native by default (works for iOS/Android)
+// Web will override this with .web.ts extension
+export {
   initDatabase,
   saveUserProfile,
   getUserProfile,
@@ -27,4 +18,4 @@ export const {
   savePathwayCourses,
   getPathwayCourses,
   clearAllData,
-} = offlineDB;
+} from './offlineDatabase.native';

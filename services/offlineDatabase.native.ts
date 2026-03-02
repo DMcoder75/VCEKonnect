@@ -95,6 +95,20 @@ export async function initDatabase(): Promise<void> {
         score_total REAL,
         created_at TEXT
       );
+      
+      -- Pathway courses table (universities/courses)
+      CREATE TABLE IF NOT EXISTS pathway_courses (
+        id TEXT PRIMARY KEY,
+        university TEXT NOT NULL,
+        course_name TEXT NOT NULL,
+        atar_requirement REAL,
+        duration TEXT,
+        description TEXT,
+        career_outcomes TEXT,
+        location TEXT,
+        course_code TEXT,
+        cached_at TEXT
+      );
     `);
     
     console.log('✅ SQLite database initialized');
@@ -374,6 +388,54 @@ export async function getCalendarEvents(userId: string): Promise<any[]> {
   }));
 }
 
+// ==================== PATHWAY COURSES ====================
+
+export async function savePathwayCourses(courses: any[]): Promise<void> {
+  if (!db) await initDatabase();
+  
+  // Clear existing courses
+  await db!.runAsync('DELETE FROM pathway_courses');
+  
+  // Insert new courses
+  for (const course of courses) {
+    await db!.runAsync(
+      `INSERT INTO pathway_courses 
+      (id, university, course_name, atar_requirement, duration, description, career_outcomes, location, course_code, cached_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        course.id,
+        course.university,
+        course.courseName,
+        course.atarRequirement || null,
+        course.duration || null,
+        course.description || null,
+        course.careerOutcomes || null,
+        course.location || null,
+        course.courseCode || null,
+        new Date().toISOString(),
+      ]
+    );
+  }
+}
+
+export async function getPathwayCourses(): Promise<any[]> {
+  if (!db) await initDatabase();
+  
+  const results = await db!.getAllAsync<any>('SELECT * FROM pathway_courses ORDER BY university, course_name');
+  
+  return results.map(row => ({
+    id: row.id,
+    university: row.university,
+    courseName: row.course_name,
+    atarRequirement: row.atar_requirement,
+    duration: row.duration,
+    description: row.description,
+    careerOutcomes: row.career_outcomes,
+    location: row.location,
+    courseCode: row.course_code,
+  }));
+}
+
 // ==================== UTILITY ====================
 
 export async function clearAllData(): Promise<void> {
@@ -386,6 +448,7 @@ export async function clearAllData(): Promise<void> {
     DELETE FROM study_sessions;
     DELETE FROM notes;
     DELETE FROM calendar_events;
+    DELETE FROM pathway_courses;
   `);
   
   console.log('✅ All offline data cleared');

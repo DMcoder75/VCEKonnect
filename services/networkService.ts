@@ -1,18 +1,9 @@
 // Platform-aware network service entry point
-import { Platform } from 'react-native';
-
-// Dynamically import the correct platform implementation
-let networkService: any;
-
-if (Platform.OS === 'web') {
-  networkService = require('./networkService.web');
-} else {
-  networkService = require('./networkService.native');
-}
-
-export const {
+// Export everything from native by default (works for iOS/Android)
+// Web will override this with .web.ts extension
+export {
   checkConnection,
   isOnline,
   onNetworkChange,
   requireNetwork,
-} = networkService;
+} from './networkService.native';
