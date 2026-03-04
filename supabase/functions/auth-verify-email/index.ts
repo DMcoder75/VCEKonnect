@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify the code
+    // STEP 1: Verify the code
     const { data: verification, error: verifyError } = await supabaseAdmin
       .from('vk_email_verifications')
       .select('*')
@@ -55,38 +55,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract signup metadata
-    const metadata = verification.metadata || {};
-    const { password, name, year_level, state_id } = metadata;
+    // STEP 2: Get the existing auth.users entry (created during signup)
+    const { data: authUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(
+      email.toLowerCase()
+    );
 
-    if (!password || !name) {
+    if (getUserError || !authUser) {
+      console.error('Auth user not found:', getUserError);
       return new Response(
-        JSON.stringify({ error: 'Invalid verification data' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Account not found. Please sign up again.' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase Auth user with verified email
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: email.toLowerCase(),
-      password,
-      email_confirm: true, // Mark email as verified immediately
-      user_metadata: {
-        name,
-        year_level: year_level || 11,
-        state_id: state_id || 'vic',
-      },
-    });
+    // STEP 3: Update auth.users to mark email as verified
+    const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
+      authUser.user.id,
+      { email_confirm: true }
+    );
 
-    if (authError) {
-      console.error('Failed to create auth user:', authError);
+    if (updateAuthError) {
+      console.error('Failed to verify email:', updateAuthError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create account: ' + authError.message }),
+        JSON.stringify({ error: 'Failed to verify email: ' + updateAuthError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Mark verification code as used
+    // STEP 4: Mark verification code as used
     await supabaseAdmin
       .from('vk_email_verifications')
       .update({
@@ -95,43 +91,39 @@ Deno.serve(async (req) => {
       })
       .eq('id', verification.id);
 
-    // The trigger handle_new_auth_user will automatically create vk_users entry
-
-    // Sign in the user to get JWT tokens
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.signInWithPassword({
+    // STEP 5: Generate session tokens (user can now login)
+    // We need to create a session without password since we don't store it
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
       email: email.toLowerCase(),
-      password,
     });
 
-    if (sessionError || !sessionData.session) {
-      console.error('Failed to create session:', sessionError);
+    if (sessionError) {
+      console.error('Failed to generate session:', sessionError);
+      // Email is verified, user can login manually
       return new Response(
-        JSON.stringify({ error: 'Account created but failed to login. Please try logging in.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: true, 
+          verified: true,
+          message: 'Email verified! Please log in with your password.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get vk_users profile (created by trigger)
+    // STEP 6: Get vk_users profile
     const { data: userProfile } = await supabaseAdmin
       .from('vk_users')
       .select('*')
-      .eq('auth_user_id', authData.user.id)
+      .eq('auth_user_id', authUser.user.id)
       .single();
 
     return new Response(
       JSON.stringify({
         success: true,
         verified: true,
-        accessToken: sessionData.session.access_token,
-        refreshToken: sessionData.session.refresh_token,
-        expiresIn: sessionData.session.expires_in,
-        user: userProfile || {
-          id: authData.user.id,
-          email: authData.user.email,
-          name,
-          yearLevel: year_level || 11,
-          stateId: state_id || 'vic',
-        },
+        message: 'Email verified successfully! Please log in.',
+        user: userProfile,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

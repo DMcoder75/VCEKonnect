@@ -54,14 +54,14 @@ export async function registerUser(
 }
 
 /**
- * Verify email with code (creates auth.users entry)
+ * Verify email with code (marks auth.users as verified)
  */
 export async function verifyEmail(
   email: string,
   code: string
 ): Promise<AuthResponse> {
   try {
-    // Call Edge Function to verify code and create auth user
+    // Call Edge Function to verify code and update auth.users
     const { data, error } = await supabase.functions.invoke('auth-verify-email', {
       body: {
         email: email.toLowerCase().trim(),
@@ -78,17 +78,11 @@ export async function verifyEmail(
       return { user: null, error: data.error };
     }
 
-    // Store session tokens
-    if (data.accessToken && data.refreshToken) {
-      await supabase.auth.setSession({
-        access_token: data.accessToken,
-        refresh_token: data.refreshToken,
-      });
-    }
-
+    // Email verified successfully, but user needs to login
+    // Return null user to indicate they should proceed to login
     return {
-      user: data.user as UserProfile,
-      error: null,
+      user: null,
+      error: null, // Success, but no session yet
     };
   } catch (err: any) {
     console.error('verifyEmail error:', err);
