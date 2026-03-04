@@ -91,14 +91,39 @@ Deno.serve(async (req) => {
       })
       .eq('id', verification.id);
 
-    // STEP 5: Email verified successfully
-    console.log(`Email verified for user: ${email}`);
+    // STEP 5: Generate session tokens (user can now login)
+    // We need to create a session without password since we don't store it
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email.toLowerCase(),
+    });
+
+    if (sessionError) {
+      console.error('Failed to generate session:', sessionError);
+      // Email is verified, user can login manually
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          verified: true,
+          message: 'Email verified! Please log in with your password.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // STEP 6: Get vk_users profile
+    const { data: userProfile } = await supabaseAdmin
+      .from('vk_users')
+      .select('*')
+      .eq('auth_user_id', authUser.user.id)
+      .single();
 
     return new Response(
       JSON.stringify({
         success: true,
         verified: true,
-        message: 'Email verified successfully! You can now log in.',
+        message: 'Email verified successfully! Please log in.',
+        user: userProfile,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
