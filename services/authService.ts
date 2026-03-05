@@ -1,263 +1,238 @@
 // =====================================================
-// Auth Service using Supabase Auth + Custom Email Verification
-// Platform-agnostic authentication layer
+// Unified Auth Service - Supabase Auth Integration
+// Uses Supabase Edge Functions for signup/verify
+// Uses Supabase Auth SDK for login/session management
 // =====================================================
 
 import { supabase } from './supabase';
 import { UserProfile } from '@/types';
+import { getUserSubjects, updateUserSubjects } from './userSubjectsService';
+import { updateUserAppVersion } from './versionTrackingService';
 
-interface AuthResponse {
+export interface AuthResponse {
   user: UserProfile | null;
   error: string | null;
 }
 
-/**
- * Register a new user (sends verification email)
- */
+// Register new user (calls Supabase Edge Function)
 export async function registerUser(
   email: string,
   password: string,
-  name: string,
-  yearLevel?: number,
-  stateId?: string
+  name: string
 ): Promise<AuthResponse> {
   try {
-    // Call Edge Function for signup (creates verification code, sends email)
     const { data, error } = await supabase.functions.invoke('auth-signup', {
       body: {
-        email: email.toLowerCase().trim(),
+        email: email.toLowerCase(),
         password,
         name,
-        yearLevel: yearLevel || 11,
-        stateId: stateId || 'vic',
+        yearLevel: 11, // Default year level
+        stateId: 'vic', // Default state
       },
     });
 
     if (error) {
-      console.error('Registration error:', error);
-      return { user: null, error: error.message || 'Failed to register' };
+      return { user: null, error: error.message || 'Signup failed' };
     }
 
-    if (data.error) {
+    if (data?.error) {
       return { user: null, error: data.error };
     }
 
-    // Return success - user needs to verify email
-    return {
-      user: null,
-      error: null, // No error, but user not created yet (pending verification)
-    };
+    // User created successfully, needs to verify email
+    return { user: null, error: null };
   } catch (err: any) {
-    console.error('registerUser error:', err);
     return { user: null, error: err.message || 'Registration failed' };
   }
 }
 
-/**
- * Verify email with code (marks auth.users as verified)
- */
+// Verify email (calls Supabase Edge Function)
 export async function verifyEmail(
   email: string,
   code: string
 ): Promise<AuthResponse> {
   try {
-    // Call Edge Function to verify code and update auth.users
     const { data, error } = await supabase.functions.invoke('auth-verify-email', {
       body: {
-        email: email.toLowerCase().trim(),
+        email: email.toLowerCase(),
         code,
       },
     });
 
     if (error) {
-      console.error('Verification error:', error);
       return { user: null, error: error.message || 'Verification failed' };
     }
 
-    if (data.error) {
+    if (data?.error) {
       return { user: null, error: data.error };
     }
 
-    // Email verified successfully, but user needs to login
-    // Return null user to indicate they should proceed to login
-    return {
-      user: null,
-      error: null, // Success, but no session yet
-    };
+    // Email verified successfully, user can now login
+    return { user: null, error: null };
   } catch (err: any) {
-    console.error('verifyEmail error:', err);
     return { user: null, error: err.message || 'Verification failed' };
   }
 }
 
-/**
- * Login user with email and password
- */
+// Login user (uses Supabase Auth SDK)
 export async function loginUser(
   email: string,
   password: string
 ): Promise<AuthResponse> {
   try {
-    // Use Supabase Auth directly for login
-    const { data: sessionData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase().trim(),
+    console.log('Login attempt for:', email);
+    
+    // Sign in with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase(),
       password,
     });
 
     if (authError) {
-      console.error('Login error:', authError);
-      return { user: null, error: 'Invalid email or password' };
+      console.error('Auth error:', authError);
+      return { user: null, error: authError.message || 'Invalid email or password' };
     }
 
-    if (!sessionData.session || !sessionData.user) {
-      return { user: null, error: 'Failed to create session' };
+    if (!authData.user) {
+      return { user: null, error: 'Login failed. Please try again.' };
     }
 
-    // Get user profile from vk_users
-    const { data: userProfile, error: profileError } = await supabase
+    console.log('Auth successful, loading user profile...');
+
+    // Get vk_users profile
+    const { data: userData, error: userError } = await supabase
       .from('vk_users')
       .select('*')
-      .eq('auth_user_id', sessionData.user.id)
+      .eq('auth_user_id', authData.user.id)
       .single();
 
-    if (profileError || !userProfile) {
-      console.error('Failed to fetch user profile:', profileError);
-      return { user: null, error: 'User profile not found' };
+    if (userError || !userData) {
+      console.error('Failed to load user profile:', userError);
+      return { user: null, error: 'Failed to load user profile' };
     }
 
-    // Map to UserProfile type
-    const user: UserProfile = {
-      id: userProfile.id,
-      email: userProfile.email,
-      name: userProfile.name,
-      yearLevel: userProfile.year_level,
-      stateId: userProfile.state_id,
-      isPremium: userProfile.is_premium || false,
-      premiumTier: userProfile.premium_tier || 'free',
-      premiumExpiresAt: userProfile.premium_expires_at,
-      createdAt: userProfile.created_at,
-      updatedAt: userProfile.updated_at,
-    };
+    console.log('Login successful!');
 
-    return { user, error: null };
+    // Track app version
+    updateUserAppVersion(userData.id).catch(err =>
+      console.warn('Failed to track version on login:', err)
+    );
+
+    // Get user subjects from junction table
+    const selectedSubjects = await getUserSubjects(userData.id);
+
+    return {
+      user: {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        yearLevel: userData.year_level,
+        selectedSubjects,
+        targetCareer: userData.target_career,
+        targetUniversities: userData.target_universities || [],
+        isPremium: userData.is_premium,
+        premiumExpiry: userData.premium_expiry,
+        state_id: userData.state_id,
+        clientAppVersion: userData.client_app_version,
+        clientPlatform: userData.client_platform,
+        clientAppVersionUpdatedAt: userData.client_app_version_updated_at,
+      },
+      error: null,
+    };
   } catch (err: any) {
-    console.error('loginUser error:', err);
+    console.error('Login exception:', err);
     return { user: null, error: err.message || 'Login failed' };
   }
 }
 
-/**
- * Get current authenticated user
- */
+// Get current user from session
 export async function getCurrentUser(): Promise<UserProfile | null> {
   try {
-    // Check Supabase Auth session
+    // Get current session from Supabase Auth
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      console.log('No active session');
+      console.log('No valid session');
       return null;
     }
 
-    // Get user profile from vk_users
-    const { data: userProfile, error: profileError } = await supabase
+    // Get vk_users profile
+    const { data: userData, error: userError } = await supabase
       .from('vk_users')
       .select('*')
       .eq('auth_user_id', session.user.id)
       .single();
 
-    if (profileError || !userProfile) {
-      console.error('Failed to fetch user profile:', profileError);
+    if (userError || !userData) {
+      console.error('Failed to load user profile:', userError);
       return null;
     }
 
-    // Map to UserProfile type
-    const user: UserProfile = {
-      id: userProfile.id,
-      email: userProfile.email,
-      name: userProfile.name,
-      yearLevel: userProfile.year_level,
-      stateId: userProfile.state_id,
-      isPremium: userProfile.is_premium || false,
-      premiumTier: userProfile.premium_tier || 'free',
-      premiumExpiresAt: userProfile.premium_expires_at,
-      createdAt: userProfile.created_at,
-      updatedAt: userProfile.updated_at,
-    };
+    // Get user subjects from junction table
+    const selectedSubjects = await getUserSubjects(userData.id);
 
-    return user;
+    return {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      yearLevel: userData.year_level,
+      selectedSubjects,
+      targetCareer: userData.target_career,
+      targetUniversities: userData.target_universities || [],
+      isPremium: userData.is_premium,
+      premiumExpiry: userData.premium_expiry,
+      state_id: userData.state_id,
+      clientAppVersion: userData.client_app_version,
+      clientPlatform: userData.client_platform,
+      clientAppVersionUpdatedAt: userData.client_app_version_updated_at,
+    };
   } catch (err) {
     console.error('getCurrentUser error:', err);
     return null;
   }
 }
 
-/**
- * Update user profile
- */
+// Update user profile
 export async function updateUserProfile(
   userId: string,
   updates: Partial<UserProfile>
 ): Promise<{ error: string | null }> {
   try {
-    // Map UserProfile fields to database columns
-    const dbUpdates: any = {
-      updated_at: new Date().toISOString(),
-    };
+    // Update subjects in junction table if provided
+    if (updates.selectedSubjects !== undefined) {
+      const { error: subjectsError } = await updateUserSubjects(userId, updates.selectedSubjects);
+      if (subjectsError) return { error: subjectsError };
+    }
 
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.yearLevel !== undefined) dbUpdates.year_level = updates.yearLevel;
-    if (updates.stateId !== undefined) dbUpdates.state_id = updates.stateId;
-    // Premium fields are protected by RLS policy
+    // Build update object with only defined fields
+    const updateData: any = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.yearLevel !== undefined) updateData.year_level = updates.yearLevel;
+    if (updates.targetCareer !== undefined) updateData.target_career = updates.targetCareer;
+    if (updates.targetUniversities !== undefined) updateData.target_universities = updates.targetUniversities;
+    if (updates.state_id !== undefined) updateData.state_id = updates.state_id;
 
-    const { error } = await supabase
-      .from('vk_users')
-      .update(dbUpdates)
-      .eq('id', userId);
+    // Only update if there are fields to update
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await supabase
+        .from('vk_users')
+        .update(updateData)
+        .eq('id', userId);
 
-    if (error) {
-      console.error('Update profile error:', error);
-      return { error: error.message };
+      if (error) return { error: error.message };
     }
 
     return { error: null };
   } catch (err: any) {
-    console.error('updateUserProfile error:', err);
-    return { error: err.message || 'Failed to update profile' };
+    return { error: err.message || 'Update failed' };
   }
 }
 
-/**
- * Logout user
- */
+// Logout
 export async function logoutUser(): Promise<void> {
   try {
     await supabase.auth.signOut();
   } catch (err) {
     console.error('Logout error:', err);
-  }
-}
-
-/**
- * Resend verification email
- */
-export async function resendVerificationEmail(email: string): Promise<{ error: string | null }> {
-  try {
-    const { data, error } = await supabase.functions.invoke('auth-signup', {
-      body: { email: email.toLowerCase().trim(), resend: true },
-    });
-
-    if (error) {
-      return { error: error.message || 'Failed to resend verification email' };
-    }
-
-    if (data.error) {
-      return { error: data.error };
-    }
-
-    return { error: null };
-  } catch (err: any) {
-    console.error('resendVerificationEmail error:', err);
-    return { error: err.message || 'Failed to resend verification email' };
   }
 }

@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { Input, Button } from '@/components/ui';
-import { sendVerificationCode } from '@/services/emailVerificationService';
+
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -46,21 +46,17 @@ export default function SignupScreen() {
     
     setIsLoading(true);
     
-    // Create user account (with is_verified = false)
-    await register(email, password, name);
-    
-    // Send verification email
-    const result = await sendVerificationCode(email, 'signup', name);
-    
-    setIsLoading(false);
-    
-    if (result.error) {
-      alert(`Account created but failed to send verification email: ${result.error}\n\nYou can verify later from the login page.`);
-    } else {
-      alert('Account created! Please check your email for the verification code.');
+    try {
+      // Create user account and send verification email
+      await register(email, password, name);
+      
+      alert('Account created! Please check your email for the 4-digit verification code.');
+      router.push('/verify-email');
+    } catch (error: any) {
+      alert(error.message || 'Signup failed');
+    } finally {
+      setIsLoading(false);
     }
-    
-    router.replace('/auth/login');
   }
 
   return (

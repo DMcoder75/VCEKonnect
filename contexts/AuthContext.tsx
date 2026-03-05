@@ -3,6 +3,7 @@ import { UserProfile } from '@/types';
 import {
   loginUser,
   registerUser,
+  verifyEmail,
   getCurrentUser,
   updateUserProfile,
   logoutUser,
@@ -30,6 +31,7 @@ interface AuthContextType {
   // Methods
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  verify: (email: string, code: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean }>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
@@ -197,13 +199,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function register(email: string, password: string, name: string) {
     console.log('🔐 AuthContext: Registering...');
-    const { user: newUser, error } = await registerUser(email, password, name);
+    const { error } = await registerUser(email, password, name);
     if (error) {
-      alert(error);
-      return;
+      throw new Error(error);
     }
-    console.log('🔐 AuthContext: Registration successful:', newUser?.id);
-    setUser(newUser);
+    console.log('🔐 AuthContext: Registration successful, verification email sent');
+    // User needs to verify email before logging in
+  }
+
+  async function verify(email: string, code: string) {
+    console.log('🔐 AuthContext: Verifying email...');
+    const { error } = await verifyEmail(email, code);
+    if (error) {
+      throw new Error(error);
+    }
+    console.log('🔐 AuthContext: Email verified successfully');
+    // User can now login
   }
 
   async function updateProfile(updates: Partial<UserProfile>) {
@@ -239,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         allStates,
         login,
         register,
+        verify,
         updateProfile,
         logout,
         loadUser,

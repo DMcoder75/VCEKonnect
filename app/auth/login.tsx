@@ -60,11 +60,7 @@ export default function LoginScreen() {
         {/* FairPrep Heading */}
         <Text style={styles.appName}>FairPrep</Text>
 
-        {/* Mock Notice */}
-        <View style={styles.mockNotice}>
-          <MaterialIcons name="info-outline" size={20} color={colors.warning} />
-          <Text style={styles.mockText}>DEMO MODE - Enter any credentials</Text>
-        </View>
+
 
         {/* Form */}
         <View style={styles.form}>
@@ -124,12 +120,7 @@ export default function LoginScreen() {
           </Pressable>
         </View>
 
-        {/* Demo Credentials */}
-        <View style={styles.demoBox}>
-          <Text style={styles.demoTitle}>Demo Credentials</Text>
-          <Text style={styles.demoText}>Email: test@example.com</Text>
-          <Text style={styles.demoText}>Password: 123456</Text>
-        </View>
+
       </ScrollView>
     </View>
   );
@@ -169,23 +160,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-  mockNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.warning,
-  },
-  mockText: {
-    fontSize: typography.bodySmall,
-    color: colors.warning,
-    fontWeight: typography.semibold,
-  },
+
   form: {
     marginBottom: spacing.lg,
   },
@@ -201,25 +176,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.semibold,
   },
-  demoBox: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  demoTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  demoText: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    fontFamily: 'monospace',
-  },
+
   verifyEmailLink: {
     flexDirection: 'row',
     alignItems: 'center',

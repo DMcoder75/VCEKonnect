@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@/constants/theme';
 import { Input, Button } from '@/components/ui';
-import { sendVerificationCode, verifyCodeAndActivateUser } from '@/services/emailVerificationService';
+import { useAuth } from '@/hooks/useAuth';
 
 type VerificationMode = 'have-code' | 'need-code';
 
@@ -15,11 +15,12 @@ export default function VerifyEmailScreen() {
   
   const [mode, setMode] = useState<VerificationMode>('need-code');
   const [email, setEmail] = useState('');
-  const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '', '']);
+  const [codeDigits, setCodeDigits] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
 
   const codeInputRefs = React.useRef<(TextInput | null)[]>([]);
+  const { verify } = useAuth();
 
   function handleCodeChange(index: number, value: string) {
     // Only allow digits
@@ -27,17 +28,17 @@ export default function VerifyEmailScreen() {
     
     if (digit.length > 1) {
       // Handle paste of multiple digits
-      const digits = digit.slice(0, 7).split('');
+      const digits = digit.slice(0, 4).split('');
       const newCodeDigits = [...codeDigits];
       digits.forEach((d, i) => {
-        if (index + i < 7) {
+        if (index + i < 4) {
           newCodeDigits[index + i] = d;
         }
       });
       setCodeDigits(newCodeDigits);
       
       // Focus on the last filled box or next empty box
-      const nextIndex = Math.min(index + digits.length, 6);
+      const nextIndex = Math.min(index + digits.length, 3);
       codeInputRefs.current[nextIndex]?.focus();
     } else {
       const newCodeDigits = [...codeDigits];
@@ -45,7 +46,7 @@ export default function VerifyEmailScreen() {
       setCodeDigits(newCodeDigits);
       
       // Auto-focus next input
-      if (digit && index < 6) {
+      if (digit && index < 3) {
         codeInputRefs.current[index + 1]?.focus();
       }
     }
@@ -59,27 +60,7 @@ export default function VerifyEmailScreen() {
   }
 
   async function handleSendCode() {
-    if (!email) {
-      alert('Please enter your email address');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      alert('Please enter a valid email address');
-      return;
-    }
-    
-    setIsSendingCode(true);
-    const result = await sendVerificationCode(email, 'signup');
-    setIsSendingCode(false);
-    
-    if (result.error) {
-      alert(result.error);
-      return;
-    }
-    
-    alert('Verification code sent to your email! Check your inbox and spam folder.');
+    alert('To resend verification code, please sign up again from the signup page.');
   }
 
   async function handleVerifyCode() {
@@ -89,25 +70,25 @@ export default function VerifyEmailScreen() {
     }
 
     const code = codeDigits.join('');
-    if (code.length !== 7) {
-      alert('Please enter all 7 digits of the verification code');
+    if (code.length !== 4) {
+      alert('Please enter all 4 digits of the verification code');
       return;
     }
     
     setIsLoading(true);
-    const result = await verifyCodeAndActivateUser(email, code);
-    setIsLoading(false);
     
-    if (result.error) {
-      alert(result.error);
+    try {
+      await verify(email, code);
+      alert('Email verified successfully! You can now log in.');
+      router.replace('/auth/login');
+    } catch (error: any) {
+      alert(error.message || 'Verification failed');
       // Clear code on error
-      setCodeDigits(['', '', '', '', '', '', '']);
+      setCodeDigits(['', '', '', '']);
       codeInputRefs.current[0]?.focus();
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    
-    alert('Email verified successfully! You can now log in.');
-    router.replace('/auth/login');
   }
 
   return (
@@ -132,7 +113,7 @@ export default function VerifyEmailScreen() {
           </View>
           <Text style={styles.title}>Verify Your Email</Text>
           <Text style={styles.description}>
-            Enter your email address and the 7-digit verification code sent to your inbox
+            Enter your email address and the 4-digit verification code sent to your inbox
           </Text>
         </View>
 
@@ -195,7 +176,7 @@ export default function VerifyEmailScreen() {
           ) : (
             /* "I have code" mode - Show 7-digit input boxes */
             <>
-              <Text style={styles.codeLabel}>Enter 7-Digit Verification Code</Text>
+              <Text style={styles.codeLabel}>Enter 4-Digit Verification Code</Text>
               <View style={styles.codeInputContainer}>
                 {codeDigits.map((digit, index) => (
                   <TextInput
@@ -218,7 +199,7 @@ export default function VerifyEmailScreen() {
               <Button
                 title={isLoading ? 'Verifying...' : 'Verify'}
                 onPress={handleVerifyCode}
-                disabled={codeDigits.join('').length !== 7 || isLoading}
+                disabled={codeDigits.join('').length !== 4 || isLoading}
                 fullWidth
                 style={{ marginTop: spacing.lg }}
               />
