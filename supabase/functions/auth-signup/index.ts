@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STEP 5: Send verification email via Firebase function
+    // STEP 5: Send verification email via Firebase Cloud Function
     const firebaseEmailUrl = Deno.env.get('FIREBASE_EMAIL_FUNCTION_URL');
     if (!firebaseEmailUrl) {
       console.error('FIREBASE_EMAIL_FUNCTION_URL not configured');
@@ -136,18 +136,16 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        to: email,
-        subject: 'Verify your FairPrep account',
-        html: `
-          <h2>Welcome to FairPrep!</h2>
-          <p>Your verification code is: <strong>${code}</strong></p>
-          <p>This code expires in 10 minutes.</p>
-        `,
+        email: email.toLowerCase(),
+        code,
+        purpose: 'signup',
+        name,
       }),
     });
 
     if (!emailResponse.ok) {
-      console.error('Failed to send verification email:', await emailResponse.text());
+      const errorText = await emailResponse.text();
+      console.error('Failed to send verification email:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to send verification email' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
