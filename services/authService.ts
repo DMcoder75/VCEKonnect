@@ -80,24 +80,39 @@ export async function loginUser(
   password: string
 ): Promise<AuthResponse> {
   try {
-    console.log('Login attempt for:', email);
+    const normalizedEmail = email.toLowerCase();
+    console.log('🔐 [LOGIN] Starting login attempt');
+    console.log('🔐 [LOGIN] Email (original):', email);
+    console.log('🔐 [LOGIN] Email (normalized):', normalizedEmail);
+    console.log('🔐 [LOGIN] Password length:', password.length);
+    console.log('🔐 [LOGIN] Password (first 3 chars):', password.substring(0, 3) + '***');
     
     // Sign in with Supabase Auth
+    console.log('🔐 [LOGIN] Calling supabase.auth.signInWithPassword...');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
     });
 
     if (authError) {
-      console.error('Auth error:', authError);
+      console.error('❌ [LOGIN] Supabase Auth Error:');
+      console.error('❌ [LOGIN] Error message:', authError.message);
+      console.error('❌ [LOGIN] Error name:', authError.name);
+      console.error('❌ [LOGIN] Error status:', (authError as any).status);
+      console.error('❌ [LOGIN] Full error object:', JSON.stringify(authError, null, 2));
       return { user: null, error: authError.message || 'Invalid email or password' };
     }
 
+    console.log('✅ [LOGIN] Supabase Auth successful!');
+    console.log('✅ [LOGIN] Auth user ID:', authData.user?.id);
+    console.log('✅ [LOGIN] Auth user email:', authData.user?.email);
+
     if (!authData.user) {
+      console.error('❌ [LOGIN] No user data returned from Supabase Auth');
       return { user: null, error: 'Login failed. Please try again.' };
     }
 
-    console.log('Auth successful, loading user profile...');
+    console.log('🔐 [LOGIN] Loading user profile from vk_users...');
 
     // Get vk_users profile
     const { data: userData, error: userError } = await supabase
@@ -107,11 +122,14 @@ export async function loginUser(
       .single();
 
     if (userError || !userData) {
-      console.error('Failed to load user profile:', userError);
+      console.error('❌ [LOGIN] Failed to load user profile:', userError);
+      console.error('❌ [LOGIN] User error details:', JSON.stringify(userError, null, 2));
       return { user: null, error: 'Failed to load user profile' };
     }
 
-    console.log('Login successful!');
+    console.log('✅ [LOGIN] User profile loaded successfully!');
+    console.log('✅ [LOGIN] User ID:', userData.id);
+    console.log('✅ [LOGIN] User name:', userData.name);
 
     // Track app version
     updateUserAppVersion(userData.id).catch(err =>
