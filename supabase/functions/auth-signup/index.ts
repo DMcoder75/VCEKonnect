@@ -97,8 +97,8 @@ Deno.serve(async (req) => {
     // Wait a moment for trigger to execute
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // STEP 3: Generate 4-digit verification code
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    // STEP 3: Generate 7-digit verification code
+    const code = Math.floor(1000000 + Math.random() * 9000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // STEP 4: Store verification code

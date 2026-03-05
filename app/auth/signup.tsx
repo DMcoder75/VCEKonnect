@@ -50,7 +50,7 @@ export default function SignupScreen() {
       // Create user account and send verification email
       await register(email, password, name);
       
-      alert('Account created! Please check your email for the 4-digit verification code.');
+      alert('Account created! Please check your email for the 7-digit verification code.');
       router.push('/verify-email');
     } catch (error: any) {
       alert(error.message || 'Signup failed');
