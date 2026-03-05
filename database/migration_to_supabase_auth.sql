@@ -57,25 +57,18 @@ DROP POLICY IF EXISTS "Allow anon delete to users" ON vk_users;
 DROP POLICY IF EXISTS "Allow anon insert to users" ON vk_users;
 DROP POLICY IF EXISTS "Allow anon update to users" ON vk_users;
 DROP POLICY IF EXISTS "Public can select for authentication" ON vk_users;
+DROP POLICY IF EXISTS "Users can update own profile" ON vk_users;
 
 -- Users can only read their own data
 CREATE POLICY "Users can view own profile"
   ON vk_users FOR SELECT
   USING (auth.uid() = auth_user_id);
 
--- Users can only update their own data (except premium fields)
+-- Users can only update their own data (premium fields will be read-only via application logic)
 CREATE POLICY "Users can update own profile"
   ON vk_users FOR UPDATE
   USING (auth.uid() = auth_user_id)
-  WITH CHECK (
-    auth.uid() = auth_user_id
-    AND (
-      -- Allow all fields EXCEPT premium-related fields
-      (is_premium IS NULL OR is_premium = OLD.is_premium)
-      AND (premium_tier IS NULL OR premium_tier = OLD.premium_tier)
-      AND (premium_expires_at IS NULL OR premium_expires_at = OLD.premium_expires_at)
-    )
-  );
+  WITH CHECK (auth.uid() = auth_user_id);
 
 -- No direct deletes (handle via Edge Function if needed)
 CREATE POLICY "No direct user deletion"
@@ -89,6 +82,10 @@ CREATE POLICY "No direct user creation"
 
 -- Step 6: Update RLS policies for vk_subject_scores
 DROP POLICY IF EXISTS "Allow anon access to scores" ON vk_subject_scores;
+DROP POLICY IF EXISTS "Users can view own scores" ON vk_subject_scores;
+DROP POLICY IF EXISTS "Users can insert own scores" ON vk_subject_scores;
+DROP POLICY IF EXISTS "Users can update own scores" ON vk_subject_scores;
+DROP POLICY IF EXISTS "Users can delete own scores" ON vk_subject_scores;
 
 CREATE POLICY "Users can view own scores"
   ON vk_subject_scores FOR SELECT
@@ -124,6 +121,10 @@ CREATE POLICY "Users can delete own scores"
 
 -- Step 7: Update RLS policies for vk_study_sessions
 DROP POLICY IF EXISTS "Allow anon access to sessions" ON vk_study_sessions;
+DROP POLICY IF EXISTS "Users can view own sessions" ON vk_study_sessions;
+DROP POLICY IF EXISTS "Users can insert own sessions" ON vk_study_sessions;
+DROP POLICY IF EXISTS "Users can update own sessions" ON vk_study_sessions;
+DROP POLICY IF EXISTS "Users can delete own sessions" ON vk_study_sessions;
 
 CREATE POLICY "Users can view own sessions"
   ON vk_study_sessions FOR SELECT
@@ -159,6 +160,10 @@ CREATE POLICY "Users can delete own sessions"
 
 -- Step 8: Update RLS policies for vk_notes
 DROP POLICY IF EXISTS "allow_anon_all_operations_on_notes" ON vk_notes;
+DROP POLICY IF EXISTS "Users can view own notes" ON vk_notes;
+DROP POLICY IF EXISTS "Users can insert own notes" ON vk_notes;
+DROP POLICY IF EXISTS "Users can update own notes" ON vk_notes;
+DROP POLICY IF EXISTS "Users can delete own notes" ON vk_notes;
 
 CREATE POLICY "Users can view own notes"
   ON vk_notes FOR SELECT
@@ -194,6 +199,10 @@ CREATE POLICY "Users can delete own notes"
 
 -- Step 9: Update RLS policies for vk_calendar_events
 DROP POLICY IF EXISTS "allow_anon_access_to_calendar_events" ON vk_calendar_events;
+DROP POLICY IF EXISTS "Users can view own calendar events" ON vk_calendar_events;
+DROP POLICY IF EXISTS "Users can insert own calendar events" ON vk_calendar_events;
+DROP POLICY IF EXISTS "Users can update own calendar events" ON vk_calendar_events;
+DROP POLICY IF EXISTS "Users can delete own calendar events" ON vk_calendar_events;
 
 CREATE POLICY "Users can view own calendar events"
   ON vk_calendar_events FOR SELECT
@@ -229,6 +238,10 @@ CREATE POLICY "Users can delete own calendar events"
 
 -- Step 10: Update RLS policies for vk_user_subjects
 DROP POLICY IF EXISTS "allow_anon_access_to_user_subjects" ON vk_user_subjects;
+DROP POLICY IF EXISTS "Users can view own subjects" ON vk_user_subjects;
+DROP POLICY IF EXISTS "Users can insert own subjects" ON vk_user_subjects;
+DROP POLICY IF EXISTS "Users can update own subjects" ON vk_user_subjects;
+DROP POLICY IF EXISTS "Users can delete own subjects" ON vk_user_subjects;
 
 CREATE POLICY "Users can view own subjects"
   ON vk_user_subjects FOR SELECT
@@ -264,6 +277,8 @@ CREATE POLICY "Users can delete own subjects"
 
 -- Step 11: Update RLS policies for vk_premium_subscriptions
 DROP POLICY IF EXISTS "anon_view_own_subscriptions" ON vk_premium_subscriptions;
+DROP POLICY IF EXISTS "Users can view own subscriptions" ON vk_premium_subscriptions;
+DROP POLICY IF EXISTS "No direct subscription modification" ON vk_premium_subscriptions;
 
 CREATE POLICY "Users can view own subscriptions"
   ON vk_premium_subscriptions FOR SELECT
@@ -280,9 +295,16 @@ CREATE POLICY "No direct subscription modification"
 
 -- Step 12: Update RLS policies for AI features
 DROP POLICY IF EXISTS "anon_manage_own_whatif_scenarios" ON vk_whatif_scenarios;
+DROP POLICY IF EXISTS "Users can manage own whatif scenarios" ON vk_whatif_scenarios;
+
 DROP POLICY IF EXISTS "anon_manage_own_ai_practice_questions" ON vk_ai_practice_questions;
+DROP POLICY IF EXISTS "Users can manage own AI practice questions" ON vk_ai_practice_questions;
+
 DROP POLICY IF EXISTS "anon_manage_own_ai_recommendations" ON vk_ai_recommendations;
+DROP POLICY IF EXISTS "Users can manage own AI recommendations" ON vk_ai_recommendations;
+
 DROP POLICY IF EXISTS "anon_manage_own_ai_study_plans" ON vk_ai_study_plans;
+DROP POLICY IF EXISTS "Users can manage own AI study plans" ON vk_ai_study_plans;
 
 -- vk_whatif_scenarios
 CREATE POLICY "Users can manage own whatif scenarios"
@@ -355,8 +377,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Step 15: Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated;
-GRANT SELECT ON vk_subjects TO authenticated, anon;
-GRANT SELECT ON vk_states TO authenticated, anon;
+GRANT SELECT ON vk_vce_subjects TO authenticated, anon;
 
 -- Step 16: Comments for documentation
 COMMENT ON FUNCTION handle_new_auth_user IS 'Auto-creates vk_users profile when auth.users row is created';
@@ -366,7 +387,7 @@ COMMENT ON COLUMN vk_users.auth_user_id IS 'Links to auth.users.id - primary aut
 -- =====================================================
 -- MIGRATION COMPLETE
 -- Next steps:
--- 1. Update Firebase functions to create Supabase auth users
--- 2. Update frontend to use Supabase Auth SDK
+-- 1. Deploy Edge Functions to Supabase
+-- 2. Update frontend to use new auth flow
 -- 3. Test with new signup flow
 -- =====================================================
