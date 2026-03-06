@@ -6,6 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { CAREER_PATHS } from '@/constants/vceData';
 import { getAllStates, getSubjectsByState, VCESubject, AustralianState } from '@/services/vceSubjectsService';
+import { supabase } from '@/services/supabase';
 import { updateUserSubjects } from '@/services/userSubjectsService';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components';
@@ -32,6 +33,7 @@ export default function OnboardingScreen() {
   const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     loadStates();
@@ -46,11 +48,17 @@ export default function OnboardingScreen() {
   async function loadStates() {
     setIsLoadingData(true);
     
+    // DEBUG: Check what Supabase URL is being used
+    const actualUrl = (supabase as any).supabaseUrl || 'UNKNOWN';
+    setDebugInfo(`🔍 Supabase URL: ${actualUrl}`);
+    
     try {
       const states = await getAllStates();
       setAllStates(states);
+      setDebugInfo(prev => `${prev}\n✅ Loaded ${states.length} states`);
     } catch (error: any) {
       console.error('Failed to load states:', error);
+      setDebugInfo(prev => `${prev}\n❌ Error: ${error.message}`);
     } finally {
       setIsLoadingData(false);
     }
@@ -99,6 +107,24 @@ export default function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* TEMP DEBUG OVERLAY */}
+      {debugInfo && (
+        <View style={{
+          position: 'absolute',
+          top: insets.top + 60,
+          left: 0,
+          right: 0,
+          backgroundColor: 'rgba(0,0,0,0.9)',
+          padding: 12,
+          zIndex: 9999,
+          borderBottomWidth: 2,
+          borderBottomColor: colors.primary,
+        }}>
+          <Text style={{ color: colors.success, fontSize: 11, fontFamily: 'monospace' }}>
+            {debugInfo}
+          </Text>
+        </View>
+      )}
       <View style={styles.header}>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${(step / totalSteps) * 100}%` }]} />
