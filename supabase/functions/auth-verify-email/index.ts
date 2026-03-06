@@ -55,16 +55,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STEP 2: Get the existing auth.users entry (created during signup)
-    const { data: authUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(
-      email.toLowerCase()
-    );
+    // STEP 2: Get the existing vk_users entry (created during signup)
+    console.log('📧 [VERIFY] Looking up vk_users by email...');
+    const { data: vkUser, error: vkUserLookupError } = await supabaseAdmin
+      .from('vk_users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
 
-    if (getUserError || !authUser) {
-      console.error('Auth user not found:', getUserError);
+    if (vkUserLookupError || !vkUser) {
+      console.error('❌ [VERIFY] vk_users lookup failed:', vkUserLookupError);
       return new Response(
         JSON.stringify({ error: 'Account not found. Please sign up again.' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ [VERIFY] Found vk_user:', vkUser.id);
+    console.log('✅ [VERIFY] auth_user_id:', vkUser.auth_user_id);
+
+    if (!vkUser.auth_user_id) {
+      console.error('❌ [VERIFY] vk_user has no auth_user_id!');
+      return new Response(
+        JSON.stringify({ error: 'Account setup incomplete. Please sign up again.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -91,20 +105,20 @@ Deno.serve(async (req) => {
 
     // STEP 4: Update vk_users to mark as verified
     console.log('📧 [VERIFY] Updating vk_users table...');
-    console.log('📧 [VERIFY] Auth user ID:', authUser.user.id);
-    const { data: updateResult, error: vkUserError } = await supabaseAdmin
+    console.log('📧 [VERIFY] User ID:', vkUser.id);
+    const { data: updateResult, error: vkUserUpdateError } = await supabaseAdmin
       .from('vk_users')
       .update({
         is_verified: true,
         verified_at: new Date().toISOString(),
       })
-      .eq('auth_user_id', authUser.user.id)
+      .eq('id', vkUser.id)
       .select();
 
-    if (vkUserError) {
-      console.error('❌ [VERIFY] Failed to update vk_users:', vkUserError);
+    if (vkUserUpdateError) {
+      console.error('❌ [VERIFY] Failed to update vk_users:', vkUserUpdateError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update user verification status: ' + vkUserError.message }),
+        JSON.stringify({ error: 'Failed to update user verification status: ' + vkUserUpdateError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -113,9 +127,9 @@ Deno.serve(async (req) => {
 
     // STEP 5: Update auth.users to mark email as verified
     console.log('📧 [VERIFY] Updating auth.users email verification...');
-    console.log('📧 [VERIFY] Updating user:', authUser.user.id);
+    console.log('📧 [VERIFY] Updating user:', vkUser.auth_user_id);
     const { data: updatedAuthUser, error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
-      authUser.user.id,
+      vkUser.auth_user_id,
       { email_confirm: true }
     );
 
@@ -129,13 +143,9 @@ Deno.serve(async (req) => {
 
     console.log('✅ [VERIFY] auth.users email verified:', updatedAuthUser.user.email_confirmed_at);
 
-    // STEP 6: Get vk_users profile
-    console.log('📧 [VERIFY] Loading user profile...');
-    const { data: userProfile } = await supabaseAdmin
-      .from('vk_users')
-      .select('*')
-      .eq('auth_user_id', authUser.user.id)
-      .single();
+    // STEP 6: Use updated vk_users profile
+    console.log('📧 [VERIFY] Using updated user profile...');
+    const userProfile = updateResult && updateResult.length > 0 ? updateResult[0] : vkUser;
 
     console.log('✅ [VERIFY] Email verification complete!');
     console.log('✅ [VERIFY] All tables updated:', {

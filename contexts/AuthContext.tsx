@@ -215,14 +215,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // User needs to verify email before logging in
   }
 
-  async function verify(email: string, code: string) {
-    console.log('🔐 AuthContext: Verifying email...');
-    const { error } = await verifyEmail(email, code);
+  async function verify(email: string, code: string, onLog?: (message: string) => void) {
+    const log = (msg: string) => {
+      console.log(msg);
+      onLog?.(msg);
+    };
+    
+    log('📝 AuthContext: Verifying email...');
+    log('📝 Calling verifyEmail service...');
+    
+    const { error } = await verifyEmail(email, code, onLog);
+    
+    log(`📝 verifyEmail response: error=${error || 'null'}`);
+    
     if (error) {
+      log(`❌ Verification failed: ${error}`);
       throw new Error(error);
     }
-    console.log('🔐 AuthContext: Email verified successfully');
-    // User can now login
+    
+    log('✅ Verification successful!');
+    log('✅ User can now login');
   }
 
   async function updateProfile(updates: Partial<UserProfile>) {

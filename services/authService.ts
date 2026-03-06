@@ -138,9 +138,26 @@ export async function registerUser(
 // Verify email (calls Supabase Edge Function)
 export async function verifyEmail(
   email: string,
-  code: string
+  code: string,
+  onLog?: (message: string) => void
 ): Promise<AuthResponse> {
+  const log = (msg: string) => {
+    console.log(msg);
+    if (onLog) {
+      onLog(msg);
+    }
+  };
+  
   try {
+    log('🔴 VERIFY SERVICE LOADED');
+    log(`📝 Email: ${email.toLowerCase()}`);
+    log(`📝 Code: ${code}`);
+    
+    const supabaseUrl = (supabase as any).supabaseUrl || 'https://xududbaqaaffcaejwuix.supabase.co';
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/auth-verify-email`;
+    log(`📝 Edge Function URL: ${edgeFunctionUrl}`);
+    log('📝 Calling auth-verify-email Edge Function...');
+    
     const { data, error } = await supabase.functions.invoke('auth-verify-email', {
       body: {
         email: email.toLowerCase(),
@@ -148,17 +165,55 @@ export async function verifyEmail(
       },
     });
 
+    log(`📝 Edge Function RAW response: ${JSON.stringify({ data, error }, null, 2)}`);
+
     if (error) {
-      return { user: null, error: error.message || 'Verification failed' };
+      log(`❌ Edge Function error detected!`);
+      log(`❌ Error type: ${error.name}`);
+      
+      let errorMessage = error.message || 'Verification failed';
+      let statusCode = 500;
+      
+      // Extract actual error details from FunctionsHttpError
+      if (error instanceof FunctionsHttpError) {
+        try {
+          statusCode = error.context?.status ?? 500;
+          const textContent = await error.context?.text();
+          
+          log(`📝 HTTP Status Code: ${statusCode}`);
+          log(`📝 Response Body: ${textContent || 'EMPTY'}`);
+          
+          if (textContent) {
+            try {
+              const jsonError = JSON.parse(textContent);
+              errorMessage = jsonError.error || jsonError.message || textContent;
+              log(`📝 Parsed error: ${errorMessage}`);
+            } catch {
+              errorMessage = textContent;
+            }
+          }
+        } catch (readErr: any) {
+          log(`❌ Failed to read error: ${readErr.message || readErr}`);
+        }
+      }
+      
+      return { user: null, error: `VERIFICATION FAILED (HTTP ${statusCode})\n\n${errorMessage}` };
     }
 
     if (data?.error) {
+      log(`❌ Data contains error: ${data.error}`);
       return { user: null, error: data.error };
     }
 
+    log('✅ Verification successful!');
+    log(`✅ Verification code marked as used? ${data?.success ? 'YES' : 'NO'}`);
+    log(`✅ vk_users updated? ${data?.verified ? 'YES' : 'NO'}`);
+    log(`✅ auth.users email verified? ${data?.verified ? 'YES' : 'NO'}`);
+    
     // Email verified successfully, user can now login
     return { user: null, error: null };
   } catch (err: any) {
+    log(`❌ Exception: ${err.message || err}`);
     return { user: null, error: err.message || 'Verification failed' };
   }
 }
