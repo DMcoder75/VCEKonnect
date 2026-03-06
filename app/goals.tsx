@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useStudyGoals } from '@/hooks/useStudyGoals';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
+import { supabase } from '@/services/supabase';
 import {
   getCurrentWeekDates,
   getCurrentMonthDates,
@@ -36,6 +37,8 @@ export default function GoalsScreen() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [showDebugConsole, setShowDebugConsole] = useState(false);
+  const [debugData, setDebugData] = useState<any>({});
 
   useEffect(() => {
     if (user) {
@@ -173,10 +176,42 @@ export default function GoalsScreen() {
     if (!user) return;
 
     setIsSaving(true);
+    setShowDebugConsole(true);
+    const debugInfo: any = {};
+    
+    try {
+      // Get Supabase URL from client
+      const supabaseUrl = (supabase as any).supabaseUrl || 'Unknown';
+      debugInfo.supabaseUrl = supabaseUrl;
+      
+      // Get current auth user
+      const { data: authData } = await supabase.auth.getUser();
+      debugInfo.authUserId = authData?.user?.id || null;
+      debugInfo.authUserEmail = authData?.user?.email || null;
+      
+      // Get vk_users record
+      const { data: vkUserData } = await supabase
+        .from('vk_users')
+        .select('id, auth_user_id, email')
+        .eq('auth_user_id', authData?.user?.id)
+        .single();
+      
+      debugInfo.vkUserId = vkUserData?.id || null;
+      debugInfo.vkUserAuthId = vkUserData?.auth_user_id || null;
+      debugInfo.vkUserEmail = vkUserData?.email || null;
+      
+      debugInfo.timestamp = new Date().toISOString();
+    } catch (err) {
+      debugInfo.preflightError = err instanceof Error ? err.message : String(err);
+    }
 
     const weekDates = getCurrentWeekDates();
     const monthDates = getCurrentMonthDates();
     const termDates = getCurrentTermDates();
+    
+    debugInfo.weekDates = weekDates;
+    debugInfo.monthDates = monthDates;
+    debugInfo.termDates = termDates;
 
     const payload: SaveGoalsPayload = {
       weekly: {
@@ -210,12 +245,20 @@ export default function GoalsScreen() {
         })),
       },
     };
+    
+    debugInfo.payload = payload;
+    debugInfo.userIdInPayload = user.id;
 
     const { error } = await saveUserGoals(payload);
+    
+    debugInfo.saveResult = error ? { error: error } : { success: true };
 
     setIsSaving(false);
+    setDebugData(debugInfo);
 
     if (error) {
+      debugInfo.errorMessage = error;
+      setDebugData({ ...debugInfo });
       alert(`Failed to save goals: ${error}`);
       return;
     }
@@ -263,6 +306,45 @@ export default function GoalsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* TEMP DEBUG CONSOLE */}
+      {showDebugConsole && (
+        <View style={styles.debugConsole}>
+          <View style={styles.debugHeader}>
+            <MaterialIcons name="bug-report" size={20} color={colors.warning} />
+            <Text style={styles.debugTitle}>🔍 DEBUG CONSOLE (TEMP)</Text>
+            <Pressable onPress={() => setShowDebugConsole(false)} style={styles.debugClose}>
+              <MaterialIcons name="close" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.debugScroll} nestedScrollEnabled>
+            <Text style={styles.debugText}>📍 Supabase URL: {debugData.supabaseUrl || 'Loading...'}</Text>
+            <Text style={styles.debugText}>🔐 Auth User ID: {debugData.authUserId || 'null'}</Text>
+            <Text style={styles.debugText}>📧 Auth Email: {debugData.authUserEmail || 'null'}</Text>
+            <Text style={styles.debugText}>👤 VK User ID: {debugData.vkUserId || 'null'}</Text>
+            <Text style={styles.debugText}>🔗 VK Auth User ID: {debugData.vkUserAuthId || 'null'}</Text>
+            <Text style={styles.debugText}>📧 VK Email: {debugData.vkUserEmail || 'null'}</Text>
+            <Text style={styles.debugText}>⏰ Timestamp: {debugData.timestamp || 'N/A'}</Text>
+            {debugData.preflightError && (
+              <Text style={styles.debugError}>⚠️ Preflight Error: {debugData.preflightError}</Text>
+            )}
+            {debugData.payload && (
+              <>
+                <Text style={styles.debugText}>📦 Payload:</Text>
+                <Text style={styles.debugJson}>{JSON.stringify(debugData.payload, null, 2)}</Text>
+              </>
+            )}
+            {debugData.errorMessage && (
+              <Text style={styles.debugError}>❌ Error: {debugData.errorMessage}</Text>
+            )}
+            {debugData.saveResult && (
+              <Text style={debugData.saveResult.success ? styles.debugSuccess : styles.debugError}>
+                {debugData.saveResult.success ? '✅ Success' : `❌ ${debugData.saveResult.error}`}
+              </Text>
+            )}
+          </ScrollView>
+        </View>
+      )}
+      
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
@@ -687,5 +769,57 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     fontFamily: 'monospace',
+  },
+  debugConsole: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.warning,
+    maxHeight: 400,
+    zIndex: 9999,
+    elevation: 10,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  debugTitle: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.warning,
+  },
+  debugClose: {
+    padding: spacing.xs,
+  },
+  debugScroll: {
+    maxHeight: 350,
+    padding: spacing.sm,
+  },
+  debugJson: {
+    fontSize: 10,
+    color: colors.success,
+    fontFamily: 'monospace',
+    marginLeft: spacing.sm,
+  },
+  debugError: {
+    fontSize: 12,
+    color: colors.error,
+    fontFamily: 'monospace',
+    fontWeight: typography.bold,
+  },
+  debugSuccess: {
+    fontSize: 12,
+    color: colors.success,
+    fontFamily: 'monospace',
+    fontWeight: typography.bold,
   },
 });
