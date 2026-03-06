@@ -1,6 +1,11 @@
+// =====================================================
+// Native Auth Service - Supabase Auth Integration
+// Uses Supabase Edge Functions for signup/verify
+// Uses Supabase Auth SDK for login/session management
+// =====================================================
+
 import { supabase } from './supabase';
 import { UserProfile } from '@/types';
-import bcrypt from 'react-native-bcrypt';
 import { getUserSubjects, updateUserSubjects } from './userSubjectsService';
 import { updateUserAppVersion } from './versionTrackingService';
 
@@ -9,141 +14,207 @@ export interface AuthResponse {
   error: string | null;
 }
 
-// Register new user
+// Register new user (calls Supabase Edge Function)
 export async function registerUser(
   email: string,
   password: string,
-  name: string
+  name: string,
+  onLog?: (message: string) => void
 ): Promise<AuthResponse> {
+  const log = (msg: string) => {
+    console.log(msg);
+    onLog?.(msg);
+  };
+  
   try {
-    // Hash password
-    const salt = bcrypt.genSaltSync(10);
-    const passwordHash = bcrypt.hashSync(password, salt);
-
-    // Create user (with is_verified = false by default)
-    const { data, error } = await supabase
-      .from('vk_users')
-      .insert({
+    log('📝 [NATIVE] Starting registration...');
+    log(`📝 [NATIVE] Supabase URL: ${(supabase as any).supabaseUrl || 'UNKNOWN'}`);
+    log(`📝 [NATIVE] Email: ${email.toLowerCase()}`);
+    log(`📝 [NATIVE] Name: ${name}`);
+    log(`📝 [NATIVE] Password length: ${password.length}`);
+    
+    // Get the Edge Function URL being called
+    const supabaseUrl = (supabase as any).supabaseUrl || 'https://xududbaqaaffcaejwuix.supabase.co';
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/auth-signup`;
+    log(`📝 [NATIVE] Edge Function URL: ${edgeFunctionUrl}`);
+    log('📝 [NATIVE] Calling auth-signup Edge Function...');
+    
+    const { data, error } = await supabase.functions.invoke('auth-signup', {
+      body: {
         email: email.toLowerCase(),
-        password_hash: passwordHash,
+        password,
         name,
-        year_level: 12,
-        is_verified: false, // User needs to verify email
-      })
-      .select()
-      .single();
+        yearLevel: 11, // Default year level
+        stateId: 'vic', // Default state
+      },
+    });
+
+    log(`📝 [NATIVE] Edge Function RAW response: ${JSON.stringify({ data, error }, null, 2)}`);
 
     if (error) {
-      if (error.code === '23505') {
-        return { user: null, error: 'Email already registered' };
-      }
-      return { user: null, error: error.message };
+      log(`❌ [NATIVE] Edge Function error: ${JSON.stringify(error)}`);
+      const errorMessage = data?.error || error.message || JSON.stringify(error);
+      const errorDetails = data?.details || '';
+      const errorStep = data?.step || 'unknown';
+      
+      return { 
+        user: null, 
+        error: `SIGNUP FAILED\n\nError: ${errorMessage}${errorDetails ? '\n\nDetails: ' + errorDetails : ''}${errorStep !== 'unknown' ? '\n\nFailed at: ' + errorStep : ''}` 
+      };
     }
 
-    // Store session
-    await saveSession(data.id);
+    if (data?.error) {
+      log(`❌ [NATIVE] Data contains error: ${JSON.stringify(data)}`);
+      const errorMessage = data.error;
+      const errorDetails = data.details || '';
+      const errorStep = data.step || 'unknown';
+      
+      return { 
+        user: null, 
+        error: `SIGNUP FAILED\n\nError: ${errorMessage}${errorDetails ? '\n\nDetails: ' + errorDetails : ''}${errorStep !== 'unknown' ? '\n\nFailed at: ' + errorStep : ''}` 
+      };
+    }
 
-    // Track app version
-    updateUserAppVersion(data.id).catch(err => 
-      console.warn('Failed to track version on register:', err)
-    );
+    // Check if auth user was actually created
+    if (!data?.authUser) {
+      log('❌ [NATIVE] CRITICAL: Auth user NOT created!');
+      log(`❌ [NATIVE] Full response: ${JSON.stringify(data, null, 2)}`);
+      return { user: null, error: 'Failed to create authentication account. Please try again.' };
+    }
 
-    // Get user subjects from junction table
-    const selectedSubjects = await getUserSubjects(data.id);
+    // Check if email was sent
+    if (!data?.verificationSent) {
+      log('❌ [NATIVE] WARNING: Verification email NOT sent!');
+      log(`❌ [NATIVE] Full response: ${JSON.stringify(data, null, 2)}`);
+      return { user: null, error: 'Account created but verification email failed to send. Please contact support.' };
+    }
 
-    return {
-      user: {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        yearLevel: data.year_level,
-        selectedSubjects,
-        targetCareer: data.target_career,
-        targetUniversities: data.target_universities || [],
-        isPremium: data.is_premium,
-        premiumExpiry: data.premium_expiry,
-        state_id: data.state_id,
-        clientAppVersion: data.client_app_version,
-        clientPlatform: data.client_platform,
-        clientAppVersionUpdatedAt: data.client_app_version_updated_at,
-      },
-      error: null,
-    };
+    log('✅ [NATIVE] Registration successful!');
+    log(`✅ [NATIVE] User created in auth.users? ${data?.authUser ? 'YES' : 'NO'}`);
+    log(`✅ [NATIVE] User created in vk_users? ${data?.user ? 'YES' : 'NO'}`);
+    log(`✅ [NATIVE] Verification code sent? ${data?.verificationSent ? 'YES' : 'NO'}`);
+    
+    // User created successfully, needs to verify email
+    return { user: null, error: null };
   } catch (err: any) {
+    log(`❌ [NATIVE] Exception: ${err.message || err}`);
     return { user: null, error: err.message || 'Registration failed' };
   }
 }
 
-// Login user
+// Verify email (calls Supabase Edge Function)
+export async function verifyEmail(
+  email: string,
+  code: string
+): Promise<AuthResponse> {
+  try {
+    const { data, error } = await supabase.functions.invoke('auth-verify-email', {
+      body: {
+        email: email.toLowerCase(),
+        code,
+      },
+    });
+
+    if (error) {
+      return { user: null, error: error.message || 'Verification failed' };
+    }
+
+    if (data?.error) {
+      return { user: null, error: data.error };
+    }
+
+    // Email verified successfully, user can now login
+    return { user: null, error: null };
+  } catch (err: any) {
+    return { user: null, error: err.message || 'Verification failed' };
+  }
+}
+
+// Login user (uses Supabase Auth SDK)
 export async function loginUser(
   email: string,
   password: string
 ): Promise<AuthResponse> {
   try {
-    console.log('Native login attempt for:', email);
-    const { data, error } = await supabase
+    const normalizedEmail = email.toLowerCase();
+    console.log('🔐 [LOGIN-NATIVE] Starting login attempt');
+    console.log('🔐 [LOGIN-NATIVE] Email (original):', email);
+    console.log('🔐 [LOGIN-NATIVE] Email (normalized):', normalizedEmail);
+    console.log('🔐 [LOGIN-NATIVE] Password length:', password.length);
+    console.log('🔐 [LOGIN-NATIVE] Password (first 3 chars):', password.substring(0, 3) + '***');
+    
+    // Sign in with Supabase Auth
+    console.log('🔐 [LOGIN-NATIVE] Calling supabase.auth.signInWithPassword...');
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    if (authError) {
+      console.error('❌ [LOGIN-NATIVE] Supabase Auth Error:');
+      console.error('❌ [LOGIN-NATIVE] Error message:', authError.message);
+      console.error('❌ [LOGIN-NATIVE] Error name:', authError.name);
+      console.error('❌ [LOGIN-NATIVE] Error status:', (authError as any).status);
+      console.error('❌ [LOGIN-NATIVE] Full error object:', JSON.stringify(authError, null, 2));
+      return { user: null, error: authError.message || 'Invalid email or password' };
+    }
+
+    console.log('✅ [LOGIN-NATIVE] Supabase Auth successful!');
+    console.log('✅ [LOGIN-NATIVE] Auth user ID:', authData.user?.id);
+    console.log('✅ [LOGIN-NATIVE] Auth user email:', authData.user?.email);
+
+    if (!authData.user) {
+      console.error('❌ [LOGIN-NATIVE] No user data returned from Supabase Auth');
+      return { user: null, error: 'Login failed. Please try again.' };
+    }
+
+    console.log('🔐 [LOGIN-NATIVE] Loading user profile from vk_users...');
+
+    // Get vk_users profile
+    const { data: userData, error: userError } = await supabase
       .from('vk_users')
       .select('*')
-      .eq('email', email.toLowerCase())
+      .eq('auth_user_id', authData.user.id)
       .single();
 
-    console.log('Database query result:', { hasData: !!data, error: error?.message });
-
-    if (error || !data) {
-      console.error('User not found:', error);
-      return { user: null, error: 'Invalid email or password' };
+    if (userError || !userData) {
+      console.error('❌ [LOGIN-NATIVE] Failed to load user profile:', userError);
+      console.error('❌ [LOGIN-NATIVE] User error details:', JSON.stringify(userError, null, 2));
+      return { user: null, error: 'Failed to load user profile' };
     }
 
-    console.log('User found, verifying password...');
-    console.log('Hash from DB:', data.password_hash);
-
-    // Verify password
-    const isValid = bcrypt.compareSync(password, data.password_hash);
-    console.log('bcrypt verification result:', isValid);
-    
-    if (!isValid) {
-      console.error('Password verification failed');
-      return { user: null, error: 'Invalid email or password' };
-    }
-
-    // Check if email is verified
-    if (!data.is_verified) {
-      console.error('Email not verified');
-      return { user: null, error: 'Please verify your email before logging in. Check your inbox for the verification code.' };
-    }
-
-    console.log('Login successful!');
-
-    // Save session
-    await saveSession(data.id);
+    console.log('✅ [LOGIN-NATIVE] User profile loaded successfully!');
+    console.log('✅ [LOGIN-NATIVE] User ID:', userData.id);
+    console.log('✅ [LOGIN-NATIVE] User name:', userData.name);
 
     // Track app version
-    updateUserAppVersion(data.id).catch(err => 
+    updateUserAppVersion(userData.id).catch(err =>
       console.warn('Failed to track version on login:', err)
     );
 
     // Get user subjects from junction table
-    const selectedSubjects = await getUserSubjects(data.id);
+    const selectedSubjects = await getUserSubjects(userData.id);
 
     return {
       user: {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        yearLevel: data.year_level,
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        yearLevel: userData.year_level,
         selectedSubjects,
-        targetCareer: data.target_career,
-        targetUniversities: data.target_universities || [],
-        isPremium: data.is_premium,
-        premiumExpiry: data.premium_expiry,
-        state_id: data.state_id,
-        clientAppVersion: data.client_app_version,
-        clientPlatform: data.client_platform,
-        clientAppVersionUpdatedAt: data.client_app_version_updated_at,
+        targetCareer: userData.target_career,
+        targetUniversities: userData.target_universities || [],
+        isPremium: userData.is_premium,
+        premiumExpiry: userData.premium_expiry,
+        state_id: userData.state_id,
+        clientAppVersion: userData.client_app_version,
+        clientPlatform: userData.client_platform,
+        clientAppVersionUpdatedAt: userData.client_app_version_updated_at,
       },
       error: null,
     };
   } catch (err: any) {
+    console.error('Login exception:', err);
     return { user: null, error: err.message || 'Login failed' };
   }
 }
@@ -151,36 +222,46 @@ export async function loginUser(
 // Get current user from session
 export async function getCurrentUser(): Promise<UserProfile | null> {
   try {
-    const userId = await getSession();
-    if (!userId) return null;
+    // Get current session from Supabase Auth
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    const { data, error } = await supabase
+    if (sessionError || !session) {
+      console.log('No valid session');
+      return null;
+    }
+
+    // Get vk_users profile
+    const { data: userData, error: userError } = await supabase
       .from('vk_users')
       .select('*')
-      .eq('id', userId)
+      .eq('auth_user_id', session.user.id)
       .single();
 
-    if (error || !data) return null;
+    if (userError || !userData) {
+      console.error('Failed to load user profile:', userError);
+      return null;
+    }
 
     // Get user subjects from junction table
-    const selectedSubjects = await getUserSubjects(data.id);
+    const selectedSubjects = await getUserSubjects(userData.id);
 
     return {
-      id: data.id,
-      email: data.email,
-      name: data.name,
-      yearLevel: data.year_level,
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      yearLevel: userData.year_level,
       selectedSubjects,
-      targetCareer: data.target_career,
-      targetUniversities: data.target_universities || [],
-      isPremium: data.is_premium,
-      premiumExpiry: data.premium_expiry,
-      state_id: data.state_id,
-      clientAppVersion: data.client_app_version,
-      clientPlatform: data.client_platform,
-      clientAppVersionUpdatedAt: data.client_app_version_updated_at,
+      targetCareer: userData.target_career,
+      targetUniversities: userData.target_universities || [],
+      isPremium: userData.is_premium,
+      premiumExpiry: userData.premium_expiry,
+      state_id: userData.state_id,
+      clientAppVersion: userData.client_app_version,
+      clientPlatform: userData.client_platform,
+      clientAppVersionUpdatedAt: userData.client_app_version_updated_at,
     };
   } catch (err) {
+    console.error('getCurrentUser error:', err);
     return null;
   }
 }
@@ -223,33 +304,9 @@ export async function updateUserProfile(
 
 // Logout
 export async function logoutUser(): Promise<void> {
-  await clearSession();
-}
-
-// Session management
-async function saveSession(userId: string): Promise<void> {
   try {
-    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-    await AsyncStorage.setItem('vk_user_id', userId);
+    await supabase.auth.signOut();
   } catch (err) {
-    console.error('Failed to save session:', err);
-  }
-}
-
-async function getSession(): Promise<string | null> {
-  try {
-    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-    return await AsyncStorage.getItem('vk_user_id');
-  } catch (err) {
-    return null;
-  }
-}
-
-async function clearSession(): Promise<void> {
-  try {
-    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-    await AsyncStorage.removeItem('vk_user_id');
-  } catch (err) {
-    console.error('Failed to clear session:', err);
+    console.error('Logout error:', err);
   }
 }
