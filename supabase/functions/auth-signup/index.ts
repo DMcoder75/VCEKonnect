@@ -108,26 +108,76 @@ Deno.serve(async (req) => {
 
     // STEP 1: Create user in auth.users (UNVERIFIED)
     console.log('🔐 [SIGNUP] Creating auth user...');
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    console.log('🔐 [SIGNUP] Calling auth.admin.createUser with:', {
       email: email.toLowerCase(),
-      password,
-      email_confirm: false, // NOT verified yet
-      user_metadata: {
-        name,
-        year_level: yearLevel || 11,
-        state_id: stateId || 'vic',
-      },
+      password_length: password.length,
+      email_confirm: false,
     });
-
-    if (authError) {
-      console.error('❌ [SIGNUP] Failed to create auth user:', authError);
+    
+    let authData;
+    let authError;
+    
+    try {
+      const result = await supabaseAdmin.auth.admin.createUser({
+        email: email.toLowerCase(),
+        password,
+        email_confirm: false, // NOT verified yet
+        user_metadata: {
+          name,
+          year_level: yearLevel || 11,
+          state_id: stateId || 'vic',
+        },
+      });
+      authData = result.data;
+      authError = result.error;
+    } catch (createUserException) {
+      console.error('❌ [SIGNUP] Exception in createUser:', createUserException);
       return new Response(
-        JSON.stringify({ error: 'Failed to create account: ' + authError.message }),
+        JSON.stringify({ 
+          error: 'Critical error creating auth user',
+          details: createUserException.message || String(createUserException),
+          step: 'auth.admin.createUser',
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ [SIGNUP] Auth user created:', authData.user.id);
+    console.log('🔐 [SIGNUP] createUser response:', {
+      hasData: !!authData,
+      hasError: !!authError,
+      hasUser: !!(authData?.user),
+      userId: authData?.user?.id || 'NULL',
+    });
+
+    if (authError) {
+      console.error('❌ [SIGNUP] Auth error object:', JSON.stringify(authError, null, 2));
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to create auth account',
+          details: authError.message || JSON.stringify(authError),
+          step: 'auth.admin.createUser',
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!authData || !authData.user || !authData.user.id) {
+      console.error('❌ [SIGNUP] Auth user creation returned null/undefined!');
+      console.error('❌ [SIGNUP] authData:', JSON.stringify(authData, null, 2));
+      return new Response(
+        JSON.stringify({ 
+          error: 'Auth user creation failed - no user data returned',
+          details: 'createUser succeeded but returned null user',
+          step: 'auth.admin.createUser validation',
+          authData: authData,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ [SIGNUP] Auth user created successfully!');
+    console.log('✅ [SIGNUP] User ID:', authData.user.id);
+    console.log('✅ [SIGNUP] User email:', authData.user.email);
 
     // STEP 2: Create vk_users entry using database function (SECURITY DEFINER bypasses RLS)
     console.log('🔐 [SIGNUP] Creating vk_users entry via database function...');
@@ -138,6 +188,18 @@ Deno.serve(async (req) => {
       p_year_level: yearLevel || 11,
       p_state_id: stateId || 'vic',
     });
+
+    // Double-check we have a valid auth user ID before proceeding
+    if (!authData.user.id) {
+      console.error('❌ [SIGNUP] CRITICAL: auth user ID is null before RPC call!');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Internal error - auth user ID is null',
+          step: 'pre-RPC validation',
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { data: vkUserId, error: vkUserError } = await supabaseAdmin
       .rpc('create_vk_user_profile', {
@@ -159,7 +221,11 @@ Deno.serve(async (req) => {
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       
       return new Response(
-        JSON.stringify({ error: 'Failed to create user profile: ' + vkUserError.message }),
+        JSON.stringify({ 
+          error: 'Failed to create user profile',
+          details: vkUserError.message,
+          step: 'create_vk_user_profile RPC',
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

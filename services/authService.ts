@@ -22,11 +22,17 @@ export async function registerUser(
 ): Promise<AuthResponse> {
   try {
     console.log('📝 [REGISTER] Starting registration...');
+    console.log('📝 [REGISTER] Supabase URL:', (supabase as any).supabaseUrl || 'UNKNOWN');
     console.log('📝 [REGISTER] Email:', email.toLowerCase());
     console.log('📝 [REGISTER] Name:', name);
     console.log('📝 [REGISTER] Password length:', password.length);
     
+    // Get the Edge Function URL being called
+    const supabaseUrl = (supabase as any).supabaseUrl || 'https://xududbaqaaffcaejwuix.supabase.co';
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/auth-signup`;
+    console.log('📝 [REGISTER] Edge Function URL:', edgeFunctionUrl);
     console.log('📝 [REGISTER] Calling auth-signup Edge Function...');
+    
     const { data, error } = await supabase.functions.invoke('auth-signup', {
       body: {
         email: email.toLowerCase(),
