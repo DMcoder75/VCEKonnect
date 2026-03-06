@@ -71,18 +71,23 @@ export default function SignupScreen() {
     
     try {
       addDebugLog('🔄 Calling register() function...');
+      addDebugLog('🔄 This will call auth-signup Edge Function');
+      addDebugLog('🔄 Edge Function should: 1) Create auth.users, 2) Create vk_users, 3) Send email');
       
       // Create user account and send verification email
       await register(email, password, name);
       
       addDebugLog('✅ Register() completed successfully!');
+      addDebugLog('✅ This means: auth.users created + vk_users created + email sent');
       addDebugLog('📨 Check your email for verification code');
       
       alert('Account created! Please check your email for the 7-digit verification code.');
       router.push('/verify-email');
     } catch (error: any) {
-      addDebugLog(`❌ ERROR: ${error.message || 'Signup failed'}`);
-      addDebugLog(`❌ ERROR DETAILS: ${JSON.stringify(error)}`);
+      addDebugLog(`❌ REGISTRATION FAILED!`);
+      addDebugLog(`❌ ERROR MESSAGE: ${error.message || 'Unknown error'}`);
+      addDebugLog(`❌ ERROR TYPE: ${error.name || 'Unknown'}`);
+      addDebugLog(`❌ FULL ERROR: ${JSON.stringify(error, null, 2)}`);
       alert(error.message || 'Signup failed');
     } finally {
       setIsLoading(false);

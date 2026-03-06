@@ -21,6 +21,12 @@ export async function registerUser(
   name: string
 ): Promise<AuthResponse> {
   try {
+    console.log('📝 [REGISTER] Starting registration...');
+    console.log('📝 [REGISTER] Email:', email.toLowerCase());
+    console.log('📝 [REGISTER] Name:', name);
+    console.log('📝 [REGISTER] Password length:', password.length);
+    
+    console.log('📝 [REGISTER] Calling auth-signup Edge Function...');
     const { data, error } = await supabase.functions.invoke('auth-signup', {
       body: {
         email: email.toLowerCase(),
@@ -31,17 +37,41 @@ export async function registerUser(
       },
     });
 
+    console.log('📝 [REGISTER] Edge Function RAW response:', JSON.stringify({ data, error }, null, 2));
+
     if (error) {
-      return { user: null, error: error.message || 'Signup failed' };
+      console.error('❌ [REGISTER] Edge Function error:', error);
+      return { user: null, error: `Edge Function failed: ${error.message || JSON.stringify(error)}` };
     }
 
     if (data?.error) {
-      return { user: null, error: data.error };
+      console.error('❌ [REGISTER] Data error:', data.error);
+      return { user: null, error: `Signup failed: ${data.error}` };
     }
 
+    // Check if auth user was actually created
+    if (!data?.authUser) {
+      console.error('❌ [REGISTER] CRITICAL: Auth user NOT created!');
+      console.error('❌ [REGISTER] Full response:', JSON.stringify(data, null, 2));
+      return { user: null, error: 'Failed to create authentication account. Please try again.' };
+    }
+
+    // Check if email was sent
+    if (!data?.verificationSent) {
+      console.error('❌ [REGISTER] WARNING: Verification email NOT sent!');
+      console.error('❌ [REGISTER] Full response:', JSON.stringify(data, null, 2));
+      return { user: null, error: 'Account created but verification email failed to send. Please contact support.' };
+    }
+
+    console.log('✅ [REGISTER] Registration successful!');
+    console.log('✅ [REGISTER] User created in auth.users?', data?.authUser ? 'YES' : 'NO');
+    console.log('✅ [REGISTER] User created in vk_users?', data?.user ? 'YES' : 'NO');
+    console.log('✅ [REGISTER] Verification code sent?', data?.verificationSent ? 'YES' : 'NO');
+    
     // User created successfully, needs to verify email
     return { user: null, error: null };
   } catch (err: any) {
+    console.error('❌ [REGISTER] Exception:', err);
     return { user: null, error: err.message || 'Registration failed' };
   }
 }

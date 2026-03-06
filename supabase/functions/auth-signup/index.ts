@@ -228,12 +228,27 @@ Deno.serve(async (req) => {
     }
 
     console.log('✅ [SIGNUP] Email sent successfully');
+    console.log('✅ [SIGNUP] FINAL RESPONSE:');
+    console.log('  - authUser:', authData.user.id);
+    console.log('  - vk_users ID:', vkUserId);
+    console.log('  - verificationSent: true');
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Verification code sent to email',
         requiresEmailVerification: true,
+        // Fields expected by client
+        authUser: {
+          id: authData.user.id,
+          email: authData.user.email,
+        },
+        user: {
+          id: vkUserId,
+          email: email.toLowerCase(),
+          name,
+        },
+        verificationSent: true,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
