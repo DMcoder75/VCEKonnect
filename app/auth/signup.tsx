@@ -22,6 +22,11 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSignup() {
+    console.log('📝 [SIGNUP] Starting signup process...');
+    console.log('📝 [SIGNUP] Name:', name);
+    console.log('📝 [SIGNUP] Email:', email);
+    console.log('📝 [SIGNUP] Password length:', password.length);
+    
     if (!name || !email || !password || !confirmPassword) {
       alert('Please fill in all fields');
       return;
@@ -47,12 +52,17 @@ export default function SignupScreen() {
     setIsLoading(true);
     
     try {
+      console.log('📝 [SIGNUP] Calling register function...');
       // Create user account and send verification email
       await register(email, password, name);
       
+      console.log('✅ [SIGNUP] Registration successful!');
       alert('Account created! Please check your email for the 7-digit verification code.');
       router.push('/verify-email');
     } catch (error: any) {
+      console.error('❌ [SIGNUP] Registration failed:', error);
+      console.error('❌ [SIGNUP] Error message:', error.message);
+      console.error('❌ [SIGNUP] Error stack:', error.stack);
       alert(error.message || 'Signup failed');
     } finally {
       setIsLoading(false);
