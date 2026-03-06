@@ -45,9 +45,18 @@ export default function OnboardingScreen() {
 
   async function loadStates() {
     setIsLoadingData(true);
-    const states = await getAllStates();
-    setAllStates(states);
-    setIsLoadingData(false);
+    console.log('📍 ONBOARDING: Loading states...');
+    try {
+      const states = await getAllStates();
+      console.log('📍 ONBOARDING: Loaded states:', states.length, 'states');
+      console.log('📍 ONBOARDING: First state:', states[0]);
+      setAllStates(states);
+    } catch (error: any) {
+      console.error('❌ ONBOARDING: Failed to load states:', error);
+      console.error('❌ ONBOARDING: Error details:', error.message || error);
+    } finally {
+      setIsLoadingData(false);
+    }
   }
 
   async function loadSubjects() {
