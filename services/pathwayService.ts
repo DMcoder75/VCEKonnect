@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase.web';
+import { supabase } from '@/services/supabase';
 import { checkConnection } from './networkService';
 import { savePathwayCourses, getPathwayCourses } from './offlineDatabase';
 

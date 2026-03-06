@@ -1,4 +1,4 @@
-import { supabase as getSupabaseClient } from '@/services/supabase.web';
+import { supabase } from '@/services/supabase';
 
 export interface CalendarEvent {
   id: string;
@@ -46,7 +46,7 @@ export async function getUpcomingEvents(
   limit: number = 10
 ): Promise<{ data: CalendarEvent[] | null; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { data, error } = await supabase.rpc('get_upcoming_events', {
       p_user_id: userId,
       p_limit: limit,
@@ -74,7 +74,7 @@ export async function getEventsByDateRange(
   endDate: string
 ): Promise<{ data: CalendarEvent[] | null; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { data, error } = await supabase.rpc('get_events_by_date_range', {
       p_user_id: userId,
       p_start_date: startDate,
@@ -102,7 +102,7 @@ export async function getEventsByWeek(
   weekStart: string
 ): Promise<{ data: CalendarEvent[] | null; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { data, error } = await supabase.rpc('get_events_by_week', {
       p_user_id: userId,
       p_week_start: weekStart,
@@ -128,7 +128,7 @@ export async function createEvent(
   eventData: CreateEventData
 ): Promise<{ data: CalendarEvent | null; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     
     const { data, error } = await supabase
       .from('vk_calendar_events')
@@ -182,7 +182,7 @@ export async function updateEvent(
   updates: UpdateEventData
 ): Promise<{ data: CalendarEvent | null; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { data, error } = await supabase
       .from('vk_calendar_events')
       .update(updates)
@@ -234,7 +234,7 @@ export async function markEventComplete(
   userId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { data, error } = await supabase.rpc('mark_event_complete', {
       p_event_id: eventId,
       p_user_id: userId,
@@ -263,7 +263,7 @@ export async function updateEventScore(
   scoreTotal: number
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { data, error } = await supabase.rpc('update_event_score', {
       p_event_id: eventId,
       p_user_id: userId,
@@ -292,7 +292,7 @@ export async function deleteEvent(
   userId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = getSupabaseClient;
+    // Use imported supabase client
     const { error } = await supabase
       .from('vk_calendar_events')
       .delete()

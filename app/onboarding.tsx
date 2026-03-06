@@ -33,7 +33,7 @@ export default function OnboardingScreen() {
   const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [debugInfo, setDebugInfo] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string>(''); // TEMP DEBUG - Remove after testing
 
   useEffect(() => {
     loadStates();
@@ -48,17 +48,14 @@ export default function OnboardingScreen() {
   async function loadStates() {
     setIsLoadingData(true);
     
-    // DEBUG: Check what Supabase URL is being used
-    const actualUrl = (supabase as any).supabaseUrl || 'UNKNOWN';
-    setDebugInfo(`🔍 Supabase URL: ${actualUrl}`);
-    
     try {
       const states = await getAllStates();
       setAllStates(states);
-      setDebugInfo(prev => `${prev}\n✅ Loaded ${states.length} states`);
+      console.log(`✅ Loaded ${states.length} states from external Supabase`);
+      setDebugInfo(`✅ Loaded ${states.length} states`); // TEMP DEBUG
     } catch (error: any) {
       console.error('Failed to load states:', error);
-      setDebugInfo(prev => `${prev}\n❌ Error: ${error.message}`);
+      setDebugInfo(`❌ Error: ${error.message}`); // TEMP DEBUG
     } finally {
       setIsLoadingData(false);
     }
@@ -107,7 +104,7 @@ export default function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* TEMP DEBUG OVERLAY */}
+      {/* TEMP DEBUG OVERLAY - Shows state loading status */}
       {debugInfo && (
         <View style={{
           position: 'absolute',
