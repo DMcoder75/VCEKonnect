@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,7 +17,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   // Show success message if user just verified their email
   useEffect(() => {
@@ -29,37 +29,20 @@ export default function LoginScreen() {
     }
   }, [params.verified]);
 
-  function addDebugLog(message: string) {
-    setDebugLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
-  }
-
   async function handleLogin() {
-    setDebugLog([]); // Clear previous logs
-    addDebugLog('🔵 Login attempt started');
-    addDebugLog(`📧 Email: ${email}`);
-    addDebugLog(`🔒 Password length: ${password.length} chars`);
-    addDebugLog(`🔒 Password: ${password.substring(0, 3)}***`);
-    
     if (!email || !password) {
-      addDebugLog('❌ Validation failed: Missing email or password');
       alert('Please enter email and password');
       return;
     }
     
     setIsLoading(true);
-    addDebugLog('⏳ Calling login function...');
     
     try {
       await login(email, password);
-      addDebugLog('✅ Login successful!');
       router.replace('/');
     } catch (error: any) {
       console.error('Login error:', error);
       const errorMessage = error.message || 'Login failed';
-      
-      addDebugLog(`❌ Login failed: ${errorMessage}`);
-      addDebugLog(`🔍 Error type: ${error.constructor.name}`);
-      addDebugLog(`🔍 Error stack: ${error.stack?.substring(0, 200)}`);
       
       // Check if error is due to unverified email
       if (errorMessage.includes('verify your email')) {
@@ -70,7 +53,6 @@ export default function LoginScreen() {
       }
     } finally {
       setIsLoading(false);
-      addDebugLog('⏹️ Login attempt completed');
     }
   }
 
@@ -141,26 +123,6 @@ export default function LoginScreen() {
             fullWidth
           />
         </View>
-
-        {/* TEMPORARY DEBUG AREA */}
-        {debugLog.length > 0 && (
-          <View style={styles.debugArea}>
-            <Text style={styles.debugTitle}>🐛 DEBUG LOG (TEMPORARY)</Text>
-            <ScrollView style={styles.debugScroll} nestedScrollEnabled>
-              {debugLog.map((log, index) => (
-                <Text key={index} style={styles.debugText}>
-                  {log}
-                </Text>
-              ))}
-            </ScrollView>
-            <Pressable 
-              style={styles.debugClearButton}
-              onPress={() => setDebugLog([])}
-            >
-              <Text style={styles.debugClearText}>Clear Logs</Text>
-            </Pressable>
-          </View>
-        )}
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -262,45 +224,5 @@ const styles = StyleSheet.create({
   legalSeparator: {
     fontSize: typography.caption,
     color: colors.textTertiary,
-  },
-  
-  // TEMPORARY DEBUG STYLES
-  debugArea: {
-    marginTop: spacing.xl,
-    padding: spacing.md,
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.error,
-    maxHeight: 300,
-  },
-  debugTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.bold,
-    color: colors.error,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  debugScroll: {
-    maxHeight: 200,
-  },
-  debugText: {
-    fontSize: 11,
-    fontFamily: 'monospace',
-    color: colors.textPrimary,
-    marginBottom: 4,
-    lineHeight: 16,
-  },
-  debugClearButton: {
-    marginTop: spacing.sm,
-    padding: spacing.xs,
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.sm,
-    alignItems: 'center',
-  },
-  debugClearText: {
-    fontSize: typography.caption,
-    color: colors.textPrimary,
-    fontWeight: typography.semibold,
   },
 });

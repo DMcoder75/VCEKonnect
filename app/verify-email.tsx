@@ -19,16 +19,6 @@ export default function VerifyEmailScreen() {
   const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
-  
-  // DEBUG LOG STATE (TEMPORARY)
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}`;
-    setDebugLogs(prev => [...prev, logMessage]);
-    console.log(logMessage);
-  };
 
   const { verify } = useAuth();
   
@@ -108,50 +98,32 @@ export default function VerifyEmailScreen() {
   }
 
   async function handleVerifyCode() {
-    // Clear previous logs
-    setDebugLogs([]);
-    addDebugLog('🚀 VERIFY STARTED');
-    
     if (!email) {
-      addDebugLog('❌ VALIDATION: Email is empty');
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
-    addDebugLog(`✅ Email: ${email}`);
 
     const code = codeDigits.join('');
     if (code.length !== 7) {
-      addDebugLog(`❌ VALIDATION: Code length is ${code.length}, expected 7`);
       Alert.alert('Error', 'Please enter all 7 digits of the verification code');
       return;
     }
-    addDebugLog(`✅ Code: ${code}`);
     
     setIsLoading(true);
     
     try {
-      addDebugLog('🔄 Calling verify() function...');
-      addDebugLog('🔄 This will call auth-verify-email Edge Function');
-      
-      await verify(email, code, addDebugLog);
-      
-      addDebugLog('✅ Email verified successfully!');
-      addDebugLog('✅ Navigating to login page...');
+      await verify(email, code);
       
       // Navigate to login with success message
       Alert.alert('Success!', 'Email verified! You can now login.');
       router.replace('/auth/login?verified=true');
     } catch (error: any) {
-      addDebugLog(`❌ VERIFICATION FAILED!`);
-      addDebugLog(`❌ ERROR: ${error.message || 'Unknown error'}`);
-      
       Alert.alert('Verification Failed', error.message || 'Please check your code and try again');
       // Clear code on error
       setCodeDigits(['', '', '', '']);
       codeInputRefs.current[0]?.focus();
     } finally {
       setIsLoading(false);
-      addDebugLog('🏁 Verify process finished');
     }
   }
 
@@ -279,20 +251,6 @@ export default function VerifyEmailScreen() {
             </>
           )}
         </View>
-
-        {/* DEBUG LOG AREA (TEMPORARY) */}
-        {debugLogs.length > 0 && (
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugTitle}>🔍 DEBUG LOGS (TEMP)</Text>
-            <ScrollView style={styles.debugScroll} nestedScrollEnabled>
-              {debugLogs.map((log, index) => (
-                <Text key={index} style={styles.debugLog}>
-                  {log}
-                </Text>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -473,30 +431,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontWeight: typography.semibold,
-  },
-  // DEBUG STYLES (TEMPORARY)
-  debugContainer: {
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#333',
-    maxHeight: 300,
-  },
-  debugTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: '#00ff00',
-    marginBottom: spacing.sm,
-  },
-  debugScroll: {
-    maxHeight: 250,
-  },
-  debugLog: {
-    fontSize: 11,
-    color: '#ccc',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginBottom: 4,
   },
 });

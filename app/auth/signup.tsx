@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,108 +21,61 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
-  
-  // DEBUG LOG STATE (TEMPORARY)
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}`;
-    setDebugLogs(prev => [...prev, logMessage]);
-    console.log(logMessage); // Also log to console
-  };
 
   async function handleSignup() {
     // CRITICAL: Prevent double-click/race condition
     if (isLoading) {
-      addDebugLog('⚠️ BLOCKED: Already processing signup request');
       return;
     }
     
     // Set loading IMMEDIATELY to prevent concurrent calls
     setIsLoading(true);
     
-    // Clear previous logs
-    setDebugLogs([]);
-    addDebugLog('🚀 SIGNUP STARTED');
-    
     if (!name || !email || !password || !confirmPassword) {
-      addDebugLog('❌ VALIDATION FAILED: Missing fields');
       alert('Please fill in all fields');
       setIsLoading(false);
       return;
     }
-    addDebugLog('✅ All fields provided');
     
     if (password !== confirmPassword) {
-      addDebugLog('❌ VALIDATION FAILED: Passwords do not match');
       alert('Passwords do not match');
       setIsLoading(false);
       return;
     }
-    addDebugLog('✅ Passwords match');
 
     if (password.length < 6) {
-      addDebugLog('❌ VALIDATION FAILED: Password too short');
       alert('Password must be at least 6 characters');
       setIsLoading(false);
       return;
     }
-    addDebugLog(`✅ Password length valid (${password.length} chars)`);
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      addDebugLog('❌ VALIDATION FAILED: Invalid email format');
       alert('Please enter a valid email address');
       setIsLoading(false);
       return;
     }
-    addDebugLog('✅ Email format valid');
-    addDebugLog(`📧 Email: ${email}`);
-    addDebugLog(`👤 Name: ${name}`);
-    addDebugLog(`🔑 Password length: ${password.length}`);
     
     try {
-      addDebugLog('🔄 Calling register() function...');
-      addDebugLog('🔄 This will call auth-signup Edge Function');
-      addDebugLog('🔄 Edge Function should: 1) Create auth.users, 2) Create vk_users, 3) Send email');
-      
       // Create user account and send verification email
-      // Pass addDebugLog as callback to capture service logs
-      await register(email, password, name, addDebugLog);
-      
-      addDebugLog('✅ Register() completed successfully!');
-      addDebugLog('✅ This means: auth.users created + vk_users created + email sent');
-      addDebugLog('📨 Check your email for verification code');
+      await register(email, password, name);
       
       alert('Account created! Please check your email for the 7-digit verification code.');
       router.push('/verify-email');
     } catch (error: any) {
-      addDebugLog(`❌ REGISTRATION FAILED!`);
-      addDebugLog(`❌ ERROR MESSAGE: ${error.message || 'Unknown error'}`);
-      
-      // Try to parse error details from backend
-      if (error.message && error.message.includes('Edge Function failed:')) {
-        addDebugLog(`❌ This is an Edge Function error`);
-        addDebugLog(`❌ Raw message: ${error.message}`);
-      }
-      
       // Show detailed error if available
       let alertMessage = error.message || 'Signup failed';
       if (error.details) {
-        addDebugLog(`❌ ERROR DETAILS: ${error.details}`);
         alertMessage += `\n\nDetails: ${error.details}`;
       }
       if (error.step) {
-        addDebugLog(`❌ FAILED AT STEP: ${error.step}`);
         alertMessage += `\n\nFailed at: ${error.step}`;
       }
       
       alert(alertMessage);
     } finally {
       setIsLoading(false);
-      addDebugLog('🏁 Signup process finished');
     }
   }
 
@@ -184,20 +138,6 @@ export default function SignupScreen() {
             fullWidth
           />
         </View>
-
-        {/* DEBUG LOG AREA (TEMPORARY) */}
-        {debugLogs.length > 0 && (
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugTitle}>🔍 DEBUG LOGS (TEMP)</Text>
-            <ScrollView style={styles.debugScroll} nestedScrollEnabled>
-              {debugLogs.map((log, index) => (
-                <Text key={index} style={styles.debugLog}>
-                  {log}
-                </Text>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -265,30 +205,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontWeight: typography.semibold,
-  },
-  // DEBUG STYLES (TEMPORARY)
-  debugContainer: {
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: '#1a1a1a',
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#333',
-    maxHeight: 300,
-  },
-  debugTitle: {
-    fontSize: typography.bodySmall,
-    fontWeight: typography.semibold,
-    color: '#00ff00',
-    marginBottom: spacing.sm,
-  },
-  debugScroll: {
-    maxHeight: 250,
-  },
-  debugLog: {
-    fontSize: 11,
-    color: '#ccc',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginBottom: 4,
   },
 });
