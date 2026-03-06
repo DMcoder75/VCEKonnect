@@ -20,7 +20,6 @@ export default function VerifyEmailScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
 
-  const codeInputRefs = React.useRef<(TextInput | null)[]>([]);
   const { verify } = useAuth();
 
   function handleCodeChange(index: number, value: string) {
@@ -97,24 +96,39 @@ export default function VerifyEmailScreen() {
 
   async function handleVerifyCode() {
     if (!email) {
-      alert('Please enter your email address');
+      Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
     const code = codeDigits.join('');
     if (code.length !== 7) {
-      alert('Please enter all 7 digits of the verification code');
+      Alert.alert('Error', 'Please enter all 7 digits of the verification code');
       return;
     }
     
     setIsLoading(true);
     
     try {
+      console.log('📧 [VERIFY] Starting email verification...');
+      console.log('📧 [VERIFY] Email:', email);
+      console.log('📧 [VERIFY] Code:', code);
+      
       await verify(email, code);
-      alert('Email verified successfully! You can now log in.');
-      router.replace('/auth/login');
+      
+      console.log('✅ [VERIFY] Email verified successfully!');
+      Alert.alert(
+        'Success!',
+        'Email verified successfully! You can now log in.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/auth/login'),
+          }
+        ]
+      );
     } catch (error: any) {
-      alert(error.message || 'Verification failed');
+      console.error('❌ [VERIFY] Verification failed:', error);
+      Alert.alert('Verification Failed', error.message || 'Please check your code and try again');
       // Clear code on error
       setCodeDigits(['', '', '', '']);
       codeInputRefs.current[0]?.focus();
