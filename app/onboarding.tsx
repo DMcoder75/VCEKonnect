@@ -53,12 +53,37 @@ export default function OnboardingScreen() {
     setDebugInfo(`🔍 Supabase URL: ${actualUrl}`);
     
     try {
-      const states = await getAllStates();
-      setAllStates(states);
-      setDebugInfo(prev => `${prev}\n✅ Loaded ${states.length} states`);
+      // Direct query with full error logging
+      setDebugInfo(prev => `${prev}\n📡 Executing: SELECT * FROM vk_states...`);
+      
+      const { data, error } = await supabase
+        .from('vk_states')
+        .select('*')
+        .order('abbreviation', { ascending: true });
+      
+      if (error) {
+        setDebugInfo(prev => `${prev}\n❌ SUPABASE ERROR:\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details}\nHint: ${error.hint}`);
+        setAllStates([]);
+      } else {
+        setDebugInfo(prev => `${prev}\n✅ Raw data length: ${data?.length || 0}`);
+        setDebugInfo(prev => `${prev}\n✅ Sample row: ${JSON.stringify(data?.[0] || 'none')}`);
+        
+        const states = data.map(row => ({
+          id: row.id,
+          name: row.name,
+          abbreviation: row.abbreviation,
+          educationSystem: row.education_system,
+          authorityName: row.authority_name,
+          authorityWebsite: row.authority_website,
+          usesAtar: row.uses_atar,
+          scalingSystem: row.scaling_system,
+        }));
+        
+        setAllStates(states);
+        setDebugInfo(prev => `${prev}\n✅ Mapped ${states.length} states`);
+      }
     } catch (error: any) {
-      console.error('Failed to load states:', error);
-      setDebugInfo(prev => `${prev}\n❌ Error: ${error.message}`);
+      setDebugInfo(prev => `${prev}\n❌ EXCEPTION: ${error.message}\nStack: ${error.stack}`);
     } finally {
       setIsLoadingData(false);
     }
