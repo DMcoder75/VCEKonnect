@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground, Alert } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -11,11 +11,23 @@ export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
+  const params = useLocalSearchParams();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  // Show success message if user just verified their email
+  useEffect(() => {
+    if (params.verified === 'true') {
+      Alert.alert(
+        'Verified Successfully! ✅',
+        'Your email has been verified. Login to start using FairPrep!',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [params.verified]);
 
   function addDebugLog(message: string) {
     setDebugLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);

@@ -119,16 +119,8 @@ export default function VerifyEmailScreen() {
       await verify(email, code);
       
       console.log('✅ [VERIFY] Email verified successfully!');
-      Alert.alert(
-        'Success!',
-        'Email verified successfully! You can now log in.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/auth/login'),
-          }
-        ]
-      );
+      // Navigate to login with success message
+      router.replace('/auth/login?verified=true');
     } catch (error: any) {
       console.error('❌ [VERIFY] Verification failed:', error);
       Alert.alert('Verification Failed', error.message || 'Please check your code and try again');

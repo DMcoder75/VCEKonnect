@@ -68,21 +68,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STEP 3: Update auth.users to mark email as verified
-    const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
-      authUser.user.id,
-      { email_confirm: true }
-    );
-
-    if (updateAuthError) {
-      console.error('Failed to verify email:', updateAuthError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify email: ' + updateAuthError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // STEP 4: Mark verification code as used
+    // STEP 3: Mark verification code as used
+    console.log('📧 [VERIFY] Marking verification code as used...');
     await supabaseAdmin
       .from('vk_email_verifications')
       .update({
@@ -91,38 +78,65 @@ Deno.serve(async (req) => {
       })
       .eq('id', verification.id);
 
-    // STEP 5: Generate session tokens (user can now login)
-    // We need to create a session without password since we don't store it
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email.toLowerCase(),
-    });
+    console.log('✅ [VERIFY] Verification code marked as used');
 
-    if (sessionError) {
-      console.error('Failed to generate session:', sessionError);
-      // Email is verified, user can login manually
+    // STEP 4: Update vk_users to mark as verified
+    console.log('📧 [VERIFY] Updating vk_users table...');
+    const { error: vkUserError } = await supabaseAdmin
+      .from('vk_users')
+      .update({
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('auth_user_id', authUser.user.id);
+
+    if (vkUserError) {
+      console.error('❌ [VERIFY] Failed to update vk_users:', vkUserError);
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          verified: true,
-          message: 'Email verified! Please log in with your password.' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to update user verification status: ' + vkUserError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('✅ [VERIFY] vk_users updated');
+
+    // STEP 5: Update auth.users to mark email as verified
+    console.log('📧 [VERIFY] Updating auth.users email verification...');
+    const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
+      authUser.user.id,
+      { email_confirm: true }
+    );
+
+    if (updateAuthError) {
+      console.error('❌ [VERIFY] Failed to verify email in auth.users:', updateAuthError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify email: ' + updateAuthError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ [VERIFY] auth.users email verified');
+
     // STEP 6: Get vk_users profile
+    console.log('📧 [VERIFY] Loading user profile...');
     const { data: userProfile } = await supabaseAdmin
       .from('vk_users')
       .select('*')
       .eq('auth_user_id', authUser.user.id)
       .single();
 
+    console.log('✅ [VERIFY] Email verification complete!');
+    console.log('✅ [VERIFY] All tables updated:', {
+      'vk_email_verifications': 'is_used=true, verified_at=set',
+      'vk_users': 'is_verified=true, verified_at=set',
+      'auth.users': 'email_confirmed_at=set'
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         verified: true,
-        message: 'Email verified successfully! Please log in.',
+        message: 'Verified Successfully! Login to start',
         user: userProfile,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
