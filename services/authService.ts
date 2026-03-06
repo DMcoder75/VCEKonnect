@@ -8,6 +8,7 @@ import { supabase } from './supabase';
 import { UserProfile } from '@/types';
 import { getUserSubjects, updateUserSubjects } from './userSubjectsService';
 import { updateUserAppVersion } from './versionTrackingService';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 export interface AuthResponse {
   user: UserProfile | null;
@@ -58,14 +59,40 @@ export async function registerUser(
     log(`📝 Edge Function RAW response: ${JSON.stringify({ data, error }, null, 2)}`);
 
     if (error) {
-      log(`❌ Edge Function error: ${JSON.stringify(error)}`);
-      const errorMessage = data?.error || error.message || JSON.stringify(error);
-      const errorDetails = data?.details || '';
-      const errorStep = data?.step || 'unknown';
+      log(`❌ Edge Function error detected!`);
+      log(`❌ Error type: ${error.name}`);
+      
+      let errorMessage = error.message || 'Edge Function returned a non-2xx status code';
+      let statusCode = 500;
+      
+      // Extract actual error details from FunctionsHttpError
+      if (error instanceof FunctionsHttpError) {
+        try {
+          statusCode = error.context?.status ?? 500;
+          const textContent = await error.context?.text();
+          
+          log(`📝 Edge Function HTTP Status Code: ${statusCode}`);
+          log(`📝 Edge Function Response Body: ${textContent || 'EMPTY'}`);
+          
+          if (textContent) {
+            try {
+              // Try to parse as JSON first
+              const jsonError = JSON.parse(textContent);
+              errorMessage = jsonError.error || jsonError.message || textContent;
+              log(`📝 Parsed error message: ${errorMessage}`);
+            } catch {
+              // Not JSON, use raw text
+              errorMessage = textContent;
+            }
+          }
+        } catch (readErr: any) {
+          log(`❌ Failed to read error response: ${readErr.message || readErr}`);
+        }
+      }
       
       return { 
         user: null, 
-        error: `SIGNUP FAILED\n\nError: ${errorMessage}${errorDetails ? '\n\nDetails: ' + errorDetails : ''}${errorStep !== 'unknown' ? '\n\nFailed at: ' + errorStep : ''}` 
+        error: `SIGNUP FAILED (HTTP ${statusCode})\n\n${errorMessage}` 
       };
     }
 
