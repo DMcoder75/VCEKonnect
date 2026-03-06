@@ -13,7 +13,15 @@ import { Button } from '@/components';
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, updateProfile, refreshSubjects } = useAuth();
+  const { user, isLoading, updateProfile, refreshSubjects } = useAuth();
+  
+  // Authentication guard - redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      console.log('⚠️ Onboarding: User not authenticated -> redirecting to login');
+      router.replace('/auth/login');
+    }
+  }, [user, isLoading]);
   
   const [step, setStep] = useState(1);
   const totalSteps = 4;
