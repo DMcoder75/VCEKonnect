@@ -56,8 +56,16 @@ Deno.serve(async (req) => {
     // Initialize Supabase Admin client (bypasses RLS)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     );
+
+    console.log('🔐 [SIGNUP] Using service role - RLS bypassed');
 
     // Check if email already exists
     const { data: existingUser } = await supabaseAdmin
@@ -93,9 +101,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STEP 2: The trigger will auto-create vk_users entry
-    // Wait a moment for trigger to execute
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // STEP 2: Create vk_users entry directly (bypasses RLS with admin client)
+    const { error: vkUserError } = await supabaseAdmin
+      .from('vk_users')
+      .insert({
+        auth_user_id: authData.user.id,
+        email: email.toLowerCase(),
+        name,
+        year_level: yearLevel || 11,
+        state_id: stateId || 'vic',
+        is_premium: false,
+        premium_tier: 'free',
+      });
+
+    if (vkUserError) {
+      console.error('Failed to create vk_users entry:', vkUserError);
+      // Rollback: delete auth user if vk_users creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create user profile: ' + vkUserError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // STEP 3: Generate 7-digit verification code
     const code = Math.floor(1000000 + Math.random() * 9000000).toString();
