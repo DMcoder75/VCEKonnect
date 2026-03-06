@@ -53,22 +53,12 @@ export default function OnboardingScreen() {
     setDebugInfo(`🔍 Supabase URL: ${actualUrl}`);
     
     try {
-      // Direct query to check what's happening
-      const { data: rawData, error: rawError } = await supabase
-        .from('vk_states')
-        .select('*');
-      
-      setDebugInfo(prev => `${prev}\n📊 Raw query result: ${rawData?.length || 0} rows`);
-      if (rawError) {
-        setDebugInfo(prev => `${prev}\n❌ DB Error: ${rawError.message}`);
-      }
-      
       const states = await getAllStates();
       setAllStates(states);
-      setDebugInfo(prev => `${prev}\n✅ Service returned: ${states.length} states`);
+      setDebugInfo(prev => `${prev}\n✅ Loaded ${states.length} states`);
     } catch (error: any) {
       console.error('Failed to load states:', error);
-      setDebugInfo(prev => `${prev}\n❌ Exception: ${error.message}`);
+      setDebugInfo(prev => `${prev}\n❌ Error: ${error.message}`);
     } finally {
       setIsLoadingData(false);
     }
