@@ -91,62 +91,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      // Check network connection first
-      const hasConnection = await checkConnection();
+      // CRITICAL: Always check for valid Supabase session first, regardless of network status
+      console.log('🔐 AuthContext: Checking Supabase session...');
       
-      if (hasConnection) {
-        // Network available - check for valid session from Supabase Auth
-        try {
-          const currentUser = await getCurrentUser();
-          console.log('🔐 AuthContext: User loaded from network:', currentUser ? `ID: ${currentUser.id}` : 'No user');
+      let hasValidSession = false;
+      try {
+        const currentUser = await getCurrentUser();
+        
+        if (currentUser) {
+          console.log('✅ AuthContext: Valid session found! User ID:', currentUser.id);
+          hasValidSession = true;
+          setUser(currentUser);
           
-          if (currentUser) {
-            setUser(currentUser);
-            // Save to SQLite for offline use
-            await saveUserProfile(currentUser);
-            
-            // Track app version on session restore
-            updateUserAppVersion(currentUser.id).catch(err => 
-              console.warn('Failed to track version on session restore:', err)
-            );
-          } else {
-            // No valid session - clear everything and force login
-            console.log('🔐 AuthContext: No valid session -> clearing cache and forcing login');
-            setUser(null);
-            await clearAllData();
-          }
-        } catch (error) {
-          console.error('❌ AuthContext: Failed to load user from network:', error);
-          // Network error - try using cached user as fallback
-          const cachedUser = await getUserProfile();
-          if (cachedUser) {
-            console.log('📦 AuthContext: Using cached user from SQLite (offline fallback)');
-            setUser(cachedUser);
-            // Load cached subjects too
-            const cachedUserSubjects = await getOfflineUserSubjects();
-            setUserSubjects(cachedUserSubjects);
-          } else {
-            setUser(null);
-          }
-        }
-      } else {
-        // No network - only use cached data if it exists
-        console.log('📡 AuthContext: No network - checking SQLite cache...');
-        const cachedUser = await getUserProfile();
-        if (cachedUser) {
-          console.log('📦 AuthContext: Using cached user from SQLite (offline mode)');
-          setUser(cachedUser);
-          // Load cached subjects too
-          const cachedUserSubjects = await getOfflineUserSubjects();
-          setUserSubjects(cachedUserSubjects);
+          // Save to SQLite for offline use
+          await saveUserProfile(currentUser);
+          
+          // Track app version on session restore
+          updateUserAppVersion(currentUser.id).catch(err => 
+            console.warn('Failed to track version on session restore:', err)
+          );
         } else {
-          console.log('📡 AuthContext: No cached user -> forcing login');
-          setUser(null);
+          console.log('❌ AuthContext: No valid session found');
+          hasValidSession = false;
         }
+      } catch (sessionError) {
+        console.error('❌ AuthContext: Session check failed:', sessionError);
+        hasValidSession = false;
+      }
+      
+      // If no valid session, clear everything and force login
+      if (!hasValidSession) {
+        console.log('🔐 AuthContext: No valid session -> clearing all data and forcing login');
+        setUser(null);
+        await clearAllData();
       }
     } catch (error) {
       console.error('❌ AuthContext: Critical error in loadUser:', error);
       setUser(null);
+      // Clear cache on critical errors too
+      await clearAllData().catch(clearErr => 
+        console.error('Failed to clear data:', clearErr)
+      );
     } finally {
       // ALWAYS set loading to false, even if errors occur
       setIsLoading(false);
