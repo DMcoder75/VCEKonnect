@@ -41,12 +41,26 @@ export async function registerUser(
 
     if (error) {
       console.error('❌ [REGISTER] Edge Function error:', error);
-      return { user: null, error: `Edge Function failed: ${error.message || JSON.stringify(error)}` };
+      const errorMessage = data?.error || error.message || JSON.stringify(error);
+      const errorDetails = data?.details || '';
+      const errorStep = data?.step || 'unknown';
+      
+      return { 
+        user: null, 
+        error: `SIGNUP FAILED\n\nError: ${errorMessage}${errorDetails ? '\n\nDetails: ' + errorDetails : ''}${errorStep !== 'unknown' ? '\n\nFailed at: ' + errorStep : ''}` 
+      };
     }
 
     if (data?.error) {
-      console.error('❌ [REGISTER] Data error:', data.error);
-      return { user: null, error: `Signup failed: ${data.error}` };
+      console.error('❌ [REGISTER] Data contains error:', data);
+      const errorMessage = data.error;
+      const errorDetails = data.details || '';
+      const errorStep = data.step || 'unknown';
+      
+      return { 
+        user: null, 
+        error: `SIGNUP FAILED\n\nError: ${errorMessage}${errorDetails ? '\n\nDetails: ' + errorDetails : ''}${errorStep !== 'unknown' ? '\n\nFailed at: ' + errorStep : ''}` 
+      };
     }
 
     // Check if auth user was actually created

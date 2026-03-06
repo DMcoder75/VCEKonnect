@@ -86,9 +86,25 @@ export default function SignupScreen() {
     } catch (error: any) {
       addDebugLog(`❌ REGISTRATION FAILED!`);
       addDebugLog(`❌ ERROR MESSAGE: ${error.message || 'Unknown error'}`);
-      addDebugLog(`❌ ERROR TYPE: ${error.name || 'Unknown'}`);
-      addDebugLog(`❌ FULL ERROR: ${JSON.stringify(error, null, 2)}`);
-      alert(error.message || 'Signup failed');
+      
+      // Try to parse error details from backend
+      if (error.message && error.message.includes('Edge Function failed:')) {
+        addDebugLog(`❌ This is an Edge Function error`);
+        addDebugLog(`❌ Raw message: ${error.message}`);
+      }
+      
+      // Show detailed error if available
+      let alertMessage = error.message || 'Signup failed';
+      if (error.details) {
+        addDebugLog(`❌ ERROR DETAILS: ${error.details}`);
+        alertMessage += `\n\nDetails: ${error.details}`;
+      }
+      if (error.step) {
+        addDebugLog(`❌ FAILED AT STEP: ${error.step}`);
+        alertMessage += `\n\nFailed at: ${error.step}`;
+      }
+      
+      alert(alertMessage);
     } finally {
       setIsLoading(false);
       addDebugLog('🏁 Signup process finished');
