@@ -30,7 +30,7 @@ interface AuthContextType {
   allStates: AustralianState[];
   // Methods
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, onLog?: (message: string) => void) => Promise<void>;
   verify: (email: string, code: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean }>;
   logout: () => Promise<void>;
@@ -206,21 +206,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(loggedInUser);
   }
 
-  async function register(email: string, password: string, name: string) {
-    console.log('📝 [AUTH CONTEXT] Registering user:', email);
-    console.log('📝 [AUTH CONTEXT] Calling registerUser service...');
+  async function register(email: string, password: string, name: string, onLog?: (message: string) => void) {
+    const log = (msg: string) => {
+      console.log(msg);
+      onLog?.(msg);
+    };
     
-    const { error } = await registerUser(email, password, name);
+    log('📝 Registering user...');
+    log(`📝 Email: ${email}`);
+    log('📝 Calling registerUser service...');
     
-    console.log('📝 [AUTH CONTEXT] registerUser response:', { error });
+    const { error } = await registerUser(email, password, name, onLog);
+    
+    log(`📝 registerUser response: error=${error || 'null'}`);
     
     if (error) {
-      console.error('❌ [AUTH CONTEXT] Registration failed:', error);
+      log(`❌ Registration failed: ${error}`);
       throw new Error(error);
     }
     
-    console.log('✅ [AUTH CONTEXT] Registration successful!');
-    console.log('✅ [AUTH CONTEXT] Verification email sent');
+    log('✅ Registration successful!');
+    log('✅ Verification email sent');
     // User needs to verify email before logging in
   }
 

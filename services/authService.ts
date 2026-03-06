@@ -18,20 +18,26 @@ export interface AuthResponse {
 export async function registerUser(
   email: string,
   password: string,
-  name: string
+  name: string,
+  onLog?: (message: string) => void
 ): Promise<AuthResponse> {
+  const log = (msg: string) => {
+    console.log(msg);
+    onLog?.(msg);
+  };
+  
   try {
-    console.log('📝 [REGISTER] Starting registration...');
-    console.log('📝 [REGISTER] Supabase URL:', (supabase as any).supabaseUrl || 'UNKNOWN');
-    console.log('📝 [REGISTER] Email:', email.toLowerCase());
-    console.log('📝 [REGISTER] Name:', name);
-    console.log('📝 [REGISTER] Password length:', password.length);
+    log('📝 Starting registration...');
+    log(`📝 Supabase URL: ${(supabase as any).supabaseUrl || 'UNKNOWN'}`);
+    log(`📝 Email: ${email.toLowerCase()}`);
+    log(`📝 Name: ${name}`);
+    log(`📝 Password length: ${password.length}`);
     
     // Get the Edge Function URL being called
     const supabaseUrl = (supabase as any).supabaseUrl || 'https://xududbaqaaffcaejwuix.supabase.co';
     const edgeFunctionUrl = `${supabaseUrl}/functions/v1/auth-signup`;
-    console.log('📝 [REGISTER] Edge Function URL:', edgeFunctionUrl);
-    console.log('📝 [REGISTER] Calling auth-signup Edge Function...');
+    log(`📝 Edge Function URL: ${edgeFunctionUrl}`);
+    log('📝 Calling auth-signup Edge Function...');
     
     const { data, error } = await supabase.functions.invoke('auth-signup', {
       body: {
@@ -43,10 +49,10 @@ export async function registerUser(
       },
     });
 
-    console.log('📝 [REGISTER] Edge Function RAW response:', JSON.stringify({ data, error }, null, 2));
+    log(`📝 Edge Function RAW response: ${JSON.stringify({ data, error }, null, 2)}`);
 
     if (error) {
-      console.error('❌ [REGISTER] Edge Function error:', error);
+      log(`❌ Edge Function error: ${JSON.stringify(error)}`);
       const errorMessage = data?.error || error.message || JSON.stringify(error);
       const errorDetails = data?.details || '';
       const errorStep = data?.step || 'unknown';
@@ -58,7 +64,7 @@ export async function registerUser(
     }
 
     if (data?.error) {
-      console.error('❌ [REGISTER] Data contains error:', data);
+      log(`❌ Data contains error: ${JSON.stringify(data)}`);
       const errorMessage = data.error;
       const errorDetails = data.details || '';
       const errorStep = data.step || 'unknown';
@@ -71,27 +77,27 @@ export async function registerUser(
 
     // Check if auth user was actually created
     if (!data?.authUser) {
-      console.error('❌ [REGISTER] CRITICAL: Auth user NOT created!');
-      console.error('❌ [REGISTER] Full response:', JSON.stringify(data, null, 2));
+      log('❌ CRITICAL: Auth user NOT created!');
+      log(`❌ Full response: ${JSON.stringify(data, null, 2)}`);
       return { user: null, error: 'Failed to create authentication account. Please try again.' };
     }
 
     // Check if email was sent
     if (!data?.verificationSent) {
-      console.error('❌ [REGISTER] WARNING: Verification email NOT sent!');
-      console.error('❌ [REGISTER] Full response:', JSON.stringify(data, null, 2));
+      log('❌ WARNING: Verification email NOT sent!');
+      log(`❌ Full response: ${JSON.stringify(data, null, 2)}`);
       return { user: null, error: 'Account created but verification email failed to send. Please contact support.' };
     }
 
-    console.log('✅ [REGISTER] Registration successful!');
-    console.log('✅ [REGISTER] User created in auth.users?', data?.authUser ? 'YES' : 'NO');
-    console.log('✅ [REGISTER] User created in vk_users?', data?.user ? 'YES' : 'NO');
-    console.log('✅ [REGISTER] Verification code sent?', data?.verificationSent ? 'YES' : 'NO');
+    log('✅ Registration successful!');
+    log(`✅ User created in auth.users? ${data?.authUser ? 'YES' : 'NO'}`);
+    log(`✅ User created in vk_users? ${data?.user ? 'YES' : 'NO'}`);
+    log(`✅ Verification code sent? ${data?.verificationSent ? 'YES' : 'NO'}`);
     
     // User created successfully, needs to verify email
     return { user: null, error: null };
   } catch (err: any) {
-    console.error('❌ [REGISTER] Exception:', err);
+    log(`❌ Exception: ${err.message || err}`);
     return { user: null, error: err.message || 'Registration failed' };
   }
 }

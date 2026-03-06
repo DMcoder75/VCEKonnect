@@ -26,7 +26,9 @@ export default function SignupScreen() {
   
   const addDebugLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+    const logMessage = `[${timestamp}] ${message}`;
+    setDebugLogs(prev => [...prev, logMessage]);
+    console.log(logMessage); // Also log to console
   };
 
   async function handleSignup() {
@@ -75,7 +77,8 @@ export default function SignupScreen() {
       addDebugLog('🔄 Edge Function should: 1) Create auth.users, 2) Create vk_users, 3) Send email');
       
       // Create user account and send verification email
-      await register(email, password, name);
+      // Pass addDebugLog as callback to capture service logs
+      await register(email, password, name, addDebugLog);
       
       addDebugLog('✅ Register() completed successfully!');
       addDebugLog('✅ This means: auth.users created + vk_users created + email sent');
