@@ -21,11 +21,6 @@ export async function registerUser(
   name: string
 ): Promise<AuthResponse> {
   try {
-    console.log('🔐 [REGISTER] Calling auth-signup Edge Function...');
-    console.log('🔐 [REGISTER] Email:', email.toLowerCase());
-    console.log('🔐 [REGISTER] Password length:', password.length);
-    console.log('🔐 [REGISTER] Name:', name);
-    
     const { data, error } = await supabase.functions.invoke('auth-signup', {
       body: {
         email: email.toLowerCase(),
@@ -36,27 +31,17 @@ export async function registerUser(
       },
     });
 
-    console.log('🔐 [REGISTER] Edge Function response received');
-    console.log('🔐 [REGISTER] Data:', JSON.stringify(data, null, 2));
-    console.log('🔐 [REGISTER] Error:', error);
-
     if (error) {
-      console.error('❌ [REGISTER] Edge Function invocation error:', error);
       return { user: null, error: error.message || 'Signup failed' };
     }
 
     if (data?.error) {
-      console.error('❌ [REGISTER] Edge Function returned error:', data.error);
       return { user: null, error: data.error };
     }
 
-    console.log('✅ [REGISTER] User created successfully, verification email sent');
     // User created successfully, needs to verify email
     return { user: null, error: null };
   } catch (err: any) {
-    console.error('❌ [REGISTER] Exception during registration:', err);
-    console.error('❌ [REGISTER] Error message:', err.message);
-    console.error('❌ [REGISTER] Error stack:', err.stack);
     return { user: null, error: err.message || 'Registration failed' };
   }
 }
