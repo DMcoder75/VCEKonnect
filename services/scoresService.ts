@@ -1,4 +1,4 @@
-import { supabase } from './supabase.web';
+import { supabase } from './supabase';
 import { SubjectScore } from '@/types';
 import { checkConnection } from './networkService';
 import { saveSubjectScores as saveOfflineScores, getSubjectScores as getOfflineScores } from './offlineDatabase';
