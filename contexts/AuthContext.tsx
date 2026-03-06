@@ -91,24 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      // Try to load from SQLite first (offline support)
-      const cachedUser = await getUserProfile();
-      if (cachedUser) {
-        console.log('📦 AuthContext: Using cached user from SQLite (offline mode)');
-        setUser(cachedUser);
-        // Load cached subjects too
-        const cachedUserSubjects = await getOfflineUserSubjects();
-        setUserSubjects(cachedUserSubjects);
-      }
-      
-      // Check network connection
+      // Check network connection first
       const hasConnection = await checkConnection();
       
       if (hasConnection) {
-        // Try to fetch fresh data from network
+        // Network available - check for valid session from Supabase Auth
         try {
           const currentUser = await getCurrentUser();
-          console.log('🔐 AuthContext: User loaded:', currentUser ? `ID: ${currentUser.id}` : 'No user');
+          console.log('🔐 AuthContext: User loaded from network:', currentUser ? `ID: ${currentUser.id}` : 'No user');
           
           if (currentUser) {
             setUser(currentUser);
@@ -126,14 +116,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await clearAllData();
           }
         } catch (error) {
-          console.error('❌ AuthContext: Failed to load user from network, using SQLite cache:', error);
-          // Network failed - keep cached user for offline mode (only if we had one)
-          if (!cachedUser) {
+          console.error('❌ AuthContext: Failed to load user from network:', error);
+          // Network error - try using cached user as fallback
+          const cachedUser = await getUserProfile();
+          if (cachedUser) {
+            console.log('📦 AuthContext: Using cached user from SQLite (offline fallback)');
+            setUser(cachedUser);
+            // Load cached subjects too
+            const cachedUserSubjects = await getOfflineUserSubjects();
+            setUserSubjects(cachedUserSubjects);
+          } else {
             setUser(null);
           }
         }
       } else {
-        console.log('📡 AuthContext: No network - using offline data');
+        // No network - only use cached data if it exists
+        console.log('📡 AuthContext: No network - checking SQLite cache...');
+        const cachedUser = await getUserProfile();
+        if (cachedUser) {
+          console.log('📦 AuthContext: Using cached user from SQLite (offline mode)');
+          setUser(cachedUser);
+          // Load cached subjects too
+          const cachedUserSubjects = await getOfflineUserSubjects();
+          setUserSubjects(cachedUserSubjects);
+        } else {
+          console.log('📡 AuthContext: No cached user -> forcing login');
+          setUser(null);
+        }
       }
     } catch (error) {
       console.error('❌ AuthContext: Critical error in loadUser:', error);
