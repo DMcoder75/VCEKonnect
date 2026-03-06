@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,9 @@ export default function VerifyEmailScreen() {
   const [isSendingCode, setIsSendingCode] = useState(false);
 
   const { verify } = useAuth();
+  
+  // Refs for code input boxes
+  const codeInputRefs = useRef<(TextInput | null)[]>([]);
 
   function handleCodeChange(index: number, value: string) {
     // Only allow digits
