@@ -71,18 +71,23 @@ export default function SignupScreen() {
     
     try {
       addDebugLog('🔄 Calling register() function...');
+      addDebugLog('⏳ Waiting for Edge Function response...');
       
       // Create user account and send verification email
       await register(email, password, name);
       
-      addDebugLog('✅ Register() completed successfully!');
+      addDebugLog('✅ Register() returned without error');
+      addDebugLog('⚠️ BUT CHECK: Was user created in auth.users?');
+      addDebugLog('⚠️ Was verification email sent?');
       addDebugLog('📨 Check your email for verification code');
       
-      alert('Account created! Please check your email for the 7-digit verification code.');
-      router.push('/verify-email');
+      alert('Registration request sent. Check debug logs to see if it actually worked!');
+      // Don't navigate yet - let user see the logs
+      // router.push('/verify-email');
     } catch (error: any) {
-      addDebugLog(`❌ ERROR: ${error.message || 'Signup failed'}`);
-      addDebugLog(`❌ ERROR DETAILS: ${JSON.stringify(error)}`);
+      addDebugLog(`❌ ERROR CAUGHT: ${error.message || 'Signup failed'}`);
+      addDebugLog(`❌ ERROR STACK: ${error.stack || 'No stack'}`);
+      addDebugLog(`❌ ERROR FULL: ${JSON.stringify(error, null, 2)}`);
       alert(error.message || 'Signup failed');
     } finally {
       setIsLoading(false);
