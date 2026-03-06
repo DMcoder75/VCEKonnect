@@ -23,8 +23,14 @@ export async function registerUser(
 ): Promise<AuthResponse> {
   const log = (msg: string) => {
     console.log(msg);
-    onLog?.(msg);
+    if (onLog) {
+      onLog(msg);
+    }
   };
+  
+  // IMMEDIATE TEST LOG
+  log('🔴 SERVICE FILE LOADED - registerUser() called!');
+  log(`🔴 onLog callback: ${onLog ? 'PROVIDED' : 'MISSING'}`);
   
   try {
     log('📝 Starting registration...');
