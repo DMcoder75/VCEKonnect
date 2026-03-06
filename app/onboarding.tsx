@@ -32,6 +32,16 @@ export default function OnboardingScreen() {
   const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  
+  // DEBUG LOG STATE (TEMPORARY)
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    setDebugLogs(prev => [...prev, logMessage]);
+    console.log(logMessage);
+  };
 
   useEffect(() => {
     loadStates();
@@ -45,17 +55,33 @@ export default function OnboardingScreen() {
 
   async function loadStates() {
     setIsLoadingData(true);
-    console.log('📍 ONBOARDING: Loading states...');
+    setDebugLogs([]); // Clear previous logs
+    addDebugLog('🚀 ONBOARDING: Loading states...');
+    addDebugLog(`📍 Supabase URL: ${process.env.EXPO_PUBLIC_SUPABASE_URL || 'MISSING'}`);
+    
     try {
+      addDebugLog('📍 Calling getAllStates() service...');
       const states = await getAllStates();
-      console.log('📍 ONBOARDING: Loaded states:', states.length, 'states');
-      console.log('📍 ONBOARDING: First state:', states[0]);
+      addDebugLog(`✅ Loaded ${states.length} states`);
+      
+      if (states.length > 0) {
+        addDebugLog(`✅ First state: ${JSON.stringify(states[0])}`);
+      } else {
+        addDebugLog('⚠️ WARNING: No states returned from database!');
+      }
+      
       setAllStates(states);
+      addDebugLog('✅ States set successfully');
     } catch (error: any) {
-      console.error('❌ ONBOARDING: Failed to load states:', error);
-      console.error('❌ ONBOARDING: Error details:', error.message || error);
+      addDebugLog(`❌ FAILED to load states!`);
+      addDebugLog(`❌ Error: ${error.message || error}`);
+      addDebugLog(`❌ Error type: ${error.constructor.name}`);
+      if (error.stack) {
+        addDebugLog(`❌ Stack: ${error.stack.substring(0, 200)}`);
+      }
     } finally {
       setIsLoadingData(false);
+      addDebugLog('🏁 loadStates() finished');
     }
   }
 
@@ -118,6 +144,20 @@ export default function OnboardingScreen() {
           <View>
             <Text style={styles.title}>Select your state</Text>
             <Text style={styles.description}>Choose your Australian state or territory</Text>
+            
+            {/* DEBUG LOG AREA (TEMPORARY) */}
+            {debugLogs.length > 0 && (
+              <View style={styles.debugContainer}>
+                <Text style={styles.debugTitle}>🔍 DEBUG LOGS (TEMP)</Text>
+                <ScrollView style={styles.debugScroll} nestedScrollEnabled>
+                  {debugLogs.map((log, index) => (
+                    <Text key={index} style={styles.debugLog}>
+                      {log}
+                    </Text>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             
             {isLoadingData ? (
               <View style={styles.loadingContainer}>
@@ -304,6 +344,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  // DEBUG STYLES (TEMPORARY)
+  debugContainer: {
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    maxHeight: 200,
+  },
+  debugTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: '#00ff00',
+    marginBottom: spacing.sm,
+  },
+  debugScroll: {
+    maxHeight: 150,
+  },
+  debugLog: {
+    fontSize: 10,
+    color: '#ccc',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 3,
   },
   header: {
     padding: spacing.md,
