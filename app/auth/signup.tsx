@@ -32,6 +32,15 @@ export default function SignupScreen() {
   };
 
   async function handleSignup() {
+    // CRITICAL: Prevent double-click/race condition
+    if (isLoading) {
+      addDebugLog('⚠️ BLOCKED: Already processing signup request');
+      return;
+    }
+    
+    // Set loading IMMEDIATELY to prevent concurrent calls
+    setIsLoading(true);
+    
     // Clear previous logs
     setDebugLogs([]);
     addDebugLog('🚀 SIGNUP STARTED');
@@ -39,6 +48,7 @@ export default function SignupScreen() {
     if (!name || !email || !password || !confirmPassword) {
       addDebugLog('❌ VALIDATION FAILED: Missing fields');
       alert('Please fill in all fields');
+      setIsLoading(false);
       return;
     }
     addDebugLog('✅ All fields provided');
@@ -46,6 +56,7 @@ export default function SignupScreen() {
     if (password !== confirmPassword) {
       addDebugLog('❌ VALIDATION FAILED: Passwords do not match');
       alert('Passwords do not match');
+      setIsLoading(false);
       return;
     }
     addDebugLog('✅ Passwords match');
@@ -53,6 +64,7 @@ export default function SignupScreen() {
     if (password.length < 6) {
       addDebugLog('❌ VALIDATION FAILED: Password too short');
       alert('Password must be at least 6 characters');
+      setIsLoading(false);
       return;
     }
     addDebugLog(`✅ Password length valid (${password.length} chars)`);
@@ -62,11 +74,10 @@ export default function SignupScreen() {
     if (!emailRegex.test(email)) {
       addDebugLog('❌ VALIDATION FAILED: Invalid email format');
       alert('Please enter a valid email address');
+      setIsLoading(false);
       return;
     }
     addDebugLog('✅ Email format valid');
-    
-    setIsLoading(true);
     addDebugLog(`📧 Email: ${email}`);
     addDebugLog(`👤 Name: ${name}`);
     addDebugLog(`🔑 Password length: ${password.length}`);
