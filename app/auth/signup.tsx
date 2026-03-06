@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,42 +20,73 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
+  
+  // DEBUG LOG STATE (TEMPORARY)
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
 
   async function handleSignup() {
+    // Clear previous logs
+    setDebugLogs([]);
+    addDebugLog('🚀 SIGNUP STARTED');
+    
     if (!name || !email || !password || !confirmPassword) {
+      addDebugLog('❌ VALIDATION FAILED: Missing fields');
       alert('Please fill in all fields');
       return;
     }
+    addDebugLog('✅ All fields provided');
     
     if (password !== confirmPassword) {
+      addDebugLog('❌ VALIDATION FAILED: Passwords do not match');
       alert('Passwords do not match');
       return;
     }
+    addDebugLog('✅ Passwords match');
 
     if (password.length < 6) {
+      addDebugLog('❌ VALIDATION FAILED: Password too short');
       alert('Password must be at least 6 characters');
       return;
     }
+    addDebugLog(`✅ Password length valid (${password.length} chars)`);
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      addDebugLog('❌ VALIDATION FAILED: Invalid email format');
       alert('Please enter a valid email address');
       return;
     }
+    addDebugLog('✅ Email format valid');
     
     setIsLoading(true);
+    addDebugLog(`📧 Email: ${email}`);
+    addDebugLog(`👤 Name: ${name}`);
+    addDebugLog(`🔑 Password length: ${password.length}`);
     
     try {
+      addDebugLog('🔄 Calling register() function...');
+      
       // Create user account and send verification email
       await register(email, password, name);
+      
+      addDebugLog('✅ Register() completed successfully!');
+      addDebugLog('📨 Check your email for verification code');
       
       alert('Account created! Please check your email for the 7-digit verification code.');
       router.push('/verify-email');
     } catch (error: any) {
+      addDebugLog(`❌ ERROR: ${error.message || 'Signup failed'}`);
+      addDebugLog(`❌ ERROR DETAILS: ${JSON.stringify(error)}`);
       alert(error.message || 'Signup failed');
     } finally {
       setIsLoading(false);
+      addDebugLog('🏁 Signup process finished');
     }
   }
 
@@ -118,6 +149,20 @@ export default function SignupScreen() {
             fullWidth
           />
         </View>
+
+        {/* DEBUG LOG AREA (TEMPORARY) */}
+        {debugLogs.length > 0 && (
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>🔍 DEBUG LOGS (TEMP)</Text>
+            <ScrollView style={styles.debugScroll} nestedScrollEnabled>
+              {debugLogs.map((log, index) => (
+                <Text key={index} style={styles.debugLog}>
+                  {log}
+                </Text>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -185,5 +230,30 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontWeight: typography.semibold,
+  },
+  // DEBUG STYLES (TEMPORARY)
+  debugContainer: {
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    backgroundColor: '#1a1a1a',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#333',
+    maxHeight: 300,
+  },
+  debugTitle: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: '#00ff00',
+    marginBottom: spacing.sm,
+  },
+  debugScroll: {
+    maxHeight: 250,
+  },
+  debugLog: {
+    fontSize: 11,
+    color: '#ccc',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 4,
   },
 });

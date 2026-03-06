@@ -198,12 +198,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function register(email: string, password: string, name: string) {
-    console.log('🔐 AuthContext: Registering...');
+    console.log('📝 [AUTH CONTEXT] Registering user:', email);
+    console.log('📝 [AUTH CONTEXT] Calling registerUser service...');
+    
     const { error } = await registerUser(email, password, name);
+    
+    console.log('📝 [AUTH CONTEXT] registerUser response:', { error });
+    
     if (error) {
+      console.error('❌ [AUTH CONTEXT] Registration failed:', error);
       throw new Error(error);
     }
-    console.log('🔐 AuthContext: Registration successful, verification email sent');
+    
+    console.log('✅ [AUTH CONTEXT] Registration successful!');
+    console.log('✅ [AUTH CONTEXT] Verification email sent');
     // User needs to verify email before logging in
   }
 
