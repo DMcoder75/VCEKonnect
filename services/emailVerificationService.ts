@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import Constants from 'expo-constants';
 
 export interface VerificationResponse {
   success: boolean;
@@ -7,82 +6,42 @@ export interface VerificationResponse {
 }
 
 /**
- * Generate 7-digit verification code
- */
-function generateVerificationCode(): string {
-  return Math.floor(1000000 + Math.random() * 9000000).toString();
-}
-
-/**
  * Request a verification code to be sent to the email
- * Stores code in database and sends email via Firebase Cloud Function
+ * Calls the resend-verification-code Edge Function
  * @param email - User's email address
  * @param purpose - 'signup' or 'password_reset'
- * @param name - Optional user name for email personalization
  */
 export async function sendVerificationCode(
   email: string,
-  purpose: 'signup' | 'password_reset',
-  name?: string
+  purpose: 'signup' | 'password_reset' = 'signup'
 ): Promise<VerificationResponse> {
   try {
-    // Use the same external Supabase client as auth service
+    console.log('📧 Calling resend-verification-code Edge Function...');
     
-    // Generate 7-digit code
-    const code = generateVerificationCode();
-    
-    // Store code in database (expires in 10 minutes)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    
-    const { error: dbError } = await supabase
-      .from('vk_email_verifications')
-      .insert({
+    const { data, error } = await supabase.functions.invoke('resend-verification-code', {
+      body: {
         email: email.toLowerCase(),
-        code,
         purpose,
-        expires_at: expiresAt,
-      });
-
-    if (dbError) {
-      console.error('Database error:', dbError);
-      return { success: false, error: 'Failed to store verification code' };
-    }
-
-    // Send email via Firebase Cloud Function
-    const firebaseUrl = Constants.expoConfig?.extra?.firebaseEmailFunctionUrl || 
-                        process.env.EXPO_PUBLIC_FIREBASE_EMAIL_FUNCTION_URL;
-
-    if (!firebaseUrl) {
-      console.error('Firebase email function URL not configured');
-      return { 
-        success: false, 
-        error: 'Email service not configured. Please contact support.' 
-      };
-    }
-
-    const emailResponse = await fetch(firebaseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email: email.toLowerCase(),
-        code,
-        purpose,
-        name,
-      }),
     });
 
-    if (!emailResponse.ok) {
-      const errorData = await emailResponse.json();
-      console.error('Email sending failed:', errorData);
+    if (error) {
+      console.error('Edge Function error:', error);
       return { 
         success: false, 
-        error: errorData.error || 'Failed to send verification email' 
+        error: error.message || 'Failed to send verification code' 
       };
     }
 
-    console.log(`Verification email sent to ${email} for ${purpose}`);
+    if (data?.error) {
+      console.error('Edge Function returned error:', data.error);
+      return { 
+        success: false, 
+        error: data.error 
+      };
+    }
+
+    console.log('✅ Verification email sent successfully');
     
     return {
       success: true,

@@ -31,7 +31,7 @@ export default function OnboardingScreen() {
   const [yearLevel, setYearLevel] = useState<11 | 12>(12);
   const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     loadStates();
@@ -44,18 +44,18 @@ export default function OnboardingScreen() {
   }, [selectedState]);
 
   async function loadStates() {
-    setIsLoading(true);
+    setIsLoadingData(true);
     const states = await getAllStates();
     setAllStates(states);
-    setIsLoading(false);
+    setIsLoadingData(false);
   }
 
   async function loadSubjects() {
     if (!selectedState) return;
-    setIsLoading(true);
+    setIsLoadingData(true);
     const subjects = await getSubjectsByState(selectedState);
     setAllSubjects(subjects);
-    setIsLoading(false);
+    setIsLoadingData(false);
   }
 
   function toggleSubject(subjectId: string) {
@@ -110,7 +110,7 @@ export default function OnboardingScreen() {
             <Text style={styles.title}>Select your state</Text>
             <Text style={styles.description}>Choose your Australian state or territory</Text>
             
-            {isLoading ? (
+            {isLoadingData ? (
               <View style={styles.loadingContainer}>
                 <MaterialIcons name="hourglass-empty" size={48} color={colors.textTertiary} />
                 <Text style={styles.loadingText}>Loading states...</Text>

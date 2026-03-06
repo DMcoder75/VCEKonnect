@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@/constants/theme';
 import { Input, Button } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
+import { sendVerificationCode } from '@/services/emailVerificationService';
 
 type VerificationMode = 'have-code' | 'need-code';
 
@@ -60,7 +61,38 @@ export default function VerifyEmailScreen() {
   }
 
   async function handleSendCode() {
-    alert('To resend verification code, please sign up again from the signup page.');
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    
+    setIsSendingCode(true);
+    
+    try {
+      const { success, error } = await sendVerificationCode(email, 'signup');
+      
+      if (error) {
+        Alert.alert('Failed to Send Code', error);
+      } else {
+        Alert.alert(
+          'Code Sent!',
+          'A new 7-digit verification code has been sent to your email. Please check your inbox (and spam folder).'
+        );
+        // Switch to "I have code" mode automatically
+        setMode('have-code');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send verification code');
+    } finally {
+      setIsSendingCode(false);
+    }
   }
 
   async function handleVerifyCode() {
