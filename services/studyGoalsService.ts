@@ -1,4 +1,4 @@
-import { supabase } from './supabase.web';
+import { supabase } from './supabase';
 import { checkConnection } from './networkService';
 import { saveActiveGoals as saveOfflineGoals, getActiveGoals as getOfflineGoals } from './offlineDatabase';
 
