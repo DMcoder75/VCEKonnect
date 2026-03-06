@@ -70,7 +70,8 @@ Deno.serve(async (req) => {
 
     // STEP 3: Mark verification code as used
     console.log('📧 [VERIFY] Marking verification code as used...');
-    await supabaseAdmin
+    console.log('📧 [VERIFY] Verification ID:', verification.id);
+    const { error: markUsedError } = await supabaseAdmin
       .from('vk_email_verifications')
       .update({
         is_used: true,
@@ -78,17 +79,27 @@ Deno.serve(async (req) => {
       })
       .eq('id', verification.id);
 
+    if (markUsedError) {
+      console.error('❌ [VERIFY] Failed to mark code as used:', markUsedError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update verification status: ' + markUsedError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('✅ [VERIFY] Verification code marked as used');
 
     // STEP 4: Update vk_users to mark as verified
     console.log('📧 [VERIFY] Updating vk_users table...');
-    const { error: vkUserError } = await supabaseAdmin
+    console.log('📧 [VERIFY] Auth user ID:', authUser.user.id);
+    const { data: updateResult, error: vkUserError } = await supabaseAdmin
       .from('vk_users')
       .update({
         is_verified: true,
         verified_at: new Date().toISOString(),
       })
-      .eq('auth_user_id', authUser.user.id);
+      .eq('auth_user_id', authUser.user.id)
+      .select();
 
     if (vkUserError) {
       console.error('❌ [VERIFY] Failed to update vk_users:', vkUserError);
@@ -98,11 +109,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('✅ [VERIFY] vk_users updated');
+    console.log('✅ [VERIFY] vk_users updated:', updateResult);
 
     // STEP 5: Update auth.users to mark email as verified
     console.log('📧 [VERIFY] Updating auth.users email verification...');
-    const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
+    console.log('📧 [VERIFY] Updating user:', authUser.user.id);
+    const { data: updatedAuthUser, error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
       authUser.user.id,
       { email_confirm: true }
     );
@@ -115,7 +127,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('✅ [VERIFY] auth.users email verified');
+    console.log('✅ [VERIFY] auth.users email verified:', updatedAuthUser.user.email_confirmed_at);
 
     // STEP 6: Get vk_users profile
     console.log('📧 [VERIFY] Loading user profile...');
