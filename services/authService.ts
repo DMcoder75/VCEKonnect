@@ -21,12 +21,6 @@ export async function registerUser(
   name: string
 ): Promise<AuthResponse> {
   try {
-    console.log('📝 [REGISTER] Starting registration...');
-    console.log('📝 [REGISTER] Email:', email.toLowerCase());
-    console.log('📝 [REGISTER] Name:', name);
-    console.log('📝 [REGISTER] Password length:', password.length);
-    
-    console.log('📝 [REGISTER] Calling auth-signup Edge Function...');
     const { data, error } = await supabase.functions.invoke('auth-signup', {
       body: {
         email: email.toLowerCase(),
@@ -37,43 +31,18 @@ export async function registerUser(
       },
     });
 
-    console.log('📝 [REGISTER] Edge Function RAW response:', JSON.stringify({ data, error }, null, 2));
-
     if (error) {
-      console.error('❌ [REGISTER] Edge Function error:', error);
-      const errorMsg = `Edge Function Error: ${error.message || 'Signup failed'}`;
-      console.error('❌ [REGISTER]', errorMsg);
-      throw new Error(errorMsg);
+      return { user: null, error: error.message || 'Signup failed' };
     }
 
     if (data?.error) {
-      console.error('❌ [REGISTER] Data error:', data.error);
-      throw new Error(`Registration Error: ${data.error}`);
+      return { user: null, error: data.error };
     }
 
-    console.log('✅ [REGISTER] Response data:', JSON.stringify(data, null, 2));
-    console.log('✅ [REGISTER] User created in auth.users?', data?.authUser ? 'YES ✅' : 'NO ❌');
-    console.log('✅ [REGISTER] User created in vk_users?', data?.user ? 'YES ✅' : 'NO ❌');
-    console.log('✅ [REGISTER] Verification code sent?', data?.verificationSent ? 'YES ✅' : 'NO ❌');
-    
-    // Verify critical steps completed
-    if (!data?.authUser) {
-      throw new Error('CRITICAL: User was NOT created in auth.users table! Check Edge Function logs.');
-    }
-    
-    if (!data?.user) {
-      throw new Error('CRITICAL: User was NOT created in vk_users table! Check Edge Function logs.');
-    }
-    
-    if (!data?.verificationSent) {
-      throw new Error('WARNING: Verification email was NOT sent! Check Firebase function logs.');
-    }
-    
     // User created successfully, needs to verify email
     return { user: null, error: null };
   } catch (err: any) {
-    console.error('❌ [REGISTER] Exception:', err);
-    throw err; // Re-throw so the error reaches the UI
+    return { user: null, error: err.message || 'Registration failed' };
   }
 }
 
