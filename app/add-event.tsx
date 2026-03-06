@@ -19,7 +19,7 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { useNotifications } from '@/hooks/useNotifications';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { VCESubject } from '@/services/vceSubjectsService';
-import { supabase as supabaseClient } from '@/services/supabase';
+import { supabase as supabaseClient } from '@/services/supabase.web';
 
 export default function AddEventScreen() {
   const router = useRouter();
