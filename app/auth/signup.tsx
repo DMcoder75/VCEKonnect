@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.lg,
+    paddingBottom: spacing.xxl * 2,
     justifyContent: 'center',
   },
   logoContainer: {
