@@ -6,9 +6,8 @@ import { Platform, View, Animated } from 'react-native';
 import { colors } from '@/constants/theme';
 import { QuickAccessDrawer, FloatingMenuButton, OfflineIndicator } from '@/components/ui';
 import { useStudyTimer } from '@/hooks/useStudyTimer';
-// Temporarily disable version check to isolate crash
-// import { VersionCheckModal } from '@/components/feature/VersionCheckModal';
-// import { useVersionCheck } from '@/hooks/useVersionCheck';
+import { VersionCheckModal } from '@/components/feature/VersionCheckModal';
+import { useVersionCheck } from '@/hooks/useVersionCheck';
 
 // Animated Study Tab Icon that blinks red when timer is running
 const StudyTabIcon = React.memo(({ color, size, isRunning }: { color: string; size: number; isRunning: boolean }) => {
@@ -59,7 +58,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { isRunning } = useStudyTimer();
-  // const { versionStatus, shouldShowModal, dismissUpdate } = useVersionCheck();
+  const { versionStatus, shouldShowModal, dismissUpdate } = useVersionCheck();
 
   const tabBarStyle = {
     height: Platform.select({
@@ -85,14 +84,13 @@ export default function TabLayout() {
       <FloatingMenuButton onPress={() => setIsDrawerOpen(true)} />
       <QuickAccessDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
       
-      {/* Version Check Modal - temporarily disabled to isolate crash
+      {/* Version Check Modal - only shows in tabs after successful login */}
       {shouldShowModal && (
         <VersionCheckModal 
           versionStatus={versionStatus} 
           onDismiss={dismissUpdate}
         />
       )}
-      */}
       <Tabs
       screenOptions={{
         headerShown: false,
