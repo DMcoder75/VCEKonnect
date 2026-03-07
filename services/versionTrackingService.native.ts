@@ -4,7 +4,7 @@
  */
 
 import { Platform } from 'react-native';
-import { supabase } from './supabase.native';
+import { supabase } from './supabase';
 import { getCurrentAppVersion } from './versionService.native';
 import Constants from 'expo-constants';
 

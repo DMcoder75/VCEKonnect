@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { supabase } from './supabase.native';
+import { supabase } from './supabase';
 import * as Linking from 'expo-linking';
 
 export interface VersionStatus {
