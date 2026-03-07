@@ -24,10 +24,12 @@ import { getUserSubjects } from '@/services/userSubjectsService';
 import { usePremium } from '@/hooks/usePremium';
 
 
-// Helper function to capitalize first letter of name
+// Helper function to get and capitalize first word of name
 function capitalizeFirstLetter(name: string): string {
   if (!name) return '';
-  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  // Take only the first word
+  const firstName = name.split(' ')[0];
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 }
 
 export default function DashboardScreen() {
