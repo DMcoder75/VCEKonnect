@@ -106,10 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Save to SQLite for offline use
           await saveUserProfile(currentUser);
           
-          // Track app version on session restore
-          updateUserAppVersion(currentUser.id).catch(err => 
-            console.warn('Failed to track version on session restore:', err)
-          );
+          // Track app version on session restore (delayed to avoid launch crash)
+          setTimeout(() => {
+            updateUserAppVersion(currentUser.id).catch(err => 
+              console.warn('Failed to track version on session restore:', err)
+            );
+          }, 2000); // 2 second delay to ensure app is fully loaded
         } else {
           console.log('❌ AuthContext: No valid session found');
           hasValidSession = false;

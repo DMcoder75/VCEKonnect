@@ -53,20 +53,27 @@ export async function updateUserAppVersion(userId: string): Promise<void> {
     const platform = getPlatform();
     const deviceInfo = getDeviceInfo();
 
-    const { error } = await supabase.rpc('update_user_app_version', {
+    // Add timeout protection to prevent hanging on network issues
+    const updatePromise = supabase.rpc('update_user_app_version', {
       p_user_id: userId,
       p_app_version: appVersion,
       p_platform: platform,
       p_device_info: deviceInfo,
     });
 
+    const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) =>
+      setTimeout(() => resolve({ error: { message: 'Timeout' } }), 5000)
+    );
+
+    const { error } = await Promise.race([updatePromise, timeoutPromise]);
+
     if (error) {
-      console.error('[VersionTracking] Error updating version:', error);
+      console.warn('[VersionTracking] Error updating version:', error.message);
     } else {
       console.log(`[VersionTracking] Updated to ${appVersion} (${platform})`);
     }
   } catch (err) {
-    console.error('[VersionTracking] Failed to update version:', err);
+    console.warn('[VersionTracking] Failed to update version (non-critical):', err);
   }
 }
 
