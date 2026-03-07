@@ -33,7 +33,6 @@ export default function OnboardingScreen() {
   const [allStates, setAllStates] = useState<AustralianState[]>([]);
   const [allSubjects, setAllSubjects] = useState<VCESubject[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [debugInfo, setDebugInfo] = useState<string>(''); // TEMP DEBUG - Remove after testing
 
   useEffect(() => {
     loadStates();
@@ -52,10 +51,8 @@ export default function OnboardingScreen() {
       const states = await getAllStates();
       setAllStates(states);
       console.log(`✅ Loaded ${states.length} states from external Supabase`);
-      setDebugInfo(`✅ Loaded ${states.length} states`); // TEMP DEBUG
     } catch (error: any) {
       console.error('Failed to load states:', error);
-      setDebugInfo(`❌ Error: ${error.message}`); // TEMP DEBUG
     } finally {
       setIsLoadingData(false);
     }
@@ -104,24 +101,6 @@ export default function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* TEMP DEBUG OVERLAY - Shows state loading status */}
-      {debugInfo && (
-        <View style={{
-          position: 'absolute',
-          top: insets.top + 60,
-          left: 0,
-          right: 0,
-          backgroundColor: 'rgba(0,0,0,0.9)',
-          padding: 12,
-          zIndex: 9999,
-          borderBottomWidth: 2,
-          borderBottomColor: colors.primary,
-        }}>
-          <Text style={{ color: colors.success, fontSize: 11, fontFamily: 'monospace' }}>
-            {debugInfo}
-          </Text>
-        </View>
-      )}
       <View style={styles.header}>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${(step / totalSteps) * 100}%` }]} />
@@ -327,6 +306,10 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   progressBar: {
     height: 4,
@@ -349,6 +332,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
   },
   title: {
