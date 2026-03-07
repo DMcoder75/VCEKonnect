@@ -14,7 +14,11 @@ export function useVersionCheck() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    checkVersion();
+    // Delay version check to avoid blocking app launch
+    const timer = setTimeout(() => {
+      checkVersion();
+    }, 3000); // 3 second delay
+    return () => clearTimeout(timer);
   }, []);
 
   async function checkVersion() {

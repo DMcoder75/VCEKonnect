@@ -10,7 +10,7 @@ import {
 } from '@/services/authService';
 import { getUserSubjects } from '@/services/userSubjectsService';
 import { getSubjectsByState, VCESubject, getAllStates, AustralianState } from '@/services/vceSubjectsService';
-import { updateUserAppVersion } from '@/services/versionTrackingService';
+// Version tracking import moved to dynamic import to avoid early initialization issues
 import { 
   initDatabase,
   saveUserProfile,
@@ -106,12 +106,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Save to SQLite for offline use
           await saveUserProfile(currentUser);
           
-          // Track app version on session restore (delayed to avoid launch crash)
+          // Track app version on session restore (completely async and non-blocking)
           setTimeout(() => {
-            updateUserAppVersion(currentUser.id).catch(err => 
-              console.warn('Failed to track version on session restore:', err)
-            );
-          }, 2000); // 2 second delay to ensure app is fully loaded
+            // Dynamic import to avoid initialization issues
+            import('@/services/versionTrackingService')
+              .then(({ updateUserAppVersion }) => {
+                updateUserAppVersion(currentUser.id).catch(err => 
+                  console.warn('Failed to track version:', err)
+                );
+              })
+              .catch(err => console.warn('Failed to load version tracking:', err));
+          }, 5000); // 5 second delay to ensure app is fully loaded
         } else {
           console.log('❌ AuthContext: No valid session found');
           hasValidSession = false;
