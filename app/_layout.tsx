@@ -4,7 +4,7 @@ import { AlertProvider } from '@/template';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { StudyTimerProvider } from '@/contexts/StudyTimerContext';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import { View } from 'react-native';
 
 export default function RootLayout() {
   return (
@@ -12,7 +12,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <StudyTimerProvider>
-            <React.Fragment>
+            <View style={{ flex: 1 }}>
               <StatusBar style="light" />
               <Stack
                 screenOptions={{
@@ -42,7 +42,7 @@ export default function RootLayout() {
                   }}
                 />
               </Stack>
-            </React.Fragment>
+            </View>
           </StudyTimerProvider>
         </AuthProvider>
       </SafeAreaProvider>
