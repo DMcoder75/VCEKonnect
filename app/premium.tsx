@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components';
 import { usePremium } from '@/hooks/usePremium';
+import { STRIPE_TIERS } from '@/constants/stripeConfig';
+import { supabase } from '@/services/supabase';
+import * as WebBrowser from 'expo-web-browser';
 
 type PlanType = 'basic' | 'pro';
 
@@ -25,10 +28,92 @@ export default function PremiumScreen() {
     }
   }, [params.requiredTier]);
 
-  function handleSubscribe(plan: PlanType) {
-    // TODO: Stripe payment integration
-    alert(`${plan === 'basic' ? 'Basic' : 'Pro'} subscription coming soon! This will integrate with Stripe payments.`);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubscribe(plan: PlanType) {
+    setIsLoading(true);
+    
+    try {
+      const tierConfig = STRIPE_TIERS[plan];
+      
+      // Call Edge Function to create checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          priceId: tierConfig.price_id,
+          tier: plan,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('No checkout URL returned');
+
+      // Open Stripe checkout in browser
+      await WebBrowser.openBrowserAsync(data.url);
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      Alert.alert(
+        'Subscription Error',
+        error.message || 'Failed to start subscription process. Please try again.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  async function handleManageSubscription() {
+    setIsLoading(true);
+    
+    try {
+      // Call Edge Function to create customer portal session
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('No portal URL returned');
+
+      // Open Stripe customer portal in browser
+      await WebBrowser.openBrowserAsync(data.url);
+    } catch (error: any) {
+      console.error('Portal error:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to open subscription management. Please try again.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Listen for deep link returns from Stripe
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      const { url } = event;
+      if (url.includes('subscription/success')) {
+        // Refresh subscription status
+        Alert.alert(
+          'Subscription Successful! 🎉',
+          'Your premium subscription is now active. Refreshing your account...',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Force refresh premium status
+                router.back();
+              },
+            },
+          ],
+        );
+      } else if (url.includes('subscription/cancel')) {
+        Alert.alert(
+          'Subscription Cancelled',
+          'You cancelled the subscription process. You can try again anytime.',
+        );
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    
+    return () => subscription.remove();
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -281,14 +366,20 @@ export default function PremiumScreen() {
           style={[
             styles.subscribeButton,
             selectedPlan === 'pro' && styles.subscribeButtonPro,
-            tier === selectedPlan && styles.subscribeButtonDisabled,
+            (tier === selectedPlan || isLoading) && styles.subscribeButtonDisabled,
           ]}
           onPress={() => handleSubscribe(selectedPlan)}
-          disabled={tier === selectedPlan}
+          disabled={tier === selectedPlan || isLoading}
         >
-          <MaterialIcons name="workspace-premium" size={24} color={colors.background} />
+          {isLoading ? (
+            <ActivityIndicator size="small" color={colors.background} />
+          ) : (
+            <MaterialIcons name="workspace-premium" size={24} color={colors.background} />
+          )}
           <Text style={styles.subscribeButtonText}>
-            {tier === selectedPlan 
+            {isLoading
+              ? 'Processing...'
+              : tier === selectedPlan 
               ? `Current Plan: ${selectedPlan === 'basic' ? 'Basic' : 'Pro'}` 
               : tier === 'pro' && selectedPlan === 'basic'
               ? 'Downgrade to Basic'
@@ -298,6 +389,20 @@ export default function PremiumScreen() {
             }
           </Text>
         </Pressable>
+
+        {/* Manage Subscription Button - Only show if user has active subscription */}
+        {tier !== 'free' && (
+          <Pressable
+            style={styles.manageButton}
+            onPress={handleManageSubscription}
+            disabled={isLoading}
+          >
+            <MaterialIcons name="settings" size={20} color={colors.primary} />
+            <Text style={styles.manageButtonText}>
+              Manage Subscription
+            </Text>
+          </Pressable>
+        )}
 
         <Text style={styles.disclaimer}>
           Cancel anytime. Auto-renews after 6 months unless cancelled. All prices in AUD.
@@ -514,5 +619,23 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  manageButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.primary,
   },
 });

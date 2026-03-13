@@ -11,6 +11,7 @@ import {
   getAIPracticeQuestionsUsage,
   PREMIUM_TIER_LIMITS,
 } from '@/services/premiumService';
+import { supabase } from '@/services/supabase';
 
 export function usePremium() {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export function usePremium() {
   useEffect(() => {
     if (user) {
       loadPremiumStatus();
+      // Also check Stripe subscription status
+      checkStripeSubscription();
     } else {
       setTier('free');
       setLimits(PREMIUM_TIER_LIMITS.free);
@@ -32,6 +35,33 @@ export function usePremium() {
       setIsLoading(false);
     }
   }, [user]);
+
+  async function checkStripeSubscription() {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error('Error checking Stripe subscription:', error);
+        return;
+      }
+      
+      if (data?.subscribed && data?.tier) {
+        // Update local state if Stripe tier differs
+        if (data.tier !== tier) {
+          console.log('Stripe tier mismatch, updating:', { stripe: data.tier, local: tier });
+          setTier(data.tier);
+          
+          // Reload limits for new tier
+          const newLimits = await getUserPremiumLimits(user.id);
+          setLimits(newLimits);
+        }
+      }
+    } catch (error) {
+      console.error('Exception checking Stripe subscription:', error);
+    }
+  }
 
   async function loadPremiumStatus() {
     if (!user) return;

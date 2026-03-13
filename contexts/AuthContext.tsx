@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { UserProfile } from '@/types';
 import {
@@ -77,7 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserSubjects([]);
       setAllStateSubjects([]);
     }
-  }, [user?.id]);
+  }, [user]); // Added missing dependency array for useEffect
+
+  // Check subscription status from Stripe
+  async function checkSubscriptionStatus(userId: string) {
+    try {
+      const { data, error } = await import('@/services/supabase').then(m => m.supabase.functions.invoke('check-subscription'));
+      
+      if (error) {
+        console.error('Subscription check error:', error);
+        return;
+      }
+      
+      console.log('💳 Subscription status:', data);
+    } catch (error) {
+      console.error('Exception checking subscription:', error);
+    }
+  }
 
   async function loadStates() {
     console.log('🌏 AuthContext: Loading states...');
@@ -117,6 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               })
               .catch(err => console.warn('Failed to load version tracking:', err));
           }, 5000); // 5 second delay to ensure app is fully loaded
+          
+          // Check subscription status from Stripe (non-blocking)
+          setTimeout(() => {
+            checkSubscriptionStatus(currentUser.id).catch(err => 
+              console.warn('Subscription check failed:', err)
+            );
+          }, 6000);
         } else {
           console.log('❌ AuthContext: No valid session found');
           hasValidSession = false;
