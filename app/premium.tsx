@@ -8,6 +8,7 @@ import { Button } from '@/components';
 import { usePremium } from '@/hooks/usePremium';
 import { STRIPE_TIERS } from '@/constants/stripeConfig';
 import { supabase } from '@/services/supabase';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 
 type PlanType = 'basic' | 'pro';
@@ -31,12 +32,19 @@ export default function PremiumScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubscribe(plan: PlanType) {
+    console.log('💳 [Premium] Starting subscription for plan:', plan);
     setIsLoading(true);
     
     try {
       const tierConfig = STRIPE_TIERS[plan];
+      console.log('💳 [Premium] Tier config:', {
+        tier: plan,
+        price_id: tierConfig.price_id,
+        product_id: tierConfig.product_id,
+      });
       
       // Call Edge Function to create checkout session
+      console.log('💳 [Premium] Calling create-checkout Edge Function...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tierConfig.price_id,
@@ -44,13 +52,38 @@ export default function PremiumScreen() {
         },
       });
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('No checkout URL returned');
+      console.log('💳 [Premium] Edge Function response:', { data, error });
 
+      if (error) {
+        // Extract detailed error from FunctionsHttpError
+        let errorMessage = error.message || 'Unknown error';
+        
+        if (error instanceof FunctionsHttpError) {
+          try {
+            const statusCode = error.context?.status ?? 500;
+            const textContent = await error.context?.text();
+            errorMessage = `[Code: ${statusCode}] ${textContent || error.message || 'Unknown error'}`;
+            console.error('💳 [Premium] Edge Function HTTP error:', errorMessage);
+          } catch {
+            errorMessage = error.message || 'Failed to read error response';
+            console.error('💳 [Premium] Failed to extract error:', errorMessage);
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      if (!data?.url) {
+        console.error('💳 [Premium] No checkout URL in response:', data);
+        throw new Error('No checkout URL returned from server');
+      }
+
+      console.log('💳 [Premium] Opening checkout URL:', data.url);
       // Open Stripe checkout in browser
       await WebBrowser.openBrowserAsync(data.url);
+      console.log('💳 [Premium] Browser opened successfully');
     } catch (error: any) {
-      console.error('Subscription error:', error);
+      console.error('💳 [Premium] Subscription error:', error);
       Alert.alert(
         'Subscription Error',
         error.message || 'Failed to start subscription process. Please try again.',
@@ -61,19 +94,46 @@ export default function PremiumScreen() {
   }
 
   async function handleManageSubscription() {
+    console.log('💳 [Premium] Opening customer portal...');
     setIsLoading(true);
     
     try {
       // Call Edge Function to create customer portal session
+      console.log('💳 [Premium] Calling customer-portal Edge Function...');
       const { data, error } = await supabase.functions.invoke('customer-portal');
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('No portal URL returned');
+      console.log('💳 [Premium] Portal response:', { data, error });
 
+      if (error) {
+        // Extract detailed error from FunctionsHttpError
+        let errorMessage = error.message || 'Unknown error';
+        
+        if (error instanceof FunctionsHttpError) {
+          try {
+            const statusCode = error.context?.status ?? 500;
+            const textContent = await error.context?.text();
+            errorMessage = `[Code: ${statusCode}] ${textContent || error.message || 'Unknown error'}`;
+            console.error('💳 [Premium] Portal HTTP error:', errorMessage);
+          } catch {
+            errorMessage = error.message || 'Failed to read error response';
+            console.error('💳 [Premium] Failed to extract portal error:', errorMessage);
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      if (!data?.url) {
+        console.error('💳 [Premium] No portal URL in response:', data);
+        throw new Error('No portal URL returned from server');
+      }
+
+      console.log('💳 [Premium] Opening portal URL:', data.url);
       // Open Stripe customer portal in browser
       await WebBrowser.openBrowserAsync(data.url);
+      console.log('💳 [Premium] Portal opened successfully');
     } catch (error: any) {
-      console.error('Portal error:', error);
+      console.error('💳 [Premium] Portal error:', error);
       Alert.alert(
         'Error',
         error.message || 'Failed to open subscription management. Please try again.',
