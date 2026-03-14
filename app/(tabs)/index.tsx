@@ -175,18 +175,18 @@ export default function DashboardScreen() {
     if (!user) return;
     
     try {
-      // Get raw database values
+      // Get raw database values using vk_users.id directly
       const { data: vkUserData } = await supabase
         .from('vk_users')
         .select('id, auth_user_id, is_premium, premium_tier, premium_expires_at, premium_auto_renew')
-        .eq('auth_user_id', user.authUserId)
+        .eq('id', user.id) // Use vk_users.id directly
         .single();
       
       // Get subscription data
       const { data: subData } = await supabase
         .from('vk_premium_subscriptions')
         .select('*')
-        .eq('user_id', vkUserData?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -196,8 +196,8 @@ export default function DashboardScreen() {
         vkUser: vkUserData,
         subscription: subData,
         user: {
-          authUserId: user.authUserId,
-          vkUserId: user.id,
+          contextUserId: user.id,
+          dbAuthUserId: vkUserData?.auth_user_id,
         }
       });
       setDebugTimestamp(new Date().toLocaleTimeString());
@@ -351,8 +351,8 @@ export default function DashboardScreen() {
               <Text style={styles.debugText}>isPremium: {isPremium ? 'true' : 'false'}</Text>
               
               <Text style={styles.debugSection}>👤 User IDs:</Text>
-              <Text style={styles.debugText}>auth_user_id: {debugData?.user?.authUserId}</Text>
-              <Text style={styles.debugText}>vk_users.id: {debugData?.user?.vkUserId}</Text>
+              <Text style={styles.debugText}>context user.id: {debugData?.user?.contextUserId}</Text>
+              <Text style={styles.debugText}>DB auth_user_id: {debugData?.user?.dbAuthUserId}</Text>
               
               <Text style={styles.debugSection}>💾 Database (vk_users):</Text>
               <Text style={styles.debugText}>is_premium: {debugData?.vkUser?.is_premium ? 'true' : 'false'}</Text>
