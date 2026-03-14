@@ -68,17 +68,21 @@ export function usePremium() {
     
     setIsLoading(true);
     try {
+      console.log('🔄 [usePremium] Loading premium status for user.id:', user.id);
+      
       const [userTier, userLimits, hasPremium] = await Promise.all([
         getUserPremiumTier(user.id),
         getUserPremiumLimits(user.id),
         hasActivePremium(user.id),
       ]);
       
+      console.log('✅ [usePremium] Premium status loaded:', { userTier, hasPremium });
+      
       setTier(userTier);
       setLimits(userLimits);
       setIsPremium(hasPremium);
     } catch (error) {
-      console.error('Error loading premium status:', error);
+      console.error('❌ [usePremium] Error loading premium status:', error);
     } finally {
       setIsLoading(false);
     }
