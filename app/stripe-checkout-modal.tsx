@@ -48,11 +48,15 @@ export default function StripeCheckoutModal() {
         await refresh();
         logNavigation('Subscription refreshed successfully');
         
-        Alert.alert(
-          'Payment Successful!',
-          `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        // Close modal immediately and show success
+        router.back();
+        setTimeout(() => {
+          Alert.alert(
+            'Payment Successful! 🎉',
+            `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
+            [{ text: 'OK' }]
+          );
+        }, 300);
       } catch (error) {
         logNavigation(`Error refreshing: ${error}`);
         console.error('Refresh error:', error);
@@ -65,20 +69,76 @@ export default function StripeCheckoutModal() {
     if (newUrl.includes('fairprep://subscription/cancel')) {
       logNavigation('❌ CANCEL DEEP LINK DETECTED!');
       console.log('❌ Payment cancelled');
-      Alert.alert(
-        'Payment Cancelled',
-        'Your subscription was not completed. You can try again anytime.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      router.back();
+      setTimeout(() => {
+        Alert.alert(
+          'Payment Cancelled',
+          'Your subscription was not completed. You can try again anytime.',
+          [{ text: 'OK' }]
+        );
+      }, 300);
       return;
+    }
+
+    // Check if we hit Stripe's success page (they show a success message before redirecting)
+    if (newUrl.includes('checkout.stripe.com') && navState.title?.toLowerCase().includes('success')) {
+      logNavigation('🎯 Stripe success page detected! Waiting for redirect...');
+    }
+
+    // CRITICAL: Detect when Stripe payment is complete but stuck on success page
+    // Stripe sometimes shows success page without auto-redirecting
+    if (newUrl.includes('checkout.stripe.com') && !navState.loading) {
+      // Check if we've been on a checkout page for a while without redirect
+      const checkTimeout = setTimeout(() => {
+        // If still on Stripe page after 3 seconds of no loading, assume success
+        if (currentUrl.includes('checkout.stripe.com')) {
+          logNavigation('⏰ Timeout on Stripe page - assuming success and closing');
+          handlePaymentComplete('success');
+        }
+      }, 3000);
+      
+      // Clean up timeout
+      return () => clearTimeout(checkTimeout);
     }
 
     // Check if we hit the payment success/cancel handler pages
     if (newUrl.includes('functions/v1/payment-success')) {
       logNavigation('📄 Hit payment-success handler page');
+      handlePaymentComplete('success');
     }
     if (newUrl.includes('functions/v1/payment-cancel')) {
       logNavigation('📄 Hit payment-cancel handler page');
+      handlePaymentComplete('cancel');
+    }
+  };
+
+  const handlePaymentComplete = async (status: 'success' | 'cancel') => {
+    if (status === 'success') {
+      logNavigation('✅ Processing payment success');
+      try {
+        await refresh();
+        router.back();
+        setTimeout(() => {
+          Alert.alert(
+            'Payment Successful! 🎉',
+            `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
+            [{ text: 'OK' }]
+          );
+        }, 300);
+      } catch (error) {
+        logNavigation(`Error: ${error}`);
+        router.back();
+      }
+    } else {
+      logNavigation('❌ Processing payment cancellation');
+      router.back();
+      setTimeout(() => {
+        Alert.alert(
+          'Payment Cancelled',
+          'Your subscription was not completed. You can try again anytime.',
+          [{ text: 'OK' }]
+        );
+      }, 300);
     }
   };
 
@@ -148,10 +208,20 @@ export default function StripeCheckoutModal() {
           const { nativeEvent } = syntheticEvent;
           logNavigation(`HTTP error: ${nativeEvent.statusCode} - ${nativeEvent.url}`);
         }}
+        onShouldStartLoadWithRequest={(request) => {
+          // Intercept deep link attempts
+          if (request.url.startsWith('fairprep://')) {
+            logNavigation(`🔗 Deep link intercepted: ${request.url}`);
+            // Let the navigation handler process it
+            return true;
+          }
+          return true;
+        }}
         startInLoadingState={true}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         sharedCookiesEnabled={true}
+        allowsBackForwardNavigationGestures={false}
       />
     </View>
   );
