@@ -104,7 +104,7 @@ serve(async (req) => {
           });
         }
 
-        // Retrieve subscription to get correct 6-month period dates
+        // Retrieve subscription to get correct period dates
         let subscription: Stripe.Subscription;
         try {
           subscription = await stripe.subscriptions.retrieve(subscriptionId);
