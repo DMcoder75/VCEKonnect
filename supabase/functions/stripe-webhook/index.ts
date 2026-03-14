@@ -104,7 +104,7 @@ serve(async (req) => {
           });
         }
 
-        // Retrieve subscription to get correct period dates
+        // Retrieve subscription to get correct 6-month period dates
         let subscription: Stripe.Subscription;
         try {
           subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -139,7 +139,7 @@ serve(async (req) => {
 
         logStep("VK user found", { vkUserId: vkUser.id });
 
-        // Calculate dates from subscription (correct 6-month period)
+        // Calculate dates from subscription current_period (6-month billing cycle)
         if (!subscription.current_period_end || !subscription.current_period_start) {
           logStep("ERROR: Missing period timestamps in subscription", {
             periodEnd: subscription.current_period_end,
