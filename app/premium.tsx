@@ -30,41 +30,21 @@ export default function PremiumScreen() {
   }, [params.requiredTier]);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
-
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}`;
-    setDebugLogs(prev => [...prev, logMessage]);
-    console.log('💳 ' + logMessage);
-  };
 
   async function handleSubscribe(plan: PlanType) {
-    addDebugLog(`🚀 Starting subscription for plan: ${plan}`);
+    console.log('💳 [Premium] Starting subscription for plan:', plan);
     setIsLoading(true);
     
     try {
-      // Check if STRIPE_TIERS has the plan
-      if (!STRIPE_TIERS[plan]) {
-        addDebugLog(`❌ Plan "${plan}" not found in STRIPE_TIERS`);
-        throw new Error(`Invalid plan: ${plan}`);
-      }
-
       const tierConfig = STRIPE_TIERS[plan];
-      addDebugLog(`✅ Tier config found: ${tierConfig.name}`);
-      addDebugLog(`   Price ID: ${tierConfig.price_id}`);
-      addDebugLog(`   Product ID: ${tierConfig.product_id}`);
-      
-      // Verify supabase client is available
-      if (!supabase) {
-        addDebugLog('❌ Supabase client not initialized!');
-        throw new Error('Database connection not available');
-      }
-      addDebugLog('✅ Supabase client verified');
+      console.log('💳 [Premium] Tier config:', {
+        tier: plan,
+        price_id: tierConfig.price_id,
+        product_id: tierConfig.product_id,
+      });
       
       // Call Edge Function to create checkout session
-      addDebugLog('📡 Calling create-checkout Edge Function...');
+      console.log('💳 [Premium] Calling create-checkout Edge Function...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tierConfig.price_id,
@@ -72,7 +52,7 @@ export default function PremiumScreen() {
         },
       });
 
-      addDebugLog(`📥 Response received - Error: ${error ? 'YES' : 'NO'}, Data: ${data ? 'YES' : 'NO'}`);
+      console.log('💳 [Premium] Edge Function response:', { data, error });
 
       if (error) {
         // Extract detailed error from FunctionsHttpError
@@ -83,52 +63,46 @@ export default function PremiumScreen() {
             const statusCode = error.context?.status ?? 500;
             const textContent = await error.context?.text();
             errorMessage = `[Code: ${statusCode}] ${textContent || error.message || 'Unknown error'}`;
-            addDebugLog(`❌ HTTP Error (${statusCode}): ${textContent}`);
+            console.error('💳 [Premium] Edge Function HTTP error:', errorMessage);
           } catch {
             errorMessage = error.message || 'Failed to read error response';
-            addDebugLog(`❌ Failed to extract error details`);
+            console.error('💳 [Premium] Failed to extract error:', errorMessage);
           }
-        } else {
-          addDebugLog(`❌ Error type: ${error.constructor.name}`);
-          addDebugLog(`❌ Error message: ${errorMessage}`);
         }
         
         throw new Error(errorMessage);
       }
       
       if (!data?.url) {
-        addDebugLog(`❌ No checkout URL in response. Data: ${JSON.stringify(data)}`);
+        console.error('💳 [Premium] No checkout URL in response:', data);
         throw new Error('No checkout URL returned from server');
       }
 
-      addDebugLog(`✅ Checkout URL received: ${data.url.substring(0, 50)}...`);
-      
+      console.log('💳 [Premium] Opening checkout URL:', data.url);
       // Open Stripe checkout in browser
-      addDebugLog('🌐 Opening browser...');
-      const result = await WebBrowser.openBrowserAsync(data.url);
-      addDebugLog(`✅ Browser opened - Type: ${result.type}`);
+      await WebBrowser.openBrowserAsync(data.url);
+      console.log('💳 [Premium] Browser opened successfully');
     } catch (error: any) {
-      addDebugLog(`💥 Exception caught: ${error.message || String(error)}`);
+      console.error('💳 [Premium] Subscription error:', error);
       Alert.alert(
         'Subscription Error',
         error.message || 'Failed to start subscription process. Please try again.',
       );
     } finally {
       setIsLoading(false);
-      addDebugLog('🏁 Process completed');
     }
   }
 
   async function handleManageSubscription() {
-    addDebugLog('💳 Opening customer portal...');
+    console.log('💳 [Premium] Opening customer portal...');
     setIsLoading(true);
     
     try {
       // Call Edge Function to create customer portal session
-      addDebugLog('📡 Calling customer-portal Edge Function...');
+      console.log('💳 [Premium] Calling customer-portal Edge Function...');
       const { data, error } = await supabase.functions.invoke('customer-portal');
 
-      addDebugLog(`📥 Portal response - Error: ${error ? 'YES' : 'NO'}, Data: ${data ? 'YES' : 'NO'}`);
+      console.log('💳 [Premium] Portal response:', { data, error });
 
       if (error) {
         // Extract detailed error from FunctionsHttpError
@@ -139,10 +113,10 @@ export default function PremiumScreen() {
             const statusCode = error.context?.status ?? 500;
             const textContent = await error.context?.text();
             errorMessage = `[Code: ${statusCode}] ${textContent || error.message || 'Unknown error'}`;
-            addDebugLog(`❌ Portal HTTP Error (${statusCode}): ${textContent}`);
+            console.error('💳 [Premium] Portal HTTP error:', errorMessage);
           } catch {
             errorMessage = error.message || 'Failed to read error response';
-            addDebugLog(`❌ Failed to extract portal error`);
+            console.error('💳 [Premium] Failed to extract portal error:', errorMessage);
           }
         }
         
@@ -150,25 +124,22 @@ export default function PremiumScreen() {
       }
       
       if (!data?.url) {
-        addDebugLog(`❌ No portal URL in response. Data: ${JSON.stringify(data)}`);
+        console.error('💳 [Premium] No portal URL in response:', data);
         throw new Error('No portal URL returned from server');
       }
 
-      addDebugLog(`✅ Portal URL received: ${data.url.substring(0, 50)}...`);
-      
+      console.log('💳 [Premium] Opening portal URL:', data.url);
       // Open Stripe customer portal in browser
-      addDebugLog('🌐 Opening portal browser...');
-      const result = await WebBrowser.openBrowserAsync(data.url);
-      addDebugLog(`✅ Portal opened - Type: ${result.type}`);
+      await WebBrowser.openBrowserAsync(data.url);
+      console.log('💳 [Premium] Portal opened successfully');
     } catch (error: any) {
-      addDebugLog(`💥 Portal exception: ${error.message || String(error)}`);
+      console.error('💳 [Premium] Portal error:', error);
       Alert.alert(
         'Error',
         error.message || 'Failed to open subscription management. Please try again.',
       );
     } finally {
       setIsLoading(false);
-      addDebugLog('🏁 Portal process completed');
     }
   }
 
@@ -206,33 +177,6 @@ export default function PremiumScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Debug Panel Toggle */}
-      <Pressable 
-        style={styles.debugToggle} 
-        onPress={() => setShowDebug(!showDebug)}
-        onLongPress={() => setDebugLogs([])}
-      >
-        <MaterialIcons name="bug-report" size={20} color={showDebug ? colors.primary : colors.textTertiary} />
-        <Text style={styles.debugToggleText}>Debug ({debugLogs.length})</Text>
-      </Pressable>
-
-      {/* Debug Panel */}
-      {showDebug && (
-        <View style={styles.debugPanel}>
-          <ScrollView style={styles.debugScroll}>
-            {debugLogs.map((log, index) => (
-              <Text key={index} style={styles.debugLog}>{log}</Text>
-            ))}
-            {debugLogs.length === 0 && (
-              <Text style={styles.debugLogEmpty}>No debug logs yet. Click Subscribe to see logs.</Text>
-            )}
-          </ScrollView>
-          <Pressable style={styles.debugClear} onPress={() => setDebugLogs([])}>
-            <Text style={styles.debugClearText}>Clear Logs</Text>
-          </Pressable>
-        </View>
-      )}
-
       <Pressable style={styles.closeButton} onPress={() => router.back()}>
         <MaterialIcons name="close" size={24} color={colors.textSecondary} />
       </Pressable>
@@ -540,68 +484,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  debugToggle: {
-    position: 'absolute',
-    top: 48,
-    left: spacing.md,
-    zIndex: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  debugToggleText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: typography.semibold,
-  },
-  debugPanel: {
-    position: 'absolute',
-    top: 90,
-    left: spacing.md,
-    right: spacing.md,
-    height: 300,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    zIndex: 10,
-    overflow: 'hidden',
-  },
-  debugScroll: {
-    flex: 1,
-    padding: spacing.sm,
-  },
-  debugLog: {
-    fontSize: 11,
-    color: colors.textPrimary,
-    fontFamily: 'monospace',
-    marginBottom: 4,
-    lineHeight: 16,
-  },
-  debugLogEmpty: {
-    fontSize: 12,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-  },
-  debugClear: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    padding: spacing.sm,
-    alignItems: 'center',
-  },
-  debugClearText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: typography.semibold,
   },
   closeButton: {
     position: 'absolute',

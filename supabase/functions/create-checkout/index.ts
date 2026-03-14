@@ -1,7 +1,6 @@
 // =====================================================
 // Stripe Checkout Session Creation for FairPrep Subscriptions
 // Creates Stripe checkout for Basic ($20) or Pro ($40) 6-month plans
-// v1.0.1 - Redeployed to sync STRIPE_SECRET_KEY
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";

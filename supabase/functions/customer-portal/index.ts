@@ -1,7 +1,6 @@
 // =====================================================
 // Stripe Customer Portal for Subscription Management
 // Allows users to manage subscriptions, payment methods, etc.
-// v1.0.1 - Redeployed to sync STRIPE_SECRET_KEY
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";

@@ -1,7 +1,6 @@
 // =====================================================
 // Check Subscription Status for FairPrep
 // Returns subscription status, tier, and expiration date
-// v1.0.1 - Redeployed to sync STRIPE_SECRET_KEY
 // =====================================================
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
