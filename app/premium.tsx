@@ -9,7 +9,7 @@ import { usePremium } from '@/hooks/usePremium';
 import { STRIPE_TIERS } from '@/constants/stripeConfig';
 import { supabase } from '@/services/supabase';
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import * as WebBrowser from 'expo-web-browser';
+
 
 type PlanType = 'basic' | 'pro';
 
@@ -103,18 +103,13 @@ export default function PremiumScreen() {
 
       addDebugLog(`✅ Checkout URL received: ${data.url.substring(0, 50)}...`);
       
-      // Open Stripe checkout in browser
-      addDebugLog('🌐 Opening Stripe checkout in browser...');
-      const result = await WebBrowser.openBrowserAsync(data.url);
-      addDebugLog(`✅ Browser opened, result: ${result.type}`);
-      
-      // Check if payment was completed (user closed browser)
-      if (result.type === 'dismiss' || result.type === 'cancel') {
-        addDebugLog('ℹ️ User closed browser, refreshing subscription status...');
-        // Give Stripe webhook time to process (if using webhooks)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        // Parent component will refresh on focus
-      }
+      // Navigate to in-app WebView modal
+      addDebugLog('🌐 Opening WebView modal...');
+      router.push({
+        pathname: '/stripe-checkout-modal',
+        params: { url: data.url, tier: plan }
+      });
+      addDebugLog('✅ Modal navigation initiated');
     } catch (error: any) {
       addDebugLog(`💥 Exception caught: ${error.message || String(error)}`);
       Alert.alert(
@@ -164,10 +159,13 @@ export default function PremiumScreen() {
 
       addDebugLog(`✅ Portal URL received: ${data.url.substring(0, 50)}...`);
       
-      // Open Stripe customer portal in browser
-      addDebugLog('🌐 Opening customer portal in browser...');
-      const result = await WebBrowser.openBrowserAsync(data.url);
-      addDebugLog(`✅ Portal opened, result: ${result.type}`);
+      // Navigate to in-app WebView modal for portal
+      addDebugLog('🌐 Opening WebView modal for portal...');
+      router.push({
+        pathname: '/stripe-checkout-modal',
+        params: { url: data.url, tier: 'portal' }
+      });
+      addDebugLog('✅ Portal modal navigation initiated');
     } catch (error: any) {
       addDebugLog(`💥 Portal exception: ${error.message || String(error)}`);
       Alert.alert(
@@ -180,15 +178,7 @@ export default function PremiumScreen() {
     }
   }
 
-  // Refresh subscription status when screen regains focus (after WebView modal closes)
-  useEffect(() => {
-    // Check if we just returned from checkout
-    const unsubscribe = router.subscribe(() => {
-      addDebugLog('Screen focused - may need to refresh subscription status');
-    });
-    
-    return () => unsubscribe?.();
-  }, []);
+  // Note: Subscription status is refreshed automatically after browser closes in handleSubscribe/handleManageSubscription
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
