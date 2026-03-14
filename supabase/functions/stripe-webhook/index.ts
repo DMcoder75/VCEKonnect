@@ -142,38 +142,20 @@ serve(async (req) => {
 
         logStep("VK user found", { vkUserId: vkUser.id });
 
-        // Get plan details from vk_subscription_plans to get correct duration
-        const { data: planData, error: planError } = await supabaseAdmin
-          .from("vk_subscription_plans")
-          .select("duration_months, plan_code")
-          .eq("plan_code", tier)
-          .single();
-
-        if (planError || !planData) {
-          logStep("ERROR: Failed to find plan", { tier, error: planError });
-          return new Response(JSON.stringify({ error: `Plan '${tier}' not found in vk_subscription_plans` }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        logStep("Plan found", { planCode: planData.plan_code, durationMonths: planData.duration_months });
-
-        // Calculate dates using subscription start and plan duration from database
-        if (!subscription.current_period_start) {
-          logStep("ERROR: Missing period start timestamp in subscription", {
+        // Calculate dates from subscription current_period (6-month billing cycle)
+        if (!subscription.current_period_end || !subscription.current_period_start) {
+          logStep("ERROR: Missing period timestamps in subscription", {
+            periodEnd: subscription.current_period_end,
             periodStart: subscription.current_period_start,
           });
-          return new Response(JSON.stringify({ error: "Missing subscription start timestamp" }), {
+          return new Response(JSON.stringify({ error: "Missing subscription period timestamps" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
         const startDate = new Date(subscription.current_period_start * 1000);
-        // Calculate end date by adding duration_months from plan table
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + planData.duration_months);
+        const endDate = new Date(subscription.current_period_end * 1000);
         
         // Validate dates
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -192,7 +174,6 @@ serve(async (req) => {
         logStep("Dates calculated", {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
-          durationMonths: planData.duration_months,
         });
 
         // Prepare subscription record
