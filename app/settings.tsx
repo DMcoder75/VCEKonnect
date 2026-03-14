@@ -158,7 +158,15 @@ export default function SettingsScreen() {
           {tier === 'free' && (
             <Pressable
               style={styles.upgradeButton}
-              onPress={() => router.push('/premium')}
+              onPress={() => {
+                console.log('🔘 Upgrade button clicked in settings');
+                try {
+                  router.push('/premium');
+                  console.log('✅ Successfully navigated to premium screen');
+                } catch (error) {
+                  console.error('❌ Settings navigation error:', error);
+                }
+              }}
             >
               <Text style={styles.upgradeButtonText}>Upgrade</Text>
             </Pressable>
