@@ -1,54 +1,95 @@
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, Text, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { usePremium } from '@/hooks/usePremium';
 
 export default function StripeCheckoutModal() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ url: string; tier: string }>();
-  const webViewRef = useRef<WebView>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { refresh } = usePremium();
 
-  const checkoutUrl = params.url || '';
+  const url = params.url || '';
+  const tier = params.tier || 'basic';
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentUrl, setCurrentUrl] = useState<string>('');
+  const [navigationLog, setNavigationLog] = useState<string[]>([]);
+
+  // Log navigation for debugging
+  const logNavigation = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const log = `[${timestamp}] ${message}`;
+    console.log('🌐 WEBVIEW:', log);
+    setNavigationLog(prev => [...prev, log]);
+  };
+
+  // Log initial URL
+  useEffect(() => {
+    logNavigation(`Initial URL: ${url}`);
+  }, [url]);
 
   const handleNavigationStateChange = async (navState: any) => {
-    console.log('🌐 WebView navigation:', navState.url);
-    
-    // Check for success deep link
-    if (navState.url.includes('fairprep://subscription/success')) {
+    const newUrl = navState.url;
+    setCurrentUrl(newUrl);
+    logNavigation(`Navigation detected: ${newUrl}`);
+    logNavigation(`Loading: ${navState.loading ? 'YES' : 'NO'}`);
+    logNavigation(`Title: ${navState.title || 'No title'}`);
+
+    // Check if redirected to success deep link
+    if (newUrl.includes('fairprep://subscription/success')) {
+      logNavigation('✅ SUCCESS DEEP LINK DETECTED!');
       console.log('✅ Payment successful! Refreshing subscription...');
-      await refresh();
-      router.back();
+      
+      try {
+        logNavigation('Refreshing subscription status...');
+        await refresh();
+        logNavigation('Subscription refreshed successfully');
+        
+        Alert.alert(
+          'Payment Successful!',
+          `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } catch (error) {
+        logNavigation(`Error refreshing: ${error}`);
+        console.error('Refresh error:', error);
+        router.back();
+      }
       return;
     }
-    
-    // Check for cancel deep link
-    if (navState.url.includes('fairprep://subscription/cancel')) {
+
+    // Check if redirected to cancel deep link
+    if (newUrl.includes('fairprep://subscription/cancel')) {
+      logNavigation('❌ CANCEL DEEP LINK DETECTED!');
       console.log('❌ Payment cancelled');
-      router.back();
+      Alert.alert(
+        'Payment Cancelled',
+        'Your subscription was not completed. You can try again anytime.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
       return;
+    }
+
+    // Check if we hit the payment success/cancel handler pages
+    if (newUrl.includes('functions/v1/payment-success')) {
+      logNavigation('📄 Hit payment-success handler page');
+    }
+    if (newUrl.includes('functions/v1/payment-cancel')) {
+      logNavigation('📄 Hit payment-cancel handler page');
     }
   };
 
-  const handleClose = () => {
-    console.log('🔙 Closing checkout modal');
-    router.back();
-  };
-
-  if (!checkoutUrl) {
+  if (!url) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.container}>
         <View style={styles.errorContainer}>
           <MaterialIcons name="error-outline" size={64} color={colors.error} />
           <Text style={styles.errorText}>No checkout URL provided</Text>
-          <Pressable style={styles.closeButton} onPress={handleClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
+          <Pressable style={styles.button} onPress={() => router.back()}>
+            <Text style={styles.buttonText}>Go Back</Text>
           </Pressable>
         </View>
       </View>
@@ -56,36 +97,56 @@ export default function StripeCheckoutModal() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+    <View style={styles.container}>
       <View style={styles.header}>
-        <MaterialIcons name="lock" size={20} color={colors.success} />
-        <Text style={styles.headerText}>Secure Checkout</Text>
-        <Pressable style={styles.headerCloseButton} onPress={handleClose}>
-          <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+        <Pressable style={styles.closeButton} onPress={() => {
+          logNavigation('User manually closed modal');
+          router.back();
+        }}>
+          <MaterialIcons name="close" size={24} color={colors.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Secure Checkout</Text>
+        <Pressable 
+          style={styles.debugButton}
+          onPress={() => {
+            Alert.alert(
+              'Debug Info',
+              `Current URL: ${currentUrl}\n\nNavigation Log:\n${navigationLog.slice(-5).join('\n')}`,
+              [{ text: 'OK' }]
+            );
+          }}
+        >
+          <MaterialIcons name="bug-report" size={20} color={colors.textTertiary} />
         </Pressable>
       </View>
 
-      {/* Loading Indicator */}
       {isLoading && (
-        <View style={styles.loadingOverlay}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading checkout...</Text>
+          <Text style={styles.loadingText}>Loading secure checkout...</Text>
         </View>
       )}
 
-      {/* WebView */}
       <WebView
-        ref={webViewRef}
-        source={{ uri: checkoutUrl }}
+        source={{ uri: url }}
         style={styles.webview}
         onNavigationStateChange={handleNavigationStateChange}
-        onLoadStart={() => setIsLoading(true)}
-        onLoadEnd={() => setIsLoading(false)}
+        onLoadStart={() => {
+          setIsLoading(true);
+          logNavigation('WebView started loading');
+        }}
+        onLoadEnd={() => {
+          setIsLoading(false);
+          logNavigation('WebView finished loading');
+        }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('❌ WebView error:', nativeEvent);
-          setIsLoading(false);
+          logNavigation(`WebView error: ${nativeEvent.description}`);
+          console.error('WebView error:', nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          logNavigation(`HTTP error: ${nativeEvent.statusCode} - ${nativeEvent.url}`);
         }}
         startInLoadingState={true}
         javaScriptEnabled={true}
@@ -104,28 +165,30 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  headerText: {
-    fontSize: typography.body,
+  headerTitle: {
+    fontSize: typography.h3,
     fontWeight: typography.semibold,
     color: colors.textPrimary,
     flex: 1,
+    textAlign: 'center',
   },
-  headerCloseButton: {
-    padding: spacing.xs,
+  closeButton: {
+    padding: spacing.sm,
+  },
+  debugButton: {
+    padding: spacing.sm,
   },
   webview: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  loadingOverlay: {
+  loadingContainer: {
     position: 'absolute',
     top: '50%',
     left: 0,
@@ -148,17 +211,17 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: typography.h3,
     color: colors.textPrimary,
+    textAlign: 'center',
     marginTop: spacing.lg,
     marginBottom: spacing.xl,
-    textAlign: 'center',
   },
-  closeButton: {
+  button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
   },
-  closeButtonText: {
+  buttonText: {
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.background,
