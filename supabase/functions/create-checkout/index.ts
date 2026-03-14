@@ -65,7 +65,8 @@ serve(async (req) => {
       logStep("No existing customer, will be created by Stripe");
     }
 
-    // Create checkout session
+    // Create checkout session with HTTPS redirect URLs (Stripe requires HTTPS, not deep links)
+    const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -76,8 +77,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `fairprep://subscription/success?tier=${tier}`,
-      cancel_url: `fairprep://subscription/cancel`,
+      success_url: `${baseUrl}/functions/v1/payment-success?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/functions/v1/payment-cancel?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         user_id: user.id,
         tier: tier,
