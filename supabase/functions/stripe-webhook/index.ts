@@ -142,20 +142,30 @@ serve(async (req) => {
 
         logStep("VK user found", { vkUserId: vkUser.id });
 
-        // Calculate dates from subscription current_period (6-month billing cycle)
-        if (!subscription.current_period_end || !subscription.current_period_start) {
-          logStep("ERROR: Missing period timestamps in subscription", {
-            periodEnd: subscription.current_period_end,
+        // Calculate dates - our plans are ALWAYS 6 months
+        if (!subscription.current_period_start) {
+          logStep("ERROR: Missing period start timestamp", {
             periodStart: subscription.current_period_start,
           });
-          return new Response(JSON.stringify({ error: "Missing subscription period timestamps" }), {
+          return new Response(JSON.stringify({ error: "Missing subscription start timestamp" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
+        // Start date from Stripe subscription
         const startDate = new Date(subscription.current_period_start * 1000);
-        const endDate = new Date(subscription.current_period_end * 1000);
+        
+        // End date = start date + 6 months (hardcoded for our 6-month plans)
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 6);
+        
+        logStep("Date calculation", {
+          stripeCurrentPeriodEnd: subscription.current_period_end,
+          calculatedStartDate: startDate.toISOString(),
+          calculatedEndDate: endDate.toISOString(),
+          monthsAdded: 6,
+        });
         
         // Validate dates
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {

@@ -18,8 +18,8 @@ export interface TierConfig {
 // Stripe product and price IDs
 export const STRIPE_TIERS: Record<Exclude<SubscriptionTier, 'free'>, TierConfig> = {
   basic: {
-    price_id: "price_1TAMI7RIGJDaSBb0z7l9PZf7",
-    product_id: "prod_U8dZKZHVfIDwFN",
+    price_id: "price_1TAx0tRIGJDaSBb0m9AQfQdr",
+    product_id: "prod_U9FVRrutPfHtm3",
     name: "FairPrep Basic",
     price_aud: 20,
     price_display: "$20 AUD",
@@ -27,8 +27,8 @@ export const STRIPE_TIERS: Record<Exclude<SubscriptionTier, 'free'>, TierConfig>
     price_per_month: "$3.33/month",
   },
   pro: {
-    price_id: "price_1TAMIdRIGJDaSBb0ElTZ0U0z",
-    product_id: "prod_U8dZoHgUDzuaoW",
+    price_id: "price_1TAx1bRIGJDaSBb0RVKx1Rjo",
+    product_id: "prod_U9FWpcJXti26QS",
     name: "FairPrep Pro",
     price_aud: 40,
     price_display: "$40 AUD",
