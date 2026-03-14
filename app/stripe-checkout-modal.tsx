@@ -81,24 +81,9 @@ export default function StripeCheckoutModal() {
     }
 
     // Check if we hit Stripe's success page (they show a success message before redirecting)
+    // Only log, don't auto-close - wait for actual redirect
     if (newUrl.includes('checkout.stripe.com') && navState.title?.toLowerCase().includes('success')) {
       logNavigation('🎯 Stripe success page detected! Waiting for redirect...');
-    }
-
-    // CRITICAL: Detect when Stripe payment is complete but stuck on success page
-    // Stripe sometimes shows success page without auto-redirecting
-    if (newUrl.includes('checkout.stripe.com') && !navState.loading) {
-      // Check if we've been on a checkout page for a while without redirect
-      const checkTimeout = setTimeout(() => {
-        // If still on Stripe page after 3 seconds of no loading, assume success
-        if (currentUrl.includes('checkout.stripe.com')) {
-          logNavigation('⏰ Timeout on Stripe page - assuming success and closing');
-          handlePaymentComplete('success');
-        }
-      }, 3000);
-      
-      // Clean up timeout
-      return () => clearTimeout(checkTimeout);
     }
 
     // Check if we hit the payment success/cancel handler pages

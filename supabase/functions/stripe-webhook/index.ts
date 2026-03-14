@@ -94,31 +94,29 @@ serve(async (req) => {
           });
         }
 
-        // Get invoice details (more reliable than subscription for period dates)
-        const invoiceId = session.invoice as string;
-        if (!invoiceId) {
-          logStep("ERROR: No invoice ID in session");
-          return new Response(JSON.stringify({ error: "No invoice ID in session" }), {
+        // Get subscription ID from session
+        const subscriptionId = session.subscription as string;
+        if (!subscriptionId) {
+          logStep("ERROR: No subscription ID in session");
+          return new Response(JSON.stringify({ error: "No subscription ID in session" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        let invoice: Stripe.Invoice;
-        let subscriptionId: string | null = null;
+        // Retrieve subscription to get correct period dates
+        let subscription: Stripe.Subscription;
         try {
-          invoice = await stripe.invoices.retrieve(invoiceId);
-          subscriptionId = invoice.subscription as string | null;
-          logStep("Invoice retrieved", {
-            invoiceId: invoice.id,
-            subscriptionId,
-            periodStart: invoice.period_start,
-            periodEnd: invoice.period_end,
-            status: invoice.status,
+          subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          logStep("Subscription retrieved", {
+            subscriptionId: subscription.id,
+            periodStart: subscription.current_period_start,
+            periodEnd: subscription.current_period_end,
+            status: subscription.status,
           });
         } catch (err: any) {
-          logStep("ERROR: Failed to retrieve invoice", { error: err.message });
-          return new Response(JSON.stringify({ error: `Failed to retrieve invoice: ${err.message}` }), {
+          logStep("ERROR: Failed to retrieve subscription", { error: err.message });
+          return new Response(JSON.stringify({ error: `Failed to retrieve subscription: ${err.message}` }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -141,20 +139,20 @@ serve(async (req) => {
 
         logStep("VK user found", { vkUserId: vkUser.id });
 
-        // Calculate dates from invoice (more reliable than subscription)
-        if (!invoice.period_end || !invoice.period_start) {
-          logStep("ERROR: Missing period timestamps in invoice", {
-            periodEnd: invoice.period_end,
-            periodStart: invoice.period_start,
+        // Calculate dates from subscription (correct 6-month period)
+        if (!subscription.current_period_end || !subscription.current_period_start) {
+          logStep("ERROR: Missing period timestamps in subscription", {
+            periodEnd: subscription.current_period_end,
+            periodStart: subscription.current_period_start,
           });
-          return new Response(JSON.stringify({ error: "Missing invoice period timestamps" }), {
+          return new Response(JSON.stringify({ error: "Missing subscription period timestamps" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        const startDate = new Date(invoice.period_start * 1000);
-        const endDate = new Date(invoice.period_end * 1000);
+        const startDate = new Date(subscription.current_period_start * 1000);
+        const endDate = new Date(subscription.current_period_end * 1000);
         
         // Validate dates
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -184,7 +182,7 @@ serve(async (req) => {
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           payment_method: session.payment_method_types?.[0] || 'card',
-          payment_transaction_id: subscriptionId || invoiceId, // Use subscription ID if available, fallback to invoice
+          payment_transaction_id: subscriptionId,
           payment_status: 'completed',
           auto_renew: true, // Stripe subscriptions auto-renew by default
         };
