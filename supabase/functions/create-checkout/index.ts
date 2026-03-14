@@ -66,7 +66,6 @@ serve(async (req) => {
     }
 
     // Create checkout session
-    // Use web URLs that redirect to deep links for WebView compatibility
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -77,8 +76,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `https://nqmrtzqysyetimcgnqmr.backend.onspace.ai/functions/v1/payment-success?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
-      cancel_url: `https://nqmrtzqysyetimcgnqmr.backend.onspace.ai/functions/v1/payment-cancel`,
+      success_url: `fairprep://subscription/success?tier=${tier}`,
+      cancel_url: `fairprep://subscription/cancel`,
       metadata: {
         user_id: user.id,
         tier: tier,
