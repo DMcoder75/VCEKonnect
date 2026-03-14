@@ -108,18 +108,48 @@ export const PREMIUM_PRICES = {
  * Get user's current premium tier
  */
 export async function getUserPremiumTier(userId: string): Promise<PremiumTier> {
-  // Use external Supabase client (configured in ./supabase.ts)
-  
-  const { data, error } = await supabase.rpc('get_user_premium_tier', {
-    p_user_id: userId,
-  });
-  
-  if (error || !data) {
-    console.error('Error fetching premium tier:', error);
+  try {
+    // Try RPC function first (if it exists in external DB)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_premium_tier', {
+      p_user_id: userId,
+    });
+    
+    if (!rpcError && rpcData) {
+      console.log('✅ [getUserPremiumTier] RPC result:', { userId, tier: rpcData });
+      return rpcData as PremiumTier;
+    }
+    
+    // Fallback: Direct query on vk_users table
+    console.warn('⚠️ [getUserPremiumTier] RPC failed, using direct query. Error:', rpcError);
+    const { data: userData, error: userError } = await supabase
+      .from('vk_users')
+      .select('premium_tier, is_premium, premium_expires_at')
+      .eq('id', userId)
+      .single();
+    
+    if (userError || !userData) {
+      console.error('❌ [getUserPremiumTier] Direct query failed:', userError);
+      return 'free';
+    }
+    
+    console.log('📊 [getUserPremiumTier] Direct query result:', userData);
+    
+    // Check if premium is active and not expired
+    const now = new Date();
+    const expiresAt = userData.premium_expires_at ? new Date(userData.premium_expires_at) : null;
+    
+    if (userData.is_premium && expiresAt && expiresAt > now) {
+      const tier = userData.premium_tier as PremiumTier;
+      console.log('✅ [getUserPremiumTier] Active premium:', { tier, expiresAt });
+      return tier;
+    }
+    
+    console.log('ℹ️ [getUserPremiumTier] No active premium or expired');
+    return 'free';
+  } catch (error) {
+    console.error('❌ [getUserPremiumTier] Exception:', error);
     return 'free';
   }
-  
-  return data as PremiumTier;
 }
 
 /**
@@ -134,18 +164,52 @@ export async function getUserPremiumLimits(userId: string): Promise<PremiumLimit
  * Check if user has active premium (basic or pro)
  */
 export async function hasActivePremium(userId: string): Promise<boolean> {
-  // Use external Supabase client (configured in ./supabase.ts)
-  
-  const { data, error } = await supabase.rpc('has_active_premium', {
-    p_user_id: userId,
-  });
-  
-  if (error) {
-    console.error('Error checking premium status:', error);
+  try {
+    // Try RPC function first
+    const { data: rpcData, error: rpcError } = await supabase.rpc('has_active_premium', {
+      p_user_id: userId,
+    });
+    
+    if (!rpcError) {
+      console.log('✅ [hasActivePremium] RPC result:', { userId, isPremium: rpcData });
+      return rpcData === true;
+    }
+    
+    // Fallback: Direct query
+    console.warn('⚠️ [hasActivePremium] RPC failed, using direct query. Error:', rpcError);
+    const { data: userData, error: userError } = await supabase
+      .from('vk_users')
+      .select('is_premium, premium_tier, premium_expires_at')
+      .eq('id', userId)
+      .single();
+    
+    if (userError || !userData) {
+      console.error('❌ [hasActivePremium] Direct query failed:', userError);
+      return false;
+    }
+    
+    console.log('📊 [hasActivePremium] Direct query result:', userData);
+    
+    // Check if premium is active and not expired
+    const now = new Date();
+    const expiresAt = userData.premium_expires_at ? new Date(userData.premium_expires_at) : null;
+    const isActive = userData.is_premium && 
+                     userData.premium_tier !== 'free' && 
+                     expiresAt && 
+                     expiresAt > now;
+    
+    console.log('ℹ️ [hasActivePremium] Result:', { 
+      isActive, 
+      tier: userData.premium_tier, 
+      expiresAt: expiresAt?.toISOString(),
+      now: now.toISOString() 
+    });
+    
+    return isActive;
+  } catch (error) {
+    console.error('❌ [hasActivePremium] Exception:', error);
     return false;
   }
-  
-  return data === true;
 }
 
 // =====================================================
