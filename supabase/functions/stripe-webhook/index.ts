@@ -96,13 +96,30 @@ serve(async (req) => {
 
         // Get subscription details from Stripe
         const subscriptionId = session.subscription as string;
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        
-        logStep("Subscription retrieved", {
-          subscriptionId: subscription.id,
-          status: subscription.status,
-          currentPeriodEnd: subscription.current_period_end,
-        });
+        if (!subscriptionId) {
+          logStep("ERROR: No subscription ID in session");
+          return new Response(JSON.stringify({ error: "No subscription ID in session" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        let subscription: Stripe.Subscription;
+        try {
+          subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          logStep("Subscription retrieved", {
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            currentPeriodEnd: subscription.current_period_end,
+            currentPeriodStart: subscription.current_period_start,
+          });
+        } catch (err: any) {
+          logStep("ERROR: Failed to retrieve subscription", { error: err.message });
+          return new Response(JSON.stringify({ error: `Failed to retrieve subscription: ${err.message}` }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
         // Get vk_user.id from auth_user_id
         const { data: vkUser, error: userError } = await supabaseAdmin
@@ -121,9 +138,39 @@ serve(async (req) => {
 
         logStep("VK user found", { vkUserId: vkUser.id });
 
-        // Calculate end date (current_period_end is Unix timestamp)
-        const startDate = new Date();
+        // Calculate dates - validate Unix timestamps first
+        if (!subscription.current_period_end || !subscription.current_period_start) {
+          logStep("ERROR: Missing period timestamps", {
+            currentPeriodEnd: subscription.current_period_end,
+            currentPeriodStart: subscription.current_period_start,
+          });
+          return new Response(JSON.stringify({ error: "Missing subscription period timestamps" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const startDate = new Date(subscription.current_period_start * 1000);
         const endDate = new Date(subscription.current_period_end * 1000);
+        
+        // Validate dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          logStep("ERROR: Invalid date conversion", {
+            startTimestamp: subscription.current_period_start,
+            endTimestamp: subscription.current_period_end,
+            startDate: startDate.toString(),
+            endDate: endDate.toString(),
+          });
+          return new Response(JSON.stringify({ error: "Invalid time value" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        logStep("Dates calculated", {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
 
         // Prepare subscription record
         const subscriptionRecord = {
