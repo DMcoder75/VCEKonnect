@@ -106,45 +106,55 @@ export const PREMIUM_PRICES = {
 
 /**
  * Get user's current premium tier
+ * @param vkUserId - The vk_users.id (NOT auth_user_id)
  */
-export async function getUserPremiumTier(userId: string): Promise<PremiumTier> {
-  // Use external Supabase client (configured in ./supabase.ts)
+export async function getUserPremiumTier(vkUserId: string): Promise<PremiumTier> {
+  console.log('🔍 [getUserPremiumTier] vkUserId:', vkUserId);
   
   const { data, error } = await supabase.rpc('get_user_premium_tier', {
-    p_user_id: userId,
+    p_user_id: vkUserId,
   });
   
-  if (error || !data) {
-    console.error('Error fetching premium tier:', error);
+  if (error) {
+    console.error('❌ [getUserPremiumTier] RPC error:', error);
     return 'free';
   }
   
+  if (!data) {
+    console.log('⚠️ [getUserPremiumTier] No data returned, defaulting to free');
+    return 'free';
+  }
+  
+  console.log('✅ [getUserPremiumTier] Tier:', data);
   return data as PremiumTier;
 }
 
 /**
  * Get premium limits for a user's tier
+ * @param vkUserId - The vk_users.id (NOT auth_user_id)
  */
-export async function getUserPremiumLimits(userId: string): Promise<PremiumLimits> {
-  const tier = await getUserPremiumTier(userId);
+export async function getUserPremiumLimits(vkUserId: string): Promise<PremiumLimits> {
+  const tier = await getUserPremiumTier(vkUserId);
   return PREMIUM_TIER_LIMITS[tier];
 }
 
 /**
  * Check if user has active premium (basic or pro)
+ * @param vkUserId - The vk_users.id (NOT auth_user_id)
  */
-export async function hasActivePremium(userId: string): Promise<boolean> {
-  // Use external Supabase client (configured in ./supabase.ts)
+export async function hasActivePremium(vkUserId: string): Promise<boolean> {
+  console.log('🔍 [hasActivePremium] vkUserId:', vkUserId);
   
   const { data, error } = await supabase.rpc('has_active_premium', {
-    p_user_id: userId,
+    p_user_id: vkUserId,
   });
   
   if (error) {
-    console.error('Error checking premium status:', error);
+    console.error('❌ [hasActivePremium] RPC error:', error);
     return false;
   }
   
+  console.log('✅ [hasActivePremium] Result:', data);
   return data === true;
 }
 

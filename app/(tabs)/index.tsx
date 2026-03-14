@@ -59,7 +59,12 @@ export default function DashboardScreen() {
   const previousGoalsRef = React.useRef<ActiveGoalsResponse | null>(null);
 
   const prediction = getPrediction();
-  const { tier, isPremium } = usePremium();
+  const { tier, isPremium, refresh: refreshPremium } = usePremium();
+  
+  // DEBUG STATE
+  const [showDebug, setShowDebug] = useState(true);
+  const [debugData, setDebugData] = useState<any>(null);
+  const [debugTimestamp, setDebugTimestamp] = useState<string>('');
   
   // Get user's state abbreviation
   const userStateAbbr = allStates.find(s => s.id === user?.state_id)?.abbreviation || 'VIC';
@@ -161,9 +166,45 @@ export default function DashboardScreen() {
         reloadScores(); // Reload ATAR scores when returning to dashboard
         loadActiveGoals(); // Reload study goals when returning to dashboard
         loadAchievements(); // Reload achievements and streaks
+        loadDebugData(); // Load debug data
       }
     }, [user, loadAllTimeMemoized, reloadScores, loadActiveGoals, loadAchievements])
   );
+
+  async function loadDebugData() {
+    if (!user) return;
+    
+    try {
+      // Get raw database values
+      const { data: vkUserData } = await supabase
+        .from('vk_users')
+        .select('id, auth_user_id, is_premium, premium_tier, premium_expires_at, premium_auto_renew')
+        .eq('auth_user_id', user.authUserId)
+        .single();
+      
+      // Get subscription data
+      const { data: subData } = await supabase
+        .from('vk_premium_subscriptions')
+        .select('*')
+        .eq('user_id', vkUserData?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      setDebugData({
+        hook: { tier, isPremium },
+        vkUser: vkUserData,
+        subscription: subData,
+        user: {
+          authUserId: user.authUserId,
+          vkUserId: user.id,
+        }
+      });
+      setDebugTimestamp(new Date().toLocaleTimeString());
+    } catch (error) {
+      console.error('Debug data error:', error);
+    }
+  }
 
   async function loadAllTime() {
     if (!user) return;
@@ -287,6 +328,45 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* DEBUG PANEL - TEMPORARY */}
+        {showDebug && (
+          <View style={styles.debugPanel}>
+            <View style={styles.debugHeader}>
+              <Text style={styles.debugTitle}>🔧 DEBUG PANEL (Tap to refresh)</Text>
+              <Pressable
+                style={styles.debugCloseButton}
+                onPress={() => setShowDebug(false)}
+              >
+                <MaterialIcons name="close" size={16} color={colors.error} />
+              </Pressable>
+            </View>
+            <Pressable onPress={async () => {
+              await refreshPremium();
+              await loadDebugData();
+            }}>
+              <Text style={styles.debugTime}>Last check: {debugTimestamp}</Text>
+              
+              <Text style={styles.debugSection}>🎯 Hook State:</Text>
+              <Text style={styles.debugText}>tier: {tier}</Text>
+              <Text style={styles.debugText}>isPremium: {isPremium ? 'true' : 'false'}</Text>
+              
+              <Text style={styles.debugSection}>👤 User IDs:</Text>
+              <Text style={styles.debugText}>auth_user_id: {debugData?.user?.authUserId}</Text>
+              <Text style={styles.debugText}>vk_users.id: {debugData?.user?.vkUserId}</Text>
+              
+              <Text style={styles.debugSection}>💾 Database (vk_users):</Text>
+              <Text style={styles.debugText}>is_premium: {debugData?.vkUser?.is_premium ? 'true' : 'false'}</Text>
+              <Text style={styles.debugText}>premium_tier: {debugData?.vkUser?.premium_tier}</Text>
+              <Text style={styles.debugText}>expires_at: {debugData?.vkUser?.premium_expires_at || 'null'}</Text>
+              
+              <Text style={styles.debugSection}>💳 Subscription:</Text>
+              <Text style={styles.debugText}>tier: {debugData?.subscription?.subscription_tier || 'none'}</Text>
+              <Text style={styles.debugText}>status: {debugData?.subscription?.payment_status || 'none'}</Text>
+              <Text style={styles.debugText}>end_date: {debugData?.subscription?.end_date || 'none'}</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -1131,6 +1211,49 @@ const styles = StyleSheet.create({
     fontWeight: typography.bold,
     color: colors.textPrimary,
     letterSpacing: 0.5,
+  },
+  debugPanel: {
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.warning,
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  debugTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    color: colors.background,
+  },
+  debugCloseButton: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.full,
+    padding: spacing.xs,
+  },
+  debugTime: {
+    fontSize: typography.caption,
+    color: colors.background,
+    marginBottom: spacing.sm,
+    fontStyle: 'italic',
+  },
+  debugSection: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.background,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  debugText: {
+    fontSize: typography.caption,
+    color: colors.background,
+    fontFamily: 'monospace',
+    marginLeft: spacing.sm,
   },
 
 });
