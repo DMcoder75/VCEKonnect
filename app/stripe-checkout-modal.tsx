@@ -43,25 +43,27 @@ export default function StripeCheckoutModal() {
       logNavigation('✅ SUCCESS DEEP LINK DETECTED!');
       console.log('✅ Payment successful! Refreshing subscription...');
       
-      try {
-        logNavigation('Refreshing subscription status...');
-        await refresh();
-        logNavigation('Subscription refreshed successfully');
-        
-        // Close modal immediately and show success
-        router.back();
-        setTimeout(() => {
-          Alert.alert(
-            'Payment Successful! 🎉',
-            `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
-            [{ text: 'OK' }]
-          );
-        }, 300);
-      } catch (error) {
-        logNavigation(`Error refreshing: ${error}`);
+      // Refresh subscription status in background
+      refresh().catch(error => {
         console.error('Refresh error:', error);
-        router.back();
-      }
+        logNavigation(`Error refreshing: ${error}`);
+      });
+      
+      // Show success alert ALWAYS (payment was successful)
+      Alert.alert(
+        'Subscription Successful!',
+        `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to dashboard
+              router.dismissAll();
+              router.replace('/(tabs)');
+            }
+          }
+        ]
+      );
       return;
     }
 
@@ -70,13 +72,6 @@ export default function StripeCheckoutModal() {
       logNavigation('❌ CANCEL DEEP LINK DETECTED!');
       console.log('❌ Payment cancelled');
       router.back();
-      setTimeout(() => {
-        Alert.alert(
-          'Payment Cancelled',
-          'Your subscription was not completed. You can try again anytime.',
-          [{ text: 'OK' }]
-        );
-      }, 300);
       return;
     }
 
@@ -100,30 +95,31 @@ export default function StripeCheckoutModal() {
   const handlePaymentComplete = async (status: 'success' | 'cancel') => {
     if (status === 'success') {
       logNavigation('✅ Processing payment success');
-      try {
-        await refresh();
-        router.back();
-        setTimeout(() => {
-          Alert.alert(
-            'Payment Successful! 🎉',
-            `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
-            [{ text: 'OK' }]
-          );
-        }, 300);
-      } catch (error) {
+      
+      // Refresh subscription status in background
+      refresh().catch(error => {
+        console.error('Refresh error:', error);
         logNavigation(`Error: ${error}`);
-        router.back();
-      }
+      });
+      
+      // Show success alert ALWAYS (payment was successful)
+      Alert.alert(
+        'Subscription Successful!',
+        `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to dashboard
+              router.dismissAll();
+              router.replace('/(tabs)');
+            }
+          }
+        ]
+      );
     } else {
       logNavigation('❌ Processing payment cancellation');
       router.back();
-      setTimeout(() => {
-        Alert.alert(
-          'Payment Cancelled',
-          'Your subscription was not completed. You can try again anytime.',
-          [{ text: 'OK' }]
-        );
-      }, 300);
     }
   };
 
