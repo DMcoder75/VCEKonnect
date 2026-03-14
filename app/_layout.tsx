@@ -41,13 +41,6 @@ export default function RootLayout() {
                     presentation: 'modal',
                   }}
                 />
-                <Stack.Screen
-                  name="stripe-checkout"
-                  options={{
-                    presentation: 'modal',
-                    headerShown: false,
-                  }}
-                />
               </Stack>
             </View>
           </StudyTimerProvider>
