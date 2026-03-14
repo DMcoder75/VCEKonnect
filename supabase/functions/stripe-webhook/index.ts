@@ -1,5 +1,6 @@
 // =====================================================
 // Stripe Webhook Handler for FairPrep Subscriptions
+// PUBLIC ENDPOINT - No auth required (uses Stripe signature verification)
 // Captures checkout.session.completed events and writes to vk_premium_subscriptions
 // =====================================================
 
@@ -7,12 +8,26 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "stripe-signature, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    logStep("CORS preflight request");
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
+  }
   try {
     logStep("Webhook received");
 
@@ -35,13 +50,14 @@ serve(async (req) => {
     let event: Stripe.Event;
     if (webhookSecret && signature) {
       try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+        // Use async version for Deno/Edge Functions environment
+        event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
         logStep("Webhook signature verified", { eventType: event.type });
       } catch (err: any) {
         logStep("Webhook signature verification failed", { error: err.message });
         return new Response(JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }), {
           status: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     } else {
@@ -74,7 +90,7 @@ serve(async (req) => {
           logStep("ERROR: Missing metadata", { userId, tier });
           return new Response(JSON.stringify({ error: "Missing user_id or tier in metadata" }), {
             status: 400,
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
@@ -99,7 +115,7 @@ serve(async (req) => {
           logStep("ERROR: Failed to find vk_user", { userId, error: userError });
           return new Response(JSON.stringify({ error: "User not found in vk_users table" }), {
             status: 404,
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
@@ -136,7 +152,7 @@ serve(async (req) => {
           logStep("ERROR: Failed to insert subscription", { error: insertError });
           return new Response(JSON.stringify({ error: `Database insert failed: ${insertError.message}` }), {
             status: 500,
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
@@ -280,14 +296,14 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR: Webhook handler failed", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
