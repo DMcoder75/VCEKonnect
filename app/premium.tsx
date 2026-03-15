@@ -16,7 +16,7 @@ type PlanType = 'basic' | 'pro';
 export default function PremiumScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { tier } = usePremium();
+  const { tier, refresh } = usePremium();
   const params = useLocalSearchParams();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('basic');
 
@@ -45,7 +45,61 @@ export default function PremiumScreen() {
     setIsLoading(true);
     
     try {
-      // Check if STRIPE_TIERS has the plan
+      // Check if user already has subscription and wants to upgrade/downgrade
+      if (tier !== 'free' && tier !== plan) {
+        addDebugLog(`🔄 User wants to change from ${tier} to ${plan}`);
+        
+        // Call upgrade-subscription Edge Function
+        addDebugLog('📡 Calling upgrade-subscription Edge Function...');
+        const { data, error } = await supabase.functions.invoke('upgrade-subscription', {
+          body: {
+            newTier: plan,
+          },
+        });
+
+        addDebugLog(`📥 Upgrade response - Error: ${error ? 'YES' : 'NO'}, Data: ${data ? 'YES' : 'NO'}`);
+
+        if (error) {
+          let errorMessage = error.message || 'Unknown error';
+          
+          if (error instanceof FunctionsHttpError) {
+            try {
+              const statusCode = error.context?.status ?? 500;
+              const textContent = await error.context?.text();
+              errorMessage = `[Code: ${statusCode}] ${textContent || error.message || 'Unknown error'}`;
+              addDebugLog(`❌ Upgrade HTTP Error (${statusCode}): ${textContent}`);
+            } catch {
+              errorMessage = error.message || 'Failed to read error response';
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
+
+        addDebugLog(`✅ Subscription ${tier === 'basic' ? 'upgraded' : 'downgraded'} successfully!`);
+        
+        // Refresh premium status
+        await refresh();
+
+        // Show success message
+        Alert.alert(
+          'Success!',
+          data.message || `Successfully ${tier === 'basic' ? 'upgraded to Pro' : 'downgraded to Basic'}! Your subscription has been updated with proration applied.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Navigate back
+                router.back();
+              }
+            }
+          ]
+        );
+
+        return;
+      }
+
+      // New subscription flow (for free users)
       if (!STRIPE_TIERS[plan]) {
         addDebugLog(`❌ Plan "${plan}" not found in STRIPE_TIERS`);
         throw new Error(`Invalid plan: ${plan}`);
@@ -56,7 +110,6 @@ export default function PremiumScreen() {
       addDebugLog(`   Price ID: ${tierConfig.price_id}`);
       addDebugLog(`   Product ID: ${tierConfig.product_id}`);
       
-      // Verify supabase client is available
       if (!supabase) {
         addDebugLog('❌ Supabase client not initialized!');
         throw new Error('Database connection not available');
@@ -75,7 +128,6 @@ export default function PremiumScreen() {
       addDebugLog(`📥 Response received - Error: ${error ? 'YES' : 'NO'}, Data: ${data ? 'YES' : 'NO'}`);
 
       if (error) {
-        // Extract detailed error from FunctionsHttpError
         let errorMessage = error.message || 'Unknown error';
         
         if (error instanceof FunctionsHttpError) {
