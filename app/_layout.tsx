@@ -5,8 +5,12 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { StudyTimerProvider } from '@/contexts/StudyTimerContext';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { CustomAlert } from '@/components/ui';
+import { useCustomAlert } from '@/hooks';
 
-export default function RootLayout() {
+function RootLayoutContent() {
+  const { alertState, hideAlert } = useCustomAlert();
+
   return (
     <AlertProvider>
       <SafeAreaProvider>
@@ -49,10 +53,23 @@ export default function RootLayout() {
                   }}
                 />
               </Stack>
+              
+              {/* Global Custom Alert */}
+              <CustomAlert
+                visible={alertState.visible}
+                title={alertState.title}
+                message={alertState.message}
+                buttons={alertState.buttons}
+                onDismiss={hideAlert}
+              />
             </View>
           </StudyTimerProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </AlertProvider>
   );
+}
+
+export default function RootLayout() {
+  return <RootLayoutContent />;
 }

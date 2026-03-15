@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { usePremium } from '@/hooks/usePremium';
+import { useCustomAlert } from '@/hooks';
 
 export default function StripeCheckoutModal() {
   const router = useRouter();
   const params = useLocalSearchParams<{ url: string; tier: string }>();
   const { refresh } = usePremium();
+  const { showAlert } = useCustomAlert();
 
   const url = params.url || '';
   const tier = params.tier || 'basic';
@@ -50,12 +52,13 @@ export default function StripeCheckoutModal() {
       });
       
       // Show success alert ALWAYS (payment was successful)
-      Alert.alert(
+      showAlert(
         'Subscription Successful!',
         `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
         [
           {
             text: 'OK',
+            style: 'default',
             onPress: () => {
               // Navigate to dashboard
               router.dismissAll();
@@ -103,12 +106,13 @@ export default function StripeCheckoutModal() {
       });
       
       // Show success alert ALWAYS (payment was successful)
-      Alert.alert(
+      showAlert(
         'Subscription Successful!',
         `Your ${tier === 'pro' ? 'Pro' : 'Basic'} subscription is now active.`,
         [
           {
             text: 'OK',
+            style: 'default',
             onPress: () => {
               // Navigate to dashboard
               router.dismissAll();
@@ -150,10 +154,10 @@ export default function StripeCheckoutModal() {
         <Pressable 
           style={styles.debugButton}
           onPress={() => {
-            Alert.alert(
+            showAlert(
               'Debug Info',
               `Current URL: ${currentUrl}\n\nNavigation Log:\n${navigationLog.slice(-5).join('\n')}`,
-              [{ text: 'OK' }]
+              [{ text: 'OK', style: 'default' }]
             );
           }}
         >
