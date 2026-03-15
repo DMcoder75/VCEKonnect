@@ -106,27 +106,42 @@ export const PREMIUM_PRICES = {
 
 /**
  * Get user's current premium tier
- * @param vkUserId - The vk_users.id (NOT auth_user_id)
+ * @param vkUserId - The vk_users.id (from AuthContext user.id)
  */
 export async function getUserPremiumTier(vkUserId: string): Promise<PremiumTier> {
   console.log('🔍 [getUserPremiumTier] vkUserId:', vkUserId);
   
-  const { data, error } = await supabase.rpc('get_user_premium_tier', {
-    p_user_id: vkUserId,
-  });
+  // Directly query vk_users table to get premium_tier
+  const { data, error } = await supabase
+    .from('vk_users')
+    .select('premium_tier, premium_expires_at')
+    .eq('id', vkUserId)
+    .single();
   
   if (error) {
-    console.error('❌ [getUserPremiumTier] RPC error:', error);
+    console.error('❌ [getUserPremiumTier] Query error:', error);
     return 'free';
   }
   
   if (!data) {
-    console.log('⚠️ [getUserPremiumTier] No data returned, defaulting to free');
+    console.log('⚠️ [getUserPremiumTier] No user found, defaulting to free');
     return 'free';
   }
   
-  console.log('✅ [getUserPremiumTier] Tier:', data);
-  return data as PremiumTier;
+  // Check if premium has expired
+  if (data.premium_expires_at) {
+    const expiresAt = new Date(data.premium_expires_at);
+    const now = new Date();
+    
+    if (expiresAt < now) {
+      console.log('⏰ [getUserPremiumTier] Premium expired, defaulting to free');
+      return 'free';
+    }
+  }
+  
+  const tier = (data.premium_tier || 'free') as PremiumTier;
+  console.log('✅ [getUserPremiumTier] Tier:', tier, 'Expires:', data.premium_expires_at);
+  return tier;
 }
 
 /**
@@ -140,22 +155,16 @@ export async function getUserPremiumLimits(vkUserId: string): Promise<PremiumLim
 
 /**
  * Check if user has active premium (basic or pro)
- * @param vkUserId - The vk_users.id (NOT auth_user_id)
+ * @param vkUserId - The vk_users.id (from AuthContext user.id)
  */
 export async function hasActivePremium(vkUserId: string): Promise<boolean> {
   console.log('🔍 [hasActivePremium] vkUserId:', vkUserId);
   
-  const { data, error } = await supabase.rpc('has_active_premium', {
-    p_user_id: vkUserId,
-  });
+  const tier = await getUserPremiumTier(vkUserId);
+  const result = tier === 'basic' || tier === 'pro';
   
-  if (error) {
-    console.error('❌ [hasActivePremium] RPC error:', error);
-    return false;
-  }
-  
-  console.log('✅ [hasActivePremium] Result:', data);
-  return data === true;
+  console.log('✅ [hasActivePremium] Result:', result);
+  return result;
 }
 
 // =====================================================
