@@ -11,3 +11,4 @@ export { useStudyGoals } from './useStudyGoals';
 export { useAchievements } from './useAchievements';
 export { useMotivationalMessage } from './useMotivationalMessage';
 export { usePremium } from './usePremium';
+export { useCustomAlert } from './useCustomAlert';

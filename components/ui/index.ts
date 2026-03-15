@@ -6,3 +6,5 @@ export { default as QuickAccessDrawer } from './QuickAccessDrawer';
 export { default as FloatingMenuButton } from './FloatingMenuButton';
 export { OfflineIndicator } from './OfflineIndicator';
 export { NoInternetBanner } from './NoInternetBanner';
+export { CustomAlert } from './CustomAlert';
+export type { CustomAlertButton } from './CustomAlert';
