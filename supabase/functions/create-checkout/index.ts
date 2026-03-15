@@ -65,6 +65,13 @@ serve(async (req) => {
       logStep("No existing customer, will be created by Stripe");
     }
 
+    // Get base URL for success/cancel redirects
+    const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const successUrl = `${baseUrl}/functions/v1/payment-success?tier=${tier}`;
+    const cancelUrl = `${baseUrl}/functions/v1/payment-cancel`;
+    
+    logStep("Redirect URLs", { successUrl, cancelUrl });
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -76,8 +83,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `fairprep://subscription/success?tier=${tier}`,
-      cancel_url: `fairprep://subscription/cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         user_id: user.id,
         tier: tier,
