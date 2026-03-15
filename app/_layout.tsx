@@ -3,20 +3,16 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AlertProvider } from '@/template';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { StudyTimerProvider } from '@/contexts/StudyTimerContext';
+import { CustomAlertProvider } from '@/contexts/CustomAlertContext';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
-import { CustomAlert } from '@/components/ui';
-import { useCustomAlert } from '@/hooks';
 
-function RootLayoutContent() {
-  const { alertState, hideAlert } = useCustomAlert();
-
+export default function RootLayout() {
   return (
     <AlertProvider>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <StudyTimerProvider>
-            <View style={{ flex: 1 }}>
+      <CustomAlertProvider>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <StudyTimerProvider>
               <StatusBar style="light" />
               <Stack
                 screenOptions={{
@@ -53,23 +49,10 @@ function RootLayoutContent() {
                   }}
                 />
               </Stack>
-              
-              {/* Global Custom Alert */}
-              <CustomAlert
-                visible={alertState.visible}
-                title={alertState.title}
-                message={alertState.message}
-                buttons={alertState.buttons}
-                onDismiss={hideAlert}
-              />
-            </View>
-          </StudyTimerProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
+            </StudyTimerProvider>
+          </AuthProvider>
+        </SafeAreaProvider>
+      </CustomAlertProvider>
     </AlertProvider>
   );
-}
-
-export default function RootLayout() {
-  return <RootLayoutContent />;
 }
