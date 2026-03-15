@@ -155,7 +155,7 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </View>
-          {tier === 'free' && (
+          {(tier === 'free' || tier === 'basic') && (
             <Pressable
               style={styles.upgradeButton}
               onPress={() => {
@@ -168,7 +168,7 @@ export default function SettingsScreen() {
                 }
               }}
             >
-              <Text style={styles.upgradeButtonText}>Upgrade</Text>
+              <Text style={styles.upgradeButtonText}>{tier === 'basic' ? 'Upgrade to Pro' : 'Upgrade'}</Text>
             </Pressable>
           )}
         </View>
@@ -478,6 +478,27 @@ export default function SettingsScreen() {
               <View>
                 <Text style={styles.appOptionTitle}>Export Data</Text>
                 <Text style={styles.appOptionDesc}>Backup your data in JSON or CSV format</Text>
+              </View>
+            </View>
+            <MaterialIcons name="arrow-forward" size={24} color={colors.textTertiary} />
+          </Pressable>
+
+          {/* Manage Subscription */}
+          <Pressable
+            style={[styles.appOptionCard, { marginTop: spacing.sm }]}
+            onPress={() => router.push('/premium')}
+          >
+            <View style={styles.appOptionLeft}>
+              <MaterialIcons 
+                name="workspace-premium" 
+                size={24} 
+                color={tier === 'pro' ? colors.premium : tier === 'basic' ? colors.primary : colors.textSecondary} 
+              />
+              <View>
+                <Text style={styles.appOptionTitle}>Manage Subscription</Text>
+                <Text style={styles.appOptionDesc}>
+                  {tier === 'pro' ? 'Pro plan details and options' : tier === 'basic' ? 'Basic plan details and upgrade options' : 'View premium plans and features'}
+                </Text>
               </View>
             </View>
             <MaterialIcons name="arrow-forward" size={24} color={colors.textTertiary} />
